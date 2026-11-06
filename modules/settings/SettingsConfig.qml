@@ -188,6 +188,7 @@ Singleton {
                 barWeatherPanel: true,
                 motionScheme: "expressive",
                 holidayCountry: "",
+                editMode: "panel",
                 editTipSeen: false,
                 palette: "default",
             })
@@ -249,6 +250,7 @@ Singleton {
                 barWeatherPanel: true,
                 motionScheme: "expressive",
                 holidayCountry: "",
+                editMode: "panel",
                 editTipSeen: false,
                 palette: "default",
             })

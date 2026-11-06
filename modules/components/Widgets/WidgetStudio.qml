@@ -912,6 +912,18 @@ Item {
                 contentWidth: chipRow.implicitWidth
                 contentHeight: 34
                 flickableDirection: Flickable.HorizontalFlick
+                // A vertical mouse wheel doesn't move a horizontal Flickable —
+                // translate it so the strips scroll without a drag.
+                WheelHandler {
+                    onWheel: event => {
+                        const d = event.angleDelta.y || event.angleDelta.x
+                        if (d === 0)
+                            return
+                        const f = parent
+                        f.contentX = Math.max(0, Math.min(f.contentWidth - f.width, f.contentX - d))
+                        event.accepted = true
+                    }
+                }
 
                 RowLayout {
                     id: chipRow
@@ -977,6 +989,16 @@ Item {
                 contentWidth: strip.implicitWidth
                 contentHeight: height
                 flickableDirection: Flickable.HorizontalFlick
+                WheelHandler {
+                    onWheel: event => {
+                        const d = event.angleDelta.y || event.angleDelta.x
+                        if (d === 0)
+                            return
+                        const f = parent
+                        f.contentX = Math.max(0, Math.min(f.contentWidth - f.width, f.contentX - d))
+                        event.accepted = true
+                    }
+                }
 
                 RowLayout {
                     id: strip

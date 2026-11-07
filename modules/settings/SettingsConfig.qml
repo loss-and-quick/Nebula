@@ -42,12 +42,11 @@ Singleton {
         return n !== "" ? n : root.loginName
     }
 
-    property real lastSavedAt: 0
+    property string _lastWrittenText: ""
     property bool migrationTried: false
     property bool freshInstall: false
 
     function useDefaults() {
-        migrateGuard.stop()
         if (!root.greeterMode) {
             root.freshInstall = true
             settingsAdapter.features = Features.freshDefaults()
@@ -68,48 +67,43 @@ Singleton {
             }
         }
         root.settingsReady = true
-        writeTimer.restart()
+        saveDebounce.restart()
     }
 
     Process {
         id: migrateProc
-        command: [Paths.cli, "migrate", "--quiet"]
-        stdout: StdioCollector {
-            onStreamFinished: {
-                migrateGuard.stop()
-                if (text.trim() !== "")
-                    Quickshell.reload(false)
-                else
-                    settingsFile.reload()
-            }
+        command: ["sh", "-c", 'exec "$1" migrate --quiet', "sh", Paths.cli]
+        stdout: StdioCollector { id: migrateOutput }
+        onExited: exitCode => {
+            if (exitCode !== 0)
+                root.useDefaults()
+            else if (migrateOutput.text.trim() !== "")
+                Quickshell.reload(false)
+            else
+                settingsFile.reload()
         }
     }
 
     Timer {
-        id: migrateGuard
-        interval: 5000
-        onTriggered: root.useDefaults()
+        id: saveDebounce
+        interval: 50
+        repeat: false
+        onTriggered: settingsFile.writeAdapter()
     }
 
-    Timer {
-        id: writeTimer
-        interval: 100
-        repeat: false
-        onTriggered: {
-            reloadTimer.stop()
-            root.lastSavedAt = Date.now()
-            settingsFile.writeAdapter()
+    FileView {
+        id: settingsWatcher
+        path: Paths.configDir + "/settings.json"
+        watchChanges: true
+        property bool changed: false
+        onFileChanged: {
+            changed = true
+            reload()
         }
-    }
-
-    Timer {
-        id: reloadTimer
-        interval: 100
-        repeat: false
-        onTriggered: {
-            if (writeTimer.running)
-                return
-            settingsFile.reload()
+        onLoaded: {
+            if (changed && text() !== root._lastWrittenText)
+                settingsFile.reload()
+            changed = false
         }
     }
 
@@ -145,18 +139,9 @@ Singleton {
     FileView {
         id: settingsFile
         path: Paths.configDir + "/settings.json"
-        watchChanges: true
         blockWrites: true
-        onFileChanged: {
-            if (writeTimer.running || Date.now() - root.lastSavedAt < 300)
-                return
-            reloadTimer.restart()
-        }
-        onSaved: root.lastSavedAt = Date.now()
-        onAdapterUpdated: {
-            reloadTimer.stop()
-            writeTimer.restart()
-        }
+        onSaved: root._lastWrittenText = text()
+        onAdapterUpdated: saveDebounce.restart()
         onLoaded: {
             root.applyDefaults()
             root.settingsReady = true
@@ -169,7 +154,6 @@ Singleton {
                 return
             }
             root.migrationTried = true
-            migrateGuard.restart()
             migrateProc.running = true
         }
 

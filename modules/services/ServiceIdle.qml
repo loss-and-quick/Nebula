@@ -78,7 +78,8 @@ Singleton {
         id: confFile
         path: root.confPath
         printErrors: true
-        onSaved: restartTimer.restart()
+        onSaved: Quickshell.execDetached(["sh", "-c",
+            "pkill -u \"$(id -u)\" -x hypridle; pidwait -u \"$(id -u)\" -x hypridle; exec hypridle"])
     }
 
     property bool backedUp: false
@@ -97,14 +98,6 @@ Singleton {
             root.backedUp = true
             confFile.setText(root.buildConf())
         }
-    }
-
-    Timer {
-        id: restartTimer
-        interval: 50
-        repeat: false
-        onTriggered: Quickshell.execDetached(["sh", "-c",
-            "pkill -x hypridle; sleep 0.2; hypridle & disown"])
     }
 
     // Debounced so dragging a spin box doesn't restart hypridle per step

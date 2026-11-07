@@ -16,9 +16,14 @@ Singleton {
     property int  limit: 8
 
     property var _pending: []
+    property bool _refreshPending: false
 
     function refresh() {
-        if (scanProc.running) return
+        if (scanProc.running) {
+            root._refreshPending = true
+            return
+        }
+        root._refreshPending = false
         root._pending = []
         scanProc.command = ["sh", "-c", root._script, "sh",
                             root._expand(SettingsConfig.screenshot.outputPath),
@@ -104,20 +109,16 @@ done
         onExited: {
             root.items = root._pending
             root._pending = []
+            if (root._refreshPending)
+                Qt.callLater(root.refresh)
         }
-    }
-
-    Timer {
-        id: settleTimer
-        interval: 700
-        onTriggered: root.refresh()
     }
 
     Connections {
         target: ServiceTools
 
-        function onScreenshotReady(path) { settleTimer.restart() }
-        function onIsRecordingChanged()  { if (!ServiceTools.isRecording) settleTimer.restart() }
+        function onScreenshotReady(path) { root.refresh() }
+        function onIsRecordingChanged()  { if (!ServiceTools.isRecording) root.refresh() }
     }
 
     function forget(path) {

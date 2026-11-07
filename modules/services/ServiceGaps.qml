@@ -89,7 +89,7 @@ Singleton {
 
     // ── Apply ───────────────────────────────────────────────────────────
     function exec() {
-        if (!SettingsConfig.settingsReady)
+        if (!SettingsConfig.settingsReady || !Hyprland.usingLua)
             return
         const primary = root.gapTable(s => root.reserveFor(s))
         const reset = "if NebulaGapsRule then NebulaGapsRule:set_enabled(false) end NebulaGapsRule = nil "
@@ -108,39 +108,20 @@ Singleton {
         onTriggered: root.exec()
     }
 
-    // ── Startup retries: Hyprland may not be ready immediately ───────────
-    // Fires at +500ms, +1000ms, +1500ms after launch
-    Timer {
-        id: startupRetry
-        interval: 500
-        repeat: true
-        property int count: 0
-        onTriggered: {
-            root.exec()
-            count++
-            if (count >= 3) stop()
-        }
-    }
-
-    Component.onCompleted: {
-        if (!SettingsConfig.settingsReady)
-            return
-        root.exec()
-        startupRetry.start()
-    }
+    Component.onCompleted: root.exec()
 
     Connections {
         target: SettingsConfig
         function onSettingsReadyChanged() {
-            if (!SettingsConfig.settingsReady)
-                return
             root.exec()
-            startupRetry.start()
         }
     }
 
     Connections {
         target: Hyprland
+        function onUsingLuaChanged() {
+            root.exec()
+        }
         function onRawEvent(event) {
             if (event.name === "configreloaded")
                 root.exec()

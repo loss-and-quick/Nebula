@@ -12,6 +12,7 @@ Singleton {
     // Clipboard history entries (raw strings from cliphist)
     property list<string> entries: []
     property bool isLoading: false
+    property bool _refreshPending: false
     property real items: entries.length
 
     // Temp directory for decoded images
@@ -169,6 +170,11 @@ Singleton {
 
     // Refresh clipboard history
     function refresh() {
+        if (readProc.running) {
+            root._refreshPending = true
+            return
+        }
+        root._refreshPending = false
         readProc.buffer = []
         readProc.running = true
     }
@@ -224,6 +230,8 @@ Singleton {
             if (exitCode === 0) {
                 root.entries = readProc.buffer
             }
+            if (root._refreshPending)
+                Qt.callLater(root.refresh)
         }
     }
 
@@ -253,7 +261,7 @@ Singleton {
     Connections {
         target: Quickshell
         function onClipboardTextChanged() {
-            delayedUpdateTimer.restart()
+            root.refresh()
         }
     }
 
@@ -262,16 +270,6 @@ Singleton {
         target: "cliphistService"
 
         function update(): void {
-            root.refresh()
-        }
-    }
-
-    // Delayed refresh timer to avoid race conditions
-    Timer {
-        id: delayedUpdateTimer
-        interval: 1000
-        repeat: false
-        onTriggered: {
             root.refresh()
         }
     }

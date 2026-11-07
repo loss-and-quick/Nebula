@@ -7,108 +7,71 @@
 
 # Nebula
 
-A Material You desktop shell for Hyprland, built with [Quickshell](https://quickshell.outfoxxed.me).
+A personal, hardened and architecturally refactored fork of [Nebula](https://github.com/iamSt3el/Nebula): a Material You desktop shell for Hyprland, built with [Quickshell](https://quickshell.org/).
 
-[![Stars](https://img.shields.io/github/stars/iamSt3el/Nebula?style=flat-square&color=9ed49d&labelColor=1a1c19)](https://github.com/iamSt3el/Nebula/stargazers)
-[![License](https://img.shields.io/badge/license-GPL%20v3-9ed49d?style=flat-square&labelColor=1a1c19)](LICENSE)
-[![Tour](https://img.shields.io/badge/watch-the%20tour-9ed49d?style=flat-square&logo=youtube&logoColor=white&labelColor=1a1c19)](https://youtu.be/bYuwrP-WTCs)
-[![Website](https://img.shields.io/badge/website-iamst3el.github.io%2FNebula-9ed49d?style=flat-square&labelColor=1a1c19)](https://iamst3el.github.io/Nebula/)
+[Features](#features) · [Architecture](#architecture) · [Install](#install) · [Documentation](#documentation) · [Command line](#command-line)
 
-**[Website](https://iamst3el.github.io/Nebula/)** · [Install](#install) · [Command line](#command-line) · [Theming apps](#theming-other-apps)
-
-<br>
-
-<img src="assets/showcase/desktop.jpg" alt="Nebula on Hyprland: the top bar and desktop widgets for a clock, system load, the moon, the weather and the music player, over a green willow wallpaper" width="100%">
+<img src="assets/showcase/desktop.jpg" alt="Nebula desktop on Hyprland" width="100%">
 
 </div>
 
-## What's inside
+## Features
 
-- **Colours from your wallpaper.** A Material You palette for the shell, and for your other apps if you want it.
-- **A bar and dock you edit in place.** Any screen edge, drag items around, undo.
-- **Dashboard and desktop widgets** laid out on grids you build yourself.
-- **Launcher** for apps, maths (`=`), shell commands (`>`), emoji (`:`) and open windows (`w`).
-- **Lock screen** with seven animated layouts, and an optional greetd greeter.
-- **Everyday tools:** notifications, clipboard history, screenshots and recording, a wallpaper browser with Wallhaven search, and your phone over KDE Connect: a Phone panel for files, links and clipboard, plus bar items for its battery, notifications and calls.
+- Wallpaper-derived Material You colours for the shell and other applications.
+- An editable bar and dock, dashboard and desktop widgets.
+- A launcher for apps, calculations, shell commands, emoji and windows.
+- A lock screen with multiple layouts and an optional greetd greeter.
+- Notifications, clipboard history, screenshots, recording, wallpaper browsing and KDE Connect integration.
+
+## Architecture
+
+- Hardware-accelerated GPU vector icons using `QtQuick.Shapes` and `CurveRenderer`.
+- Native Qt 6 `QtQuick.Effects`, without Qt5Compat effects.
+- Qt Quick Controls templates including `T.Control`, `T.ToolSeparator` and `M3ItemDelegate`.
+- Transactional, event-driven configuration and services, avoiding timer and inotify race workarounds.
+- Multithreaded C++ `SystemStats` worker for system statistics without blocking the main thread.
+- Immediate Wayland `ext-session-lock-v1` lock requests, without pre-lock screenshot delays.
+- Modern mdBook documentation and a native Nix flake.
 
 ## Install
 
-Arch Linux only.
+Run the native flake on Nix:
 
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/iamSt3el/Nebula/master/install.sh)
+nix run github:loss-and-quick/Nebula
 ```
 
-The installer pulls the packages, builds the plugins, sets up Python, and compiles the
-`nebula` command and installs it to `/usr/local/bin`. For Hyprland it adds
-`~/.config/hypr/nebula/` with what the shell needs (its shortcuts, layer rules, environment
-and `nebula start`) and one `require` line per file in your `hyprland.lua`. If you have
-your own `hyprland.lua`, nothing else is touched and Nebula's shortcuts are left out so they
-can't clash with yours; `nebula setup` checks them against your keys and can add them.
-Without one, it copies a starter config
-(`hyprland.lua` plus `lua/` with monitors, settings, animations, rules and keybinds),
-offering to back up the folder first.
+On Arch Linux, the installer sets up dependencies, plugins and Hyprland integration:
 
-The Displays, Windows, Keyboard & mouse and Shortcuts pages in Settings are off until you
-turn them on in Settings › Features. Each one saves either to a file Nebula owns in
-`~/.config/hypr/nebula/`, or into a marked block at the end of a file of yours that you
-pick. Nebula never rewrites anything outside that block.
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/loss-and-quick/Nebula/master/install.sh)
+```
 
-It also sets up kitty (`~/.config/kitty/kitty.conf`), the Starship prompt and the Nebula
-greeter, a fastfetch header in your palette that opens each new terminal, again offering
-a backup first.
+Nebula requires Hyprland 0.56 or newer with a Lua configuration (`~/.config/hypr/hyprland.lua`); the classic `hyprland.conf` format is not supported. After installation, log in again and run `nebula setup` to configure your wallpaper, colours and app theming.
 
-> [!IMPORTANT]
-> Nebula needs **Hyprland 0.56 or newer with a Lua config** (`~/.config/hypr/hyprland.lua`).
-> The classic `hyprland.conf` format is not supported: the shell sends Hyprland its
-> commands in Lua, which a `.conf` setup rejects. The installer's `hyprland.lua` is
-> built from Hyprland's own defaults, so a `.conf` user starts from a working Lua config.
+## Documentation
 
-Then log in again and run `nebula setup` to pick a wallpaper, your colours and which
-apps follow them. Running the installer again replaces the files in `~/.config/hypr/nebula/`
-that it ships, so keep your own changes in a file of your own.
+The [mdBook documentation](docs/src/SUMMARY.md) covers installation, configuration and the shell's features. To build it locally, run `mdbook build docs`.
 
 ## Command line
 
-The shell does its background work through one command, and you can use it too:
-
 ```bash
 nebula start                          # or stop, restart
-nebula setup                          # wallpaper, colours and apps, step by step
+nebula setup                          # wallpaper, colours and apps
 nebula wallpaper set ~/wallpaper/forest.png
 nebula scheme set --mode light        # or --variant vibrant
 nebula apps                           # which apps follow the palette
 nebula settings-source                # check settings origin and admin locks
-nebula doctor                         # anything missing?
-nebula uninstall                      # take Nebula out again (--purge deletes settings too)
+nebula doctor                         # check dependencies
+nebula uninstall                      # --purge also deletes settings
 ```
 
-`nebula help` lists everything else.
-
-## Theming other apps
-
-The palette is always written to `~/.cache/quickshell/colors.json`. Nebula can also
-write it into kitty, tmux, Starship, btop, Hyprland, GTK, Qt, Papirus folders, Firefox and Zen
-(through Pywalfox), Obsidian, Waybar and nwg-dock, using matugen-style templates in
-`~/.config/matugen/templates/`. Pick the apps in `nebula setup` or with
-`nebula apps enable|disable <id>`. If a file is one you wrote yourself, Nebula keeps
-it as `<file>.bak` before replacing it the first time.
-
-### Custom static palette
-
-If you use an external theming system (such as NixOS Stylix, pywal, or base16) and want fixed colors instead of wallpaper-derived generation, set the scheme variant to `custom` (or configure `general.palette = "custom"`) and place your palette at `~/.config/nebula/colors.json`. Nebula will read colors directly from this file and skip Material You generation on wallpaper changes, while still rendering your app templates. You can also inspect or set the file with `nebula palette path` and `nebula palette set <file>`.
+Run `nebula help` for the complete command list. The palette is written to `~/.cache/quickshell/colors.json`; `nebula setup` or `nebula apps` selects applications to theme. For a fixed external palette, set the scheme variant to `custom` and place colours in `~/.config/nebula/colors.json`.
 
 ## Credits
 
-[end_4](https://github.com/end-4) for inspiration, Quickshell patterns and
-[rounded-polygon-qmljs](https://github.com/end-4/rounded-polygon-qmljs) ·
-[soramane](https://github.com/soramanew) for design inspiration ·
-[outfoxxed](https://outfoxxed.me/) for [Quickshell](https://quickshell.outfoxxed.me)
+Based on [Nebula](https://github.com/iamSt3el/Nebula). Thanks to [end_4](https://github.com/end-4) for inspiration, Quickshell patterns and [rounded-polygon-qmljs](https://github.com/end-4/rounded-polygon-qmljs), [soramane](https://github.com/soramanew) for design inspiration, and [outfoxxed](https://outfoxxed.me/) for Quickshell.
 
 ## License
 
-[GNU GPL v3.0](LICENSE) · © 2026 iamSt3el
-
-The material shape geometry in `plugins/Nebula/shapes.cpp` is a C++ port of
-rounded-polygon-qmljs by end_4, used under its original
-[Apache License 2.0](modules/MaterialShapes/LICENSE).
+[GNU GPL v3.0](LICENSE). The material shape geometry in `plugins/Nebula/shapes.cpp` is a C++ port of rounded-polygon-qmljs by end_4, used under its original [Apache License 2.0](modules/MaterialShapes/LICENSE).

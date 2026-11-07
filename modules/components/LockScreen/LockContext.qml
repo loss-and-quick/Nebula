@@ -45,11 +45,13 @@ Scope {
 		}
 	}
 
+	onUnlocked: root.currentText = ""
+
 	onActiveChanged: {
+		root.currentText = ""
 		if (active) {
 			failedAttempts = 0
 			showFailure = false
-			currentText = ""
 			clockAwake = false
 		} else {
 			capsLockOn = false

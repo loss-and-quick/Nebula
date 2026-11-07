@@ -601,6 +601,33 @@ Item {
         return b && b.isPill ? surface.barH : surface.barH * 2
     }
 
+    function stickyRoom(block) {
+        surface.blockItems
+        const blocks = surface.blockItems.filter(b => b && !b.leaving && b.wantedBase)
+        if (blocks.length <= 1)
+            return Math.max(0, surface.spanEnd - surface.spanStart)
+        let used = 0
+        let sticky = 0
+        let previous = null
+        for (const rep of [leftRep, centerRep, rightRep]) {
+            const pad = surface.groupPad(rep)
+            used += pad.lead + pad.trail
+            for (let i = 0; i < rep.count; i++) {
+                const b = rep.itemAt(i)
+                if (!b || b.leaving || !b.wantedBase)
+                    continue
+                if (previous)
+                    used += surface.naturalGap(previous, b)
+                previous = b
+                if (b.sticky)
+                    sticky++
+                else
+                    used += b.naturalWidth
+            }
+        }
+        return Math.max(0, (surface.spanEnd - surface.spanStart - used) / Math.max(1, sticky))
+    }
+
     readonly property var orderedBlocks: surface.blockItems.filter(b => b && b.visible)
     readonly property real startPill: surface.orderedBlocks.length ? surface.orderedBlocks[0].pillT
         : (surface.allPill ? 1 : 0)

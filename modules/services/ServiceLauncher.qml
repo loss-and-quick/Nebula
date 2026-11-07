@@ -50,8 +50,11 @@ Singleton {
     readonly property int minHeight: 360
     readonly property int maxHeight: 1200
     readonly property var savedSize: (root._g.launcherSizes ?? {})[root.style] ?? null
+    readonly property bool stickyWidth: SettingsConfig.general.launcherStickyWidth === true
+    readonly property int screenUsableW: (Quickshell.screens[0]?.width ?? 1920) - 32
     property var draft: null
-    readonly property int panelWidth: root.draft ? root.draft.w
+    readonly property int panelWidth: root.stickyWidth ? root.screenUsableW
+        : root.draft ? root.draft.w
         : root.savedSize && typeof root.savedSize.w === "number" ? root.clampW(root.savedSize.w) : root.defaultWidth
     readonly property int panelHeight: root.draft ? root.draft.h
         : root.savedSize && typeof root.savedSize.h === "number" ? root.clampH(root.savedSize.h) : root.defaultHeight
@@ -67,7 +70,7 @@ Singleton {
 
     function setSize(w, h) {
         const all = Object.assign({}, root._g.launcherSizes ?? {})
-        const cw = root.clampW(w)
+        const cw = root.stickyWidth ? (root.savedSize && typeof root.savedSize.w === "number" ? root.savedSize.w : root.defaultWidth) : root.clampW(w)
         const ch = root.clampH(h)
         if (cw === root.defaultWidth && ch === root.defaultHeight) delete all[root.style]
         else all[root.style] = { w: cw, h: ch }

@@ -96,6 +96,7 @@ Item {
     readonly property bool handlesIn: barBlock.revealT > 0.55
     readonly property string shape: BarLayout.blockShape(barBlock.blockId, barBlock.edge)
     readonly property bool isPill: barBlock.shape === "pill"
+    readonly property bool sticky: BarLayout.blockStyle(barBlock.blockId, "sticky", false) === true
     readonly property string tintRole: BarLayout.blockStyle(barBlock.blockId, "tint", "none")
     readonly property bool tintShown: barBlock.tintRole !== "none" && !barBlock.isPill && barBlock.itemIds.length > 0
     readonly property bool split: barBlock.isPill && BarLayout.splitBlock(barBlock.blockId)
@@ -517,6 +518,7 @@ Item {
             barBlock.tabSnap = false
         }
         if (!barBlock.closing) {
+            barBlock.openLocked = false
             barBlock.startFollow()
             return
         }
@@ -895,7 +897,10 @@ Item {
         const g = barBlock.width - r
         return g > 0.5 && g < barBlock.snapReach && barBlock.absX + barBlock.width <= barBlock.spanR + 0.5
     }
-    readonly property real tabNaturalW: barBlock.alongOf(barBlock.shownKind)
+    property bool openLocked: false
+    property real openAlong: 0
+    property real openAcross: 0
+    readonly property real tabNaturalW: barBlock.openLocked ? barBlock.openAlong : barBlock.alongOf(barBlock.shownKind)
     function mergedSnap(x, w) {
         if (!barBlock.merged)
             return x
@@ -1262,7 +1267,7 @@ Item {
 
     readonly property real tabH: Math.max(barBlock.barH, barBlock.tabHRaw)
     property real tabHRaw: { barBlock.snapKick; return barBlock.handHold ? barBlock.handH
-        : barBlock.shownKind !== "" ? barBlock.barH + (barBlock.heightFollow ? barBlock.followAcross : barBlock.acrossOf(barBlock.shownKind) + barBlock.tuckShown)
+        : barBlock.shownKind !== "" ? barBlock.barH + (barBlock.heightFollow ? barBlock.followAcross : (barBlock.openLocked ? barBlock.openAcross : barBlock.acrossOf(barBlock.shownKind)) + barBlock.tuckShown)
         : barBlock.revealMode === "start" || barBlock.revealMode === "end" ? barBlock.revealH : barBlock.barH }
     Behavior on tabX {
         enabled: !barBlock.tabSnap && !barBlock.spanSnap && !barBlock.resizing
@@ -1472,7 +1477,8 @@ Item {
     visible: barBlock.pc > 0.001
     z: editLayer.item && editLayer.item.gripHovered ? 1 : 0
     width: barBlock.implicitWidth * barBlock.pc
-    implicitWidth: barBlock.collapsedWidth
+    implicitWidth: barBlock.sticky && barBlock.frame && barBlock.frame.stickyRoom
+        ? barBlock.frame.stickyRoom(barBlock) : barBlock.collapsedWidth
     implicitHeight: barBlock.barH
     readonly property bool tuckedAway: barBlock.frame && barBlock.frame.pushPlan ? !!barBlock.frame.pushPlan.hide[barBlock.blockId] : false
     property real tuckAwayT: barBlock.tuckedAway ? 1 : 0
@@ -1539,9 +1545,15 @@ Item {
             barBlock.lastKind = k
         barBlock.stopFollow()
         barBlock.panelSwap = k !== "" && barBlock.shownKind !== ""
-        const caeOpen = k !== "" && barBlock.caeStyle && !barBlock.tabOpen
-        if (caeOpen)
-            barBlock.spanSnap = true
+        barBlock.spanSnap = opening
+        if (k !== "") {
+            barBlock.prepareContent(k)
+            barBlock.openAlong = barBlock.alongOf(k)
+            barBlock.openAcross = barBlock.acrossOf(k)
+            barBlock.openLocked = true
+        } else {
+            barBlock.openLocked = false
+        }
         barBlock.shownKind = k
         barBlock.spanSnap = false
         barBlock.showContent(k)
@@ -1595,6 +1607,15 @@ Item {
                 }
             }
         }
+    }
+
+    function prepareContent(k) {
+        const cur = barBlock.curSlot === 0 ? slotA : slotB
+        const other = barBlock.curSlot === 0 ? slotB : slotA
+        if (cur.kind === k || other.kind === k)
+            return
+        const target = cur.kind === "" || (!cur.shown && cur.opacity < 0.02) ? cur : other
+        target.kind = k
     }
 
     function showContent(k) {
@@ -2387,8 +2408,8 @@ Item {
             }
         }
 
-        width: barBlock.kindWidth(slot.kind)
-        height: barBlock.contentHeight(slot.kind)
+        width: barBlock.vertical || barBlock.shownKind === "" ? barBlock.kindWidth(slot.kind) : barBlock.tabW
+        height: barBlock.vertical && barBlock.shownKind !== "" ? barBlock.tabW : barBlock.contentHeight(slot.kind)
 
         x: Math.round(barBlock.absX + slot.homeX) - barBlock.absX - slot.clipX
         y: Math.round(slot.clipY + (slot.ride ? slot.rideY

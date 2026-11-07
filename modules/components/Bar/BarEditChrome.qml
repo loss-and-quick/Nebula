@@ -1354,6 +1354,19 @@ Item {
 
             RowLayout {
                 Layout.fillWidth: true
+                CustomText {
+                    Layout.fillWidth: true
+                    content: "Sticky / Full width"
+                    size: 12
+                }
+                CustomToogle {
+                    isToggleOn: BarLayout.blockStyle(chrome.selBlock, "sticky", false) === true
+                    onToggled: state => BarLayout.setBlockStyle(chrome.selBlock, "sticky", state ? true : undefined)
+                }
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
                 spacing: 12
                 HoverHandler {
                     onHoveredChanged: BarLayout.hoverGap(hovered, "edges", blockCard.side, chrome.selBlock)

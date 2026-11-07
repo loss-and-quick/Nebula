@@ -48,7 +48,7 @@ Item {
         id: track
         anchors.fill: parent
         radius: height / 2
-        color: root._on ? Colors.primary : Colors.surfaceContainerHighest
+        color: root._on ? Colors.primary : Colors.surfaceContainer
 
         border.width: root._on ? 0 : 2 * root._s
         border.color: Colors.outline
@@ -87,7 +87,7 @@ Item {
             height: root._handleSize
             radius: width / 2
             x: root._handleCenter - width / 2
-            color: root._on ? Colors.primaryText : Colors.outline
+            color: root._on ? Colors.primaryText : Colors.surfaceText
 
             Behavior on width {
                 NumberAnimation {
@@ -111,7 +111,7 @@ Item {
                 iconSize: 16 * root._s
                 fill: 1
                 customColor: root._on ? Colors.primary
-                                             : Colors.surfaceContainerHighest
+                                      : Colors.surfaceContainer
             }
         }
     }

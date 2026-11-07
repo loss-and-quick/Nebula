@@ -41,22 +41,24 @@ Flickable {
     maximumFlickVelocity: 3000
     onMovementStarted: glide.stop()
 
+    Rectangle {
+        id: fadeMask
+        visible: false
+        layer.enabled: true
+        width: root.width
+        height: root.height
+        gradient: Gradient {
+            GradientStop { position: 0; color: Qt.rgba(0, 0, 0, 1 - root.topFade) }
+            GradientStop { position: root.fadeStop; color: "black" }
+            GradientStop { position: 1 - root.fadeStop; color: "black" }
+            GradientStop { position: 1; color: Qt.rgba(0, 0, 0, 1 - root.bottomFade) }
+        }
+    }
+
     layer.enabled: root.fadeEdges && root.scrollable && root.visible
     layer.effect: MultiEffect {
         maskEnabled: true
-        maskThresholdMin: 0.5
-        maskSpreadAtMin: 1.0
-        maskSource: Rectangle {
-            layer.enabled: true
-            width: root.width
-            height: root.height
-            gradient: Gradient {
-                GradientStop { position: 0; color: Qt.rgba(0, 0, 0, 1 - root.topFade) }
-                GradientStop { position: root.fadeStop; color: "black" }
-                GradientStop { position: 1 - root.fadeStop; color: "black" }
-                GradientStop { position: 1; color: Qt.rgba(0, 0, 0, 1 - root.bottomFade) }
-            }
-        }
+        maskSource: fadeMask
     }
 
     FrameAnimation {

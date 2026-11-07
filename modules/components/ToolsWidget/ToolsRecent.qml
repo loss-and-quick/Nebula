@@ -86,6 +86,15 @@ ColumnLayout {
                     border.color: tileHover.hovered ? Colors.primary : Colors.outlineVariant
                     Behavior on border.color { EffectsColorAnim { speed: "fast" } }
 
+                    Rectangle {
+                        id: thumbMask
+                        visible: false
+                        layer.enabled: true
+                        width: thumb.width
+                        height: thumb.height
+                        radius: 14
+                    }
+
                     Image {
                         id: thumb
                         anchors.fill: parent
@@ -98,14 +107,7 @@ ColumnLayout {
                         layer.enabled: true
                         layer.effect: MultiEffect {
                             maskEnabled: true
-                            maskThresholdMin: 0.5
-                            maskSpreadAtMin: 1.0
-                            maskSource: Rectangle {
-                                layer.enabled: true
-                                width:  thumb.width
-                                height: thumb.height
-                                radius: 14
-                            }
+                            maskSource: thumbMask
                         }
                     }
 

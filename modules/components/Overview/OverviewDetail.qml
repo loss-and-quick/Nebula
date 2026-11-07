@@ -156,6 +156,15 @@ ColumnLayout {
         readonly property real offsetX: (stage.width  - root.screenRect.width  * stage.scaleFactor) / 2
         readonly property real offsetY: (stage.height - root.screenRect.height * stage.scaleFactor) / 2
 
+        Rectangle {
+            id: stageWallMask
+            visible: false
+            layer.enabled: true
+            width: stageWall.width
+            height: stageWall.height
+            radius: 18
+        }
+
         Image {
             id: stageWall
             anchors.fill: parent
@@ -168,14 +177,7 @@ ColumnLayout {
             layer.enabled: true
             layer.effect: MultiEffect {
                 maskEnabled: true
-                maskThresholdMin: 0.5
-                maskSpreadAtMin: 1.0
-                maskSource: Rectangle {
-                    layer.enabled: true
-                    width:  stageWall.width
-                    height: stageWall.height
-                    radius: 18
-                }
+                maskSource: stageWallMask
             }
         }
 

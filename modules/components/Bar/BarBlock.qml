@@ -1812,7 +1812,7 @@ Item {
             clip: true
             layer.enabled: barBlock.tabMoving && barBlock.panelCorner > 0
             layer.smooth: true
-            layer.effect: MultiEffect { maskEnabled: true; maskSource: panelCornerMask; maskThresholdMin: 0.5; maskSpreadAtMin: 1.0 }
+            layer.effect: MultiEffect { maskEnabled: true; maskSource: panelCornerMask }
 
             PanelSlot { id: slotA }
             PanelSlot { id: slotB }
@@ -2393,7 +2393,7 @@ Item {
 
         layer.enabled: slot.reveal < 1 && slot.visible
         layer.smooth: true
-        layer.effect: MultiEffect { maskEnabled: true; maskSource: wipe; maskThresholdMin: 0.5; maskSpreadAtMin: 1.0 }
+        layer.effect: MultiEffect { maskEnabled: true; maskSource: wipe }
 
         Item {
             id: wipe

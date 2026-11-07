@@ -49,20 +49,21 @@ Item {
         id: _rippleClip
         anchors.fill: parent
 
+        Rectangle {
+            id: _rippleMask
+            visible: false
+            layer.enabled: true
+            anchors.fill: parent
+            topLeftRadius: root.topLeftRadius
+            topRightRadius: root.topRightRadius
+            bottomLeftRadius: root.bottomLeftRadius
+            bottomRightRadius: root.bottomRightRadius
+        }
+
         layer.enabled: _anim.running
         layer.effect: MultiEffect {
             maskEnabled: true
-            maskThresholdMin: 0.5
-            maskSpreadAtMin: 1.0
-            maskSource: Rectangle {
-                layer.enabled: true
-                width:              _rippleClip.width
-                height:             _rippleClip.height
-                topLeftRadius:     root.topLeftRadius
-                topRightRadius:    root.topRightRadius
-                bottomLeftRadius:  root.bottomLeftRadius
-                bottomRightRadius: root.bottomRightRadius
-            }
+            maskSource: _rippleMask
         }
 
         Rectangle {

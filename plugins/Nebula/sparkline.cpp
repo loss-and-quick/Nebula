@@ -75,14 +75,19 @@ void Sparkline::setStyle(T &field, const T &value)
 
 void Sparkline::setValues(const QList<qreal> &values)
 {
-    if (m_values == values)
+    const QList<qreal> trimmed = values.mid(qMax(0, int(values.size()) - qMax(0, m_maxPoints)));
+    if (m_values == trimmed)
         return;
-    m_values = values;
+    m_values = trimmed;
     emit valuesChanged();
     update();
 }
 
-void Sparkline::setMaxPoints(int v) { setStyle(m_maxPoints, v); }
+void Sparkline::setMaxPoints(int v)
+{
+    setStyle(m_maxPoints, qMax(0, v));
+    setValues(m_values);
+}
 void Sparkline::setLineColor(const QColor &v) { setStyle(m_lineColor, v); }
 void Sparkline::setAreaColor(const QColor &v) { setStyle(m_areaColor, v); }
 void Sparkline::setLineWidth(qreal v) { setStyle(m_lineWidth, v); }

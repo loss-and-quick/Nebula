@@ -3,8 +3,12 @@
 #include <QObject>
 #include <QString>
 #include <QTimer>
+#include <QThread>
 #include <QVariantList>
 #include <QtQml/qqml.h>
+
+class StatsWorker;
+struct StatsData;
 
 class SystemStats : public QObject
 {
@@ -17,7 +21,7 @@ class SystemStats : public QObject
     Q_PROPERTY(int diskInterval READ diskInterval WRITE setDiskInterval NOTIFY diskIntervalChanged)
     Q_PROPERTY(QString netInterface READ netInterface WRITE setNetInterface NOTIFY netInterfaceChanged)
 
-    Q_PROPERTY(QString cpuName READ cpuName CONSTANT)
+    Q_PROPERTY(QString cpuName READ cpuName NOTIFY cpuNameChanged)
     Q_PROPERTY(qreal cpuUsage READ cpuUsage NOTIFY cpuChanged)
     Q_PROPERTY(QVariantList cpuCores READ cpuCores NOTIFY cpuChanged)
     Q_PROPERTY(qreal cpuTemp READ cpuTemp NOTIFY cpuTempChanged)
@@ -46,6 +50,7 @@ class SystemStats : public QObject
 
 public:
     explicit SystemStats(QObject *parent = nullptr);
+    ~SystemStats() override;
 
     bool running() const { return m_running; }
     void setRunning(bool running);
@@ -94,6 +99,7 @@ signals:
     void netIntervalChanged();
     void diskIntervalChanged();
     void netInterfaceChanged();
+    void cpuNameChanged();
     void cpuChanged();
     void cpuTempChanged();
     void memChanged();
@@ -103,17 +109,7 @@ signals:
     void netSampled();
 
 private:
-    struct CpuTimes {
-        quint64 total = 0;
-        quint64 idle = 0;
-    };
-
-    void resolvePaths();
     void sampleStats();
-    void sampleCpu();
-    void sampleMem();
-    void sampleTemps();
-    void sampleGpu();
     void sampleNet();
     void sampleDisk();
 
@@ -123,14 +119,14 @@ private:
     QTimer m_diskTimer;
     QString m_netInterface;
 
-    QString m_cpuTempPath;
-    QString m_gpuDevicePath;
-    QString m_gpuHwmonPath;
+    StatsWorker *m_worker = nullptr;
+    QThread *m_thread = nullptr;
+    bool m_pending[3] = {};
+    quint64 m_netGeneration = 0;
+    void requestSample(int kind);
+    void applySample(const StatsData &data, int kind, quint64 generation);
 
     QString m_cpuName;
-    bool m_havePrevCpu = false;
-    CpuTimes m_prevCpu;
-    QList<CpuTimes> m_prevCores;
     qreal m_cpuUsage = 0;
     QVariantList m_cpuCores;
     qreal m_cpuTemp = 0;
@@ -152,10 +148,6 @@ private:
     qreal m_diskUsedGb = 0;
     qreal m_diskTotalGb = 0;
 
-    bool m_havePrevNet = false;
-    qreal m_prevRx = 0;
-    qreal m_prevTx = 0;
-    qint64 m_lastNetMs = 0;
     qreal m_netDown = 0;
     qreal m_netUp = 0;
     qreal m_netRx = 0;

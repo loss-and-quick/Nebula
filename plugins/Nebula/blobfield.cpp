@@ -285,7 +285,10 @@ void BlobField::pack()
     const QRect bounds(0, 0, int(std::ceil(width())), int(std::ceil(height())));
     if (bounds.isEmpty()) {
         m_pack = p;
+        const bool countChanged = !m_pieces.empty();
         m_pieces.clear();
+        if (countChanged)
+            emit piecesChanged();
         return;
     }
 

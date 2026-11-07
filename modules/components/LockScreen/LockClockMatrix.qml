@@ -45,7 +45,7 @@ Item {
     Timer {
         interval: 1000
         repeat: true
-        running: !root.awake
+        running: !root.awake && root.visible && root.hide < 0.999
         onTriggered: root.colonOn = root.colonOn > 0.5 ? 0 : 1
     }
 

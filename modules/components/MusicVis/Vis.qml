@@ -96,9 +96,24 @@ PanelWindow {
         }
     }
 
-    // Activate cava when music visualizer is visible
-    Component.onCompleted: ServiceCava.retain()
-    Component.onDestruction: ServiceCava.release()
+    readonly property bool cavaActive: ServiceMusic.isPlaying && panelWindow.mapped
+    property bool cavaRetained: false
+
+    function syncCava() {
+        if (panelWindow.cavaActive === panelWindow.cavaRetained)
+            return
+        panelWindow.cavaRetained = panelWindow.cavaActive
+        if (panelWindow.cavaRetained)
+            ServiceCava.retain()
+        else
+            ServiceCava.release()
+    }
+    onCavaActiveChanged: panelWindow.syncCava()
+    Component.onCompleted: panelWindow.syncCava()
+    Component.onDestruction: {
+        if (panelWindow.cavaRetained)
+            ServiceCava.release()
+    }
 
     mask: Region{
         item: maskRect

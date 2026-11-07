@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Effects
 
 Item {
     id: root
@@ -7,21 +8,28 @@ Item {
     property alias sourceSize: img.sourceSize
     property alias asynchronous: img.asynchronous
     property alias status: img.status
+    property alias fillMode: img.fillMode
     property real radius: 28
+
+    Rectangle {
+        id: maskShape
+        anchors.fill: parent
+        radius: root.radius
+        visible: false
+        layer.enabled: true
+    }
 
     Image {
         id: img
-        visible: false
-        asynchronous: true
-    }
-
-    ShaderEffect {
         anchors.fill: parent
-        visible: img.status === Image.Ready
-        property var source: img
-        property vector2d itemSize: Qt.vector2d(width, height)
-        property vector2d imageSize: Qt.vector2d(img.implicitWidth, img.implicitHeight)
-        property real radius: root.radius
-        fragmentShader: Qt.resolvedUrl("../../shaders/qsb/roundimage.frag.qsb")
+        fillMode: Image.PreserveAspectCrop
+        asynchronous: true
+        visible: status === Image.Ready
+
+        layer.enabled: true
+        layer.effect: MultiEffect {
+            maskEnabled: true
+            maskSource: maskShape
+        }
     }
 }

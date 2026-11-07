@@ -109,7 +109,7 @@ Singleton {
                 root._iconQueue.push({ icon: icon, size: size })
         }
         if (root._iconQueue.length > 0)
-            iconTimer.start()
+            Qt.callLater(root._processIcons)
     }
 
     Item { id: iconShelf }
@@ -119,41 +119,33 @@ Singleton {
         Image { visible: false }
     }
 
-    Timer {
-        id: iconTimer
-        interval: 40
-        repeat: true
-        onTriggered: {
+    function _processIcons() {
+        for (let i = 0; i < 8 && root._iconQueue.length > 0; i++) {
             const job = root._iconQueue.shift()
-            if (!job) {
-                iconTimer.stop()
-                return
-            }
             const key = job.icon + "@" + job.size
             if (root._iconKept[key])
-                return
+                continue
             root._iconKept[key] = iconKeeper.createObject(iconShelf, {
                 source: IconUtil.getDesktopIconPath(job.icon),
                 sourceSize: Qt.size(job.size, job.size)
             })
         }
+        if (root._iconQueue.length > 0)
+            Qt.callLater(root._processIcons)
     }
 
-    Timer {
-        id: iconWarmup
-        interval: 4000
-        running: true
-        onTriggered: {
-            const sizes = (root._styleIconSizes[root.style] ?? [root.iconSize + 8]).concat(root._iconSizes)
-            root._iconSizes = []
-            for (let i = 0; i < sizes.length; i++)
-                root.noteIconSize(sizes[i])
-        }
+    function _warmIcons() {
+        const sizes = (root._styleIconSizes[root.style] ?? [root.iconSize + 8]).concat(root._iconSizes)
+        root._iconSizes = []
+        for (let i = 0; i < sizes.length; i++)
+            root.noteIconSize(sizes[i])
     }
+
+    Component.onCompleted: root._warmIcons()
 
     Connections {
         target: DesktopEntries.applications
-        function onValuesChanged() { iconWarmup.restart() }
+        function onValuesChanged() { root._warmIcons() }
     }
     readonly property string sortMode: root._g.launcherSort ?? "az"
     readonly property var enabledModes: root.modes.filter(m => root._g[m.key] ?? true)

@@ -11,6 +11,7 @@ Item {
     property int count: 0
     property int phase: 0
     property int ticks: 0
+    property real fadeProgress: 0
 
     function shownOpacity(item) {
         let o = 1
@@ -24,6 +25,8 @@ Item {
 
     function stop() {
         frames.running = false
+        fade.stop()
+        root.fadeProgress = 0
         root.phase = 0
         root.count = 0
         root.shots = []
@@ -56,8 +59,9 @@ Item {
     }
 
     function applied() {
-        if (root.phase !== 2)
+        if (root.phase !== 1 && root.phase !== 2)
             return
+        frames.running = false
         let any = false
         for (const e of root.shots) {
             e.gone = !e.host || !e.host.parent || !e.host.visible || WidgetLayout.hosts.indexOf(e.host) < 0
@@ -66,7 +70,7 @@ Item {
         }
         root.phase = 3
         if (any)
-            clear.restart()
+            fade.start()
         else
             root.stop()
     }
@@ -89,20 +93,16 @@ Item {
         }
     }
 
-    Timer {
-        id: clear
-        interval: M3Motion.effectsDuration("default") + 60
-        onTriggered: root.stop()
-    }
-
-    Timer {
-        interval: 3000
-        running: root.phase > 0
-        onTriggered: {
-            if (root.phase === 1)
-                ServiceLayouts.release()
-            root.stop()
-        }
+    NumberAnimation {
+        id: fade
+        target: root
+        property: "fadeProgress"
+        from: 0
+        to: 1
+        duration: M3Motion.effectsDuration("default")
+        easing.type: Easing.BezierSpline
+        easing.bezierCurve: [0.3, 0, 1, 1, 1, 1]
+        onFinished: root.stop()
     }
 
     Repeater {
@@ -126,24 +126,10 @@ Item {
             sourceRect: shot.entry ? shot.entry.crop : Qt.rect(0, 0, 0, 0)
             smooth: true
 
-            opacity: shot.fading ? 0 : 1
-            Behavior on opacity {
-                NumberAnimation {
-                    duration: M3Motion.effectsDuration("default")
-                    easing.type: Easing.BezierSpline
-                    easing.bezierCurve: [0.3, 0, 1, 1, 1, 1]
-                }
-            }
+            opacity: shot.fading ? 1 - root.fadeProgress : 1
 
             transform: Translate {
-                y: shot.fading ? 10 : 0
-                Behavior on y {
-                    NumberAnimation {
-                        duration: M3Motion.effectsDuration("default")
-                        easing.type: Easing.BezierSpline
-                        easing.bezierCurve: [0.3, 0, 1, 1, 1, 1]
-                    }
-                }
+                y: shot.fading ? 10 * root.fadeProgress : 0
             }
         }
     }

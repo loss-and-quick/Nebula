@@ -33,6 +33,7 @@ Singleton {
         const p = root._g.launcherPosition ?? "item"
         return p === "center" || p === "block" ? p : "item"
     }
+    readonly property bool matchDock: SettingsConfig.general.launcherMatchDock === true
     readonly property var styles: [
         { value: "palette",    label: "Palette",    icon: "bolt",              w: 560, h: 560 },
         { value: "hearth",     label: "Hearth",     icon: "fireplace",         w: 660, h: 720 }

@@ -801,7 +801,11 @@ Item {
             const n = Math.max(1, GlobalStates.osdKinds.length)
             return barBlock.vertical ? 16 + n * 44 + (n - 1) * 8 : 16 + n * (n > 1 ? 220 : 284) + (n - 1) * 8
         }
-        case "launcher":  return BarLayout.panelW("launcher")
+        case "launcher": {
+            if (ServiceLauncher.position === "block" && SettingsConfig.general.launcherMatchDock === true)
+                return Math.max(barBlock.width, ServiceLauncher.minWidth)
+            return BarLayout.panelW("launcher")
+        }
         }
         return 0
     }

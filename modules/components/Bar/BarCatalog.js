@@ -240,6 +240,8 @@ function build(env) {
                     { key: "hWindow", label: "Window", type: "heading" },
                     { key: "position", label: "Opens", type: "choice", setting: "launcherPosition", default: "item",
                       choices: [{ value: "item", label: "From item" }, { value: "block", label: "Widget" }, { value: "center", label: "Centre" }] },
+                    { key: "matchDock", label: "Match dock width", type: "toggle", setting: "launcherMatchDock", default: true,
+                      onlyIf: { key: "position", values: ["block"] } },
                     { key: "stickyWidth", label: "Full width / sticky", type: "toggle", setting: "launcherStickyWidth", default: false },
                     { key: "radius", label: "Corner radius", type: "slider", setting: "launcherRadius", min: 0, max: 40, step: 2, default: -1,
                       auto: "Match bar", onlyIf: { key: "position", values: ["center"] } },

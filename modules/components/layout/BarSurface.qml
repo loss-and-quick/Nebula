@@ -1313,6 +1313,7 @@ Item {
         function onEdgesChanged() { surface.syncGroups() }
     }
 
+    readonly property bool hoverMode: surface.cfg.hoverMode === true || surface.cfg.overlay === true
     readonly property bool autoHide: surface.cfg.autoHide
     readonly property bool dockActive: !surface.autoHide || revealHover.hovered || GlobalStates.barEditMode
         || (surface.autoHide && GlobalStates.dockPeek)
@@ -1567,7 +1568,7 @@ Item {
     readonly property real stripBand: !surface.present ? 0
         : Math.max(surface.borderNear, !surface.allPill && surface.minBridge < Infinity ? surface.sdfBot : 0)
     readonly property real panelBand: surface.autoHide ? surface.stripBand : surface.thickness
-    readonly property real occupied: !surface.visible || !surface.present ? 0
+    readonly property real occupied: !surface.visible || !surface.present || surface.hoverMode ? 0
         : surface.autoHide ? surface.stripBand
         : surface.thickness
     readonly property real sdfFlip: surface.height + (surface.allPill ? surface.slide : 0)

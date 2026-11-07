@@ -289,7 +289,7 @@ function edgeReserve(barCfg, general, side, gameHidden) {
         return 0
     const shapes = blockShapes(barCfg, general).edges[side]
     const flat = shapes.indexOf("flat") >= 0
-    if (cfg.autoHide)
+    if (cfg.autoHide || cfg.hoverMode || cfg.overlay)
         return 0
     if (shapes.indexOf("pill") >= 0)
         return Math.round(cfg.height + cfg.pillGap + 10)

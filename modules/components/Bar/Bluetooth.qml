@@ -653,7 +653,8 @@ Item {
                         }
 
                         CustomText {
-                            Layout.alignment: Qt.AlignHCenter
+                            Layout.fillWidth: true
+                            horizontalAlignment: Text.AlignHCenter
                             content: root.adapter ? "Turn Bluetooth on to see your devices" : "No Bluetooth adapter found"
                             size: 12
                             weight: 500

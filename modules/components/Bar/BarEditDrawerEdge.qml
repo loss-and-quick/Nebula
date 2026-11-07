@@ -86,6 +86,35 @@ ColumnLayout {
                     Layout.maximumWidth: 100000
                     spacing: 1
 
+                    CustomText { content: "Hover over windows"; size: 13 }
+                    CustomText {
+                        content: "Show over applications without reserving space"
+                        size: 11
+                        customColor: Colors.outline
+                    }
+                }
+
+                CustomToogle {
+                    isToggleOn: host.edgeCfg.hoverMode === true || host.edgeCfg.overlay === true
+                    onToggled: state => {
+                        if (host.edgeCfg.overlay === true)
+                            BarLayout.setEdge(host.edgeSide, "overlay", false)
+                        BarLayout.setEdge(host.edgeSide, "hoverMode", state)
+                    }
+                }
+            }
+        }
+        EditRow {
+            visible: host.edgeBlocks.length > 0 && !host.edgeCfg.hidden
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 10
+
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    Layout.maximumWidth: 100000
+                    spacing: 1
+
                     CustomText { content: "Hide in game mode"; size: 13 }
                     CustomText {
                         content: "Tuck this edge away while game mode hides widgets"

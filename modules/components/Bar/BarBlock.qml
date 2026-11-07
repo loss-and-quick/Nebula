@@ -202,11 +202,10 @@ Item {
     readonly property real floatGap: barBlock.floating ? barBlock.panelGapSetting
         : barBlock.fusedHost ? 0
         : barBlock.merged ? Math.max(barBlock.panelGapSetting, barBlock.crowded || barBlock.fusedAttach ? 8 : 0) * Math.max(0, Math.min(1, (barBlock.tabH - barBlock.barH) / 24)) : 0
-    property real goo: { barBlock.snapKick; return barBlock.floating && barBlock.shownKind !== "" ? 1 : 0 }
+    property real goo: barBlock.floating && barBlock.shownKind !== "" ? 1 : 0
     Behavior on goo {
         enabled: barBlock.floating && !barBlock.gooSnap
         NumberAnimation {
-            id: gooAnim
             duration: barBlock.quickMotion ? (barBlock.shownKind !== "" ? 380 : 260)
                 : barBlock.shownKind !== "" ? 520 : 400
             easing.type: barBlock.quickMotion && barBlock.shownKind === "" ? Easing.OutCubic : Easing.InOutCubic
@@ -224,10 +223,6 @@ Item {
     }
     property int openSeq: 0
     onShownKindChanged: {
-        if (barBlock.shownKind !== "") {
-            barBlock.heldX = barBlock.tabTargetX
-            barBlock.heldW = barBlock.tabTargetW
-        }
         barBlock.updateCrowded()
         if (barBlock.shownKind !== "" && layout.nextPanelSeq)
             barBlock.openSeq = layout.nextPanelSeq()
@@ -266,9 +261,7 @@ Item {
         ? { x: barBlock.plateX, w: barBlock.plateW, y: (barBlock.barH - barBlock.plateH) / 2,
             h: barBlock.plateH, r: barBlock.plateR }
         : { x: 0, w: barBlock.width, y: 0, h: barBlock.barH, r: barBlock.pillRadius }
-    readonly property real contentT: !barBlock.floating ? 1
-        : barBlock.quickMotion ? Math.max(0, Math.min(1, (barBlock.goo - 0.55) / 0.35))
-        : Math.max(0, Math.min(1, (barBlock.goo - 0.75) / 0.25))
+    property real contentT: 0
     readonly property var gooShape: {
         const g = barBlock.goo
         const s1 = Math.min(1, g / 0.45)
@@ -385,7 +378,6 @@ Item {
     property string pendingKind: ""
     property Item pendingItem: null
     property bool pendingClicked: false
-    property bool tabSnap: false
     property var itemLeaving: ({})
     property real srcX: 0
     property real srcW: 0
@@ -510,13 +502,8 @@ Item {
     }
 
     function checkSettled() {
-        if (tabXAnim.running || tabWAnim.running || tabHAnim.running)
+        if (tabXAnim.running || tabWAnim.running || tabHAnim.running || openTrans.running || closeTrans.running)
             return
-        if (barBlock.closing && barBlock.revealMode !== "") {
-            barBlock.tabSnap = true
-            barBlock.revealMode = ""
-            barBlock.tabSnap = false
-        }
         if (!barBlock.closing) {
             barBlock.openLocked = false
             barBlock.startFollow()
@@ -552,10 +539,8 @@ Item {
     }
 
     function snapSource(item, kind) {
-        barBlock.tabSnap = true
         barBlock.sourceFrom(item)
         barBlock.flushSource(kind)
-        barBlock.tabSnap = false
     }
 
     function shownItemFor(id) {
@@ -584,20 +569,16 @@ Item {
         const k = barBlock.panelKind
         const snap = barBlock.tabH <= barBlock.barH + 0.5
         if (k === "osd" && barBlock.osdHost) {
-            barBlock.tabSnap = snap
             barBlock.anchorSource(BarLayout.osdHostItem, k)
-            barBlock.tabSnap = false
             return
         }
         if (k === "launcher") {
-            barBlock.tabSnap = snap
             barBlock.plateFrom(null)
             const w = barBlock.alongOf("launcher")
             const it = ServiceLauncher.position === "item" ? barBlock.itemFor("launcher") : null
             const cx = it ? barBlock.centerOfItem(it) : barBlock.width / 2
             barBlock.srcX = barBlock.alignX(w, cx)
             barBlock.srcW = w
-            barBlock.tabSnap = false
             return
         }
         const item = BarLayout.panelItemHost(k) && barBlock.hasItem(k) ? barBlock.itemFor(k) : null
@@ -1061,16 +1042,8 @@ Item {
     function queueSync() {
         Qt.callLater(barBlock.syncBody)
     }
-    onTabTargetXChanged: {
-        barBlock.queueSync()
-        if (barBlock.shownKind !== "")
-            barBlock.heldX = barBlock.tabTargetX
-    }
-    onTabTargetWChanged: {
-        barBlock.queueSync()
-        if (barBlock.shownKind !== "")
-            barBlock.heldW = barBlock.tabTargetW
-    }
+    onTabTargetXChanged: barBlock.queueSync()
+    onTabTargetWChanged: barBlock.queueSync()
     onAbsXChanged: barBlock.queueSync()
     onClosingChanged: barBlock.queueSync()
     Component.onDestruction: if (barBlock.frame && barBlock.frame.clearBody) barBlock.frame.clearBody(barBlock.blockId)
@@ -1105,39 +1078,12 @@ Item {
     readonly property real srcEdgeW: (barBlock.snapInR(barBlock.srcX + barBlock.srcW) ? barBlock.width : barBlock.srcX + barBlock.srcW)
         - barBlock.srcEdgeX
 
-    property string revealMode: ""
-    property real revealX: 0
-    property real revealW: 0
-    property real revealH: 0
-
-    function revealFor(k) {
-        const w = barBlock.alongOf(k)
-        const x = barBlock.alignX(w, barBlock.srcX + barBlock.srcW / 2)
-        const sl = barBlock.spanL - barBlock.absX
-        const sr = barBlock.spanR - barBlock.absX
-        const atStart = Math.abs(x - sl) <= 0.5
-        const atEnd = Math.abs(x + w - sr) <= 0.5
-        const farEdge = barBlock.acrossOf(k) >= barBlock.panelRoom - 1
-        barBlock.revealX = x
-        barBlock.revealW = w
-        barBlock.revealH = barBlock.barH + barBlock.acrossOf(k)
-        if (barBlock.isPill)
-            return ""
-        return atStart && atEnd ? "across" : farEdge && atStart ? "start" : farEdge && atEnd ? "end"
-            : barBlock.drawer ? "across" : ""
-    }
-
     readonly property bool drawer: barBlock.flatT > 0.5 && !barBlock.isPill && !barBlock.floating && !barBlock.merged
 
-    property real heldX: 0
-    property real heldW: 0
-    property bool spanSnap: false
     property real handX: 0
     property real handW: 0
     property real handH: 0
     property bool gooSnap: false
-    property int snapKick: 0
-    property bool handHold: false
     property string handFor: ""
     property bool gliding: false
     property real closedAt: 0
@@ -1166,53 +1112,21 @@ Item {
     function tryHandoff() {
         const k = barBlock.handFor
         barBlock.handFor = ""
-        if (k === "" || barBlock.shownKind !== k)
+        if (k === "")
             return
         const src = barBlock.handoffSource()
         if (!src)
             return
-        tabXAnim.stop()
-        tabWAnim.stop()
-        tabHAnim.stop()
-        gooAnim.stop()
         barBlock.handX = src.absX + src.tabX - barBlock.absX
         barBlock.handW = src.tabW
         barBlock.handH = Math.max(barBlock.barH, src.tabHRaw)
         barBlock.gliding = true
         glideEnd.restart()
-        barBlock.tabSnap = true
         barBlock.gooSnap = true
-        barBlock.handHold = true
-        barBlock.snapKick++
-        barBlock.gooSnap = false
-        barBlock.tabSnap = false
-        barBlock.handHold = false
-        src.snapShut()
     }
 
-    function snapShut() {
-        tabXAnim.stop()
-        tabWAnim.stop()
-        tabHAnim.stop()
-        gooAnim.stop()
-        barBlock.tabSnap = true
-        barBlock.gooSnap = true
-        barBlock.revealMode = ""
-        barBlock.snapKick++
-        barBlock.gooSnap = false
-        barBlock.tabSnap = false
-    }
-
-    property real tabX: { barBlock.snapKick; return barBlock.handHold ? barBlock.handX
-        : barBlock.shownKind !== "" ? barBlock.tabTargetX
-        : barBlock.caeStyle && barBlock.revealMode === "" && barBlock.heldW > 0 ? barBlock.heldX
-        : barBlock.revealMode === "" ? barBlock.srcEdgeX
-        : barBlock.revealMode === "end" ? barBlock.revealX + barBlock.revealW : barBlock.revealX }
-    property real tabW: { barBlock.snapKick; return barBlock.handHold ? barBlock.handW
-        : barBlock.shownKind !== "" ? barBlock.tabTargetW
-        : barBlock.caeStyle && barBlock.revealMode === "" && barBlock.heldW > 0 ? barBlock.heldW
-        : barBlock.revealMode === "" ? barBlock.srcEdgeW
-        : barBlock.revealMode === "across" ? barBlock.revealW : 0 }
+    property real tabX: 0
+    property real tabW: 0
     property bool heightFollow: false
     property bool followLock: false
     property real followAcross: 0
@@ -1270,11 +1184,9 @@ Item {
     }
 
     readonly property real tabH: Math.max(barBlock.barH, barBlock.tabHRaw)
-    property real tabHRaw: { barBlock.snapKick; return barBlock.handHold ? barBlock.handH
-        : barBlock.shownKind !== "" ? barBlock.barH + (barBlock.heightFollow ? barBlock.followAcross : (barBlock.openLocked ? barBlock.openAcross : barBlock.acrossOf(barBlock.shownKind)) + barBlock.tuckShown)
-        : barBlock.revealMode === "start" || barBlock.revealMode === "end" ? barBlock.revealH : barBlock.barH }
+    property real tabHRaw: 0
     Behavior on tabX {
-        enabled: !barBlock.tabSnap && !barBlock.spanSnap && !barBlock.resizing
+        enabled: !barBlock.resizing
         NumberAnimation {
             id: tabXAnim
             duration: barBlock.spanDuration
@@ -1284,7 +1196,7 @@ Item {
         }
     }
     Behavior on tabW {
-        enabled: !barBlock.tabSnap && !barBlock.spanSnap && !barBlock.resizing
+        enabled: !barBlock.resizing
         NumberAnimation {
             id: tabWAnim
             duration: barBlock.spanDuration
@@ -1294,7 +1206,7 @@ Item {
         }
     }
     Behavior on tabHRaw {
-        enabled: !barBlock.tabSnap && !barBlock.resizing && !barBlock.followLock
+        enabled: !barBlock.resizing && !barBlock.followLock
         NumberAnimation {
             id: tabHAnim
             duration: barBlock.dropDuration
@@ -1303,7 +1215,70 @@ Item {
             onRunningChanged: if (!running) barBlock.checkSettled()
         }
     }
+
+    state: (barBlock.shownKind !== "" || (barBlock.launchHost && GlobalStates.appLauncherOpen)) ? "open" : "closed"
+    states: [
+        State {
+            name: "closed"
+            PropertyChanges {
+                target: barBlock
+                tabX: barBlock.gliding ? barBlock.handX : barBlock.srcEdgeX
+                tabW: barBlock.gliding ? barBlock.handW : barBlock.srcEdgeW
+                tabHRaw: barBlock.gliding ? barBlock.handH : barBlock.barH
+                contentT: 0
+            }
+        },
+        State {
+            name: "open"
+            PropertyChanges {
+                target: barBlock
+                tabX: barBlock.tabTargetX
+                tabW: barBlock.tabTargetW
+                tabHRaw: barBlock.barH + (barBlock.heightFollow ? barBlock.followAcross : (barBlock.openLocked ? barBlock.openAcross : barBlock.acrossOf(barBlock.shownKind)) + barBlock.tuckShown)
+                contentT: 1
+            }
+        }
+    ]
+    transitions: [
+        Transition {
+            id: openTrans
+            from: "closed"
+            to: "open"
+            NumberAnimation {
+                properties: "tabX,tabW"
+                duration: barBlock.spanDuration
+                easing.type: Easing.BezierSpline
+                easing.bezierCurve: barBlock.spanCurve
+            }
+            NumberAnimation {
+                properties: "tabHRaw,contentT"
+                duration: barBlock.dropDuration
+                easing.type: Easing.BezierSpline
+                easing.bezierCurve: barBlock.dropCurve
+            }
+            onRunningChanged: if (!running) barBlock.checkSettled()
+        },
+        Transition {
+            id: closeTrans
+            from: "open"
+            to: "closed"
+            NumberAnimation {
+                properties: "tabX,tabW"
+                duration: barBlock.spanDuration
+                easing.type: Easing.BezierSpline
+                easing.bezierCurve: barBlock.spanCurve
+            }
+            NumberAnimation {
+                properties: "tabHRaw,contentT"
+                duration: barBlock.dropDuration
+                easing.type: Easing.BezierSpline
+                easing.bezierCurve: barBlock.dropCurve
+            }
+            onRunningChanged: if (!running) barBlock.checkSettled()
+        }
+    ]
     readonly property bool tabMoving: tabXAnim.running || tabWAnim.running || tabHAnim.running
+        || openTrans.running || closeTrans.running
     readonly property bool tabOpen: barBlock.shownKind !== "" || barBlock.tabH > barBlock.barH + 0.5
         || (barBlock.floating && barBlock.goo > 0.001)
 
@@ -1520,9 +1495,7 @@ Item {
             }
             barBlock.openerId = ""
         } else if (k === "notifPopup" && barBlock.tabH <= barBlock.barH + 0.5) {
-            barBlock.tabSnap = true
             barBlock.anchorSource(BarLayout.popupHostItem, k)
-            barBlock.tabSnap = false
             barBlock.openerId = ""
         } else if (k === "osd" && barBlock.osdHost) {
             barBlock.resyncSource()
@@ -1531,40 +1504,26 @@ Item {
             barBlock.snapSource(BarLayout.panelItemHost(k) && barBlock.hasItem(k) ? barBlock.itemFor(k) : null, k)
             barBlock.openerId = ""
         }
-        if (k !== "" && !barBlock.tabOpen) {
-            const mode = barBlock.revealFor(k)
-            barBlock.tabSnap = true
-            barBlock.revealMode = mode
-            barBlock.tabSnap = false
-        } else if (k !== "") {
-            barBlock.revealMode = ""
-        } else if (barBlock.drawer && barBlock.revealMode !== "start" && barBlock.revealMode !== "end") {
-            barBlock.tabSnap = true
-            barBlock.revealX = barBlock.tabX
-            barBlock.revealW = barBlock.tabW
-            barBlock.revealMode = "across"
-            barBlock.tabSnap = false
-        }
         if (k !== "")
             barBlock.lastKind = k
         barBlock.stopFollow()
         barBlock.panelSwap = k !== "" && barBlock.shownKind !== ""
-        barBlock.spanSnap = opening
         if (k !== "") {
+            if (opening) {
+                barBlock.handFor = k
+                barBlock.tryHandoff()
+            }
             barBlock.prepareContent(k)
             barBlock.openAlong = barBlock.alongOf(k)
             barBlock.openAcross = barBlock.acrossOf(k)
             barBlock.openLocked = true
         } else {
+            barBlock.gliding = false
             barBlock.openLocked = false
         }
         barBlock.shownKind = k
-        barBlock.spanSnap = false
+        barBlock.gooSnap = false
         barBlock.showContent(k)
-        if (opening) {
-            barBlock.handFor = k
-            Qt.callLater(barBlock.tryHandoff)
-        }
     }
 
     function itemOf(k) {
@@ -1831,7 +1790,7 @@ Item {
           && !BarLayout.panelSpecs[barBlock.shownKind].fitOnly
         ? barBlock.shownKind : ""
     readonly property bool sizeHandles: barBlock.sizeKind !== "" && (barBlock.resizing
-        || (!tabXAnim.running && !tabWAnim.running && !tabHAnim.running))
+        || (!tabXAnim.running && !tabWAnim.running && !tabHAnim.running && !openTrans.running && !closeTrans.running))
     readonly property real tabContentTop: barBlock.far ? barBlock.barH - barBlock.tabH - barBlock.floatGap : barBlock.barH + barBlock.floatGap
     readonly property real tabContentH: Math.max(0, barBlock.tabH - barBlock.barH)
     readonly property bool flushL: Math.abs(barBlock.tabX - (barBlock.spanL - barBlock.absX)) <= 0.5

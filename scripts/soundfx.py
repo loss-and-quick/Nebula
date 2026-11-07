@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 import json
+import math
 import os
 import shutil
 import subprocess
 import sys
+import tempfile
 import time
 
 PRESET = "Nebula"
@@ -105,6 +107,9 @@ def running():
 
 
 def apply(style, bass, treble, target):
+    if not math.isfinite(bass) or not math.isfinite(treble):
+        print(json.dumps({"ok": False, "error": "bass and treble must be finite"}))
+        return 1
     if shutil.which("easyeffects") is None:
         print(json.dumps({"ok": False, "error": "missing"}))
         return 1
@@ -112,10 +117,15 @@ def apply(style, bass, treble, target):
         target = detect()
     os.makedirs(OUT_DIR, exist_ok=True)
     path = os.path.join(OUT_DIR, PRESET + ".json")
-    tmp = path + ".tmp"
-    with open(tmp, "w") as f:
-        json.dump(preset(style, bass, treble, target), f, indent=4)
-    os.replace(tmp, path)
+    tmp = None
+    try:
+        with tempfile.NamedTemporaryFile(mode="w", dir=OUT_DIR, suffix=".tmp", delete=False) as f:
+            tmp = f.name
+            json.dump(preset(style, bass, treble, target), f, indent=4, allow_nan=False)
+        os.replace(tmp, path)
+    finally:
+        if tmp and os.path.exists(tmp):
+            os.unlink(tmp)
     if not running():
         subprocess.Popen(["easyeffects", "--service-mode", "-w"], env=env(), start_new_session=True,
                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -149,7 +159,10 @@ def main(argv):
             treble = float(argv[4])
         except ValueError:
             bass = treble = 0.0
-        return apply(argv[2], max(-6.0, min(12.0, bass)), max(-6.0, min(9.0, treble)), argv[5])
+        if math.isfinite(bass) and math.isfinite(treble):
+            bass = max(-6.0, min(12.0, bass))
+            treble = max(-6.0, min(9.0, treble))
+        return apply(argv[2], bass, treble, argv[5])
     print("usage: soundfx.py detect | off | apply STYLE BASS TREBLE TARGET", file=sys.stderr)
     return 2
 

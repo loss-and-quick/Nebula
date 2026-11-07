@@ -1,3 +1,4 @@
+import ctypes.util
 import importlib.util
 import json
 import os
@@ -57,69 +58,76 @@ def check():
     for mod, pkg, what in MODULES:
         rows.append({"kind": "python", "name": mod, "package": pkg, "what": what,
                      "ok": importlib.util.find_spec(mod) is not None})
-    tcmalloc = "/usr/lib/libtcmalloc_minimal.so.4"
-    rows.append({"kind": "file", "name": "libtcmalloc_minimal", "package": "gperftools",
-                 "what": "Lower memory use (nebula start preloads it)", "ok": os.path.exists(tcmalloc)})
+    rows.append({"kind": "library", "name": "libtcmalloc_minimal", "package": "gperftools",
+                 "what": "Lower memory use (nebula start preloads it)", "ok": ctypes.util.find_library("tcmalloc_minimal") is not None})
     hypr_lua = HOME / ".config" / "hypr" / "hyprland.lua"
     rows.append({"kind": "file", "name": "~/.config/hypr/hyprland.lua", "package": "",
                  "what": "Lua Hyprland config (hyprland.conf is not supported)", "ok": hypr_lua.is_file()})
     templates = HOME / ".config" / "matugen" / "templates"
     rows.append({"kind": "file", "name": str(templates).replace(str(HOME), "~", 1),
                  "package": "", "what": "App colour templates", "ok": templates.is_dir()})
-    from nebula import settings
-    from nebula.paths import CUSTOM_COLORS
-    theme_sec = settings.section("theme")
-    gen_sec = settings.section("general")
-    custom_active = (theme_sec.get("matugenScheme") == "scheme-custom" or gen_sec.get("palette") == "custom")
-    custom_path_str = gen_sec.get("palettePath")
-    custom_file = Path(os.path.expanduser(custom_path_str)) if custom_path_str else CUSTOM_COLORS
-    disp_name = str(custom_file).replace(str(HOME), "~", 1)
-    if custom_file.is_file():
-        try:
-            json.loads(custom_file.read_text())
-            valid_json = True
-        except Exception:
+    try:
+        from nebula import settings
+        from nebula.paths import CUSTOM_COLORS
+        theme_sec = settings.section("theme")
+        gen_sec = settings.section("general")
+        custom_active = (theme_sec.get("matugenScheme") == "scheme-custom" or gen_sec.get("palette") == "custom")
+        custom_path_str = gen_sec.get("palettePath")
+        custom_file = Path(os.path.expanduser(custom_path_str)) if custom_path_str else CUSTOM_COLORS
+        disp_name = str(custom_file).replace(str(HOME), "~", 1)
+        if custom_file.is_file():
+            try:
+                json.loads(custom_file.read_text())
+                valid_json = True
+            except Exception:
+                valid_json = False
+        else:
             valid_json = False
-    else:
-        valid_json = False
 
-    if custom_active:
-        rows.append({
-            "kind": "file",
-            "name": disp_name,
-            "package": "",
-            "what": "Custom palette (active)" if valid_json else ("Custom palette (invalid JSON)" if custom_file.is_file() else "Custom palette (active, missing)"),
-            "ok": custom_file.is_file() and valid_json,
-        })
-    elif custom_file.is_file():
-        rows.append({
-            "kind": "file",
-            "name": disp_name,
-            "package": "",
-            "what": "Custom palette (available)" if valid_json else "Custom palette (invalid JSON)",
-            "ok": valid_json,
-        })
-    else:
-        rows.append({
-            "kind": "file",
-            "name": disp_name,
-            "package": "",
-            "what": "Custom palette (optional)",
-            "ok": True,
-        })
+        if custom_active:
+            rows.append({
+                "kind": "file",
+                "name": disp_name,
+                "package": "",
+                "what": "Custom palette (active)" if valid_json else ("Custom palette (invalid JSON)" if custom_file.is_file() else "Custom palette (active, missing)"),
+                "ok": custom_file.is_file() and valid_json,
+            })
+        elif custom_file.is_file():
+            rows.append({
+                "kind": "file",
+                "name": disp_name,
+                "package": "",
+                "what": "Custom palette (available)" if valid_json else "Custom palette (invalid JSON)",
+                "ok": valid_json,
+            })
+        else:
+            rows.append({
+                "kind": "file",
+                "name": disp_name,
+                "package": "",
+                "what": "Custom palette (optional)",
+                "ok": True,
+            })
 
-    dropins = settings.dropin_files()
-    locks = settings.get_locks()
-    dropin_info = f"{len(dropins)} found"
-    if locks:
-        dropin_info += f", {len(locks)} locked"
-    rows.append({"kind": "config", "name": "system drop-ins", "package": "",
-                 "what": f"System drop-ins ({dropin_info})", "ok": True})
+        dropins = settings.dropin_files()
+        locks = settings.get_locks()
+        dropin_info = f"{len(dropins)} found"
+        if locks:
+            dropin_info += f", {len(locks)} locked"
+        rows.append({"kind": "config", "name": "system drop-ins", "package": "",
+                     "what": f"System drop-ins ({dropin_info})", "ok": True})
+    except Exception as e:
+        rows.append({"kind": "config", "name": "settings", "package": "",
+                     "what": f"Unable to check settings: {e}", "ok": False})
     return rows
 
 
 def run(as_json: bool) -> int:
-    rows = check()
+    try:
+        rows = check()
+    except Exception as e:
+        rows = [{"kind": "diagnostic", "name": "doctor", "package": "",
+                 "what": f"Unable to complete checks: {e}", "ok": False}]
     missing = [r for r in rows if not r["ok"]]
     if as_json:
         print(json.dumps({"python": sys.executable, "checks": rows}))
@@ -131,9 +139,19 @@ def run(as_json: bool) -> int:
         tail = f"  ({r['package']})" if not r["ok"] and r["package"] else ""
         print(f"  {good if r['ok'] else bad} {r['name']:<22} {r['what']}{tail}")
     print(f"\npython: {sys.executable}")
-    pkgs = sorted({r["package"] for r in missing if r["package"]})
+    pkgs = sorted({str(r["package"]) for r in missing if r["package"]})
     if pkgs:
-        print("Install: yay -S " + " ".join(pkgs))
+        packages = " ".join(pkgs)
+        if shutil.which("pacman"):
+            print(f"Install: sudo pacman -S {packages} (AUR packages: yay -S <pkg>)")
+        elif shutil.which("nix"):
+            print("Install: nix profile install " + " ".join(f"nixpkgs#{pkg}" for pkg in pkgs))
+        elif shutil.which("dnf"):
+            print(f"Install: sudo dnf install {packages}")
+        elif shutil.which("apt"):
+            print(f"Install: sudo apt install {packages}")
+        else:
+            print(f"Install {packages}")
     elif not missing:
         print("Everything Nebula needs is here.")
     return 1 if missing else 0

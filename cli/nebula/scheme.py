@@ -33,21 +33,24 @@ import tempfile
 import time
 from pathlib import Path
 
-from materialyoucolor.dislike.dislike_analyzer import DislikeAnalyzer
-from materialyoucolor.dynamiccolor.material_dynamic_colors import MaterialDynamicColors
-from materialyoucolor.hct import Hct
-from materialyoucolor.quantize import ImageQuantizeCelebi, QuantizeCelebi
-from materialyoucolor.scheme.scheme_content import SchemeContent
-from materialyoucolor.score.score import Score, ScoreOptions
-from materialyoucolor.scheme.scheme_expressive import SchemeExpressive
-from materialyoucolor.scheme.scheme_fidelity import SchemeFidelity
-from materialyoucolor.scheme.scheme_fruit_salad import SchemeFruitSalad
-from materialyoucolor.scheme.scheme_monochrome import SchemeMonochrome
-from materialyoucolor.scheme.scheme_neutral import SchemeNeutral
-from materialyoucolor.scheme.scheme_rainbow import SchemeRainbow
-from materialyoucolor.scheme.scheme_tonal_spot import SchemeTonalSpot
-from materialyoucolor.scheme.scheme_vibrant import SchemeVibrant
-from materialyoucolor.utils.math_utils import sanitize_degrees_int
+try:
+    from materialyoucolor.dislike.dislike_analyzer import DislikeAnalyzer
+    from materialyoucolor.dynamiccolor.material_dynamic_colors import MaterialDynamicColors
+    from materialyoucolor.hct import Hct
+    from materialyoucolor.quantize import ImageQuantizeCelebi, QuantizeCelebi
+    from materialyoucolor.scheme.scheme_content import SchemeContent
+    from materialyoucolor.score.score import Score, ScoreOptions
+    from materialyoucolor.scheme.scheme_expressive import SchemeExpressive
+    from materialyoucolor.scheme.scheme_fidelity import SchemeFidelity
+    from materialyoucolor.scheme.scheme_fruit_salad import SchemeFruitSalad
+    from materialyoucolor.scheme.scheme_monochrome import SchemeMonochrome
+    from materialyoucolor.scheme.scheme_neutral import SchemeNeutral
+    from materialyoucolor.scheme.scheme_rainbow import SchemeRainbow
+    from materialyoucolor.scheme.scheme_tonal_spot import SchemeTonalSpot
+    from materialyoucolor.scheme.scheme_vibrant import SchemeVibrant
+    from materialyoucolor.utils.math_utils import sanitize_degrees_int
+except ImportError as e:
+    raise SystemExit(f"nebula: materialyoucolor is unavailable ({e}); install the materialyoucolor Python package") from None
 
 from nebula import apps as theme_apps
 from nebula.paths import CUSTOM_COLORS, SETTINGS
@@ -951,7 +954,7 @@ def _auto_primary(image_path: str, img_hash: str) -> Hct:
         pass
     primary = _quantize_and_score(image_path)
     score_cache.parent.mkdir(parents=True, exist_ok=True)
-    score_cache.write_text(str(primary.to_int()))
+    _atomic_write(score_cache, str(primary.to_int()))
     return primary
 
 
@@ -973,7 +976,7 @@ def _seeds(image_path: str, img_hash: str) -> list:
         if len(out) == _MAX_SEEDS:
             break
     seeds_cache.parent.mkdir(parents=True, exist_ok=True)
-    seeds_cache.write_text(json.dumps(out))
+    _atomic_write(seeds_cache, json.dumps(out))
     return out
 
 
@@ -1338,7 +1341,7 @@ def main() -> None:
               f"{(time.time()-t0)*1000:.0f}ms", flush=True)
         our_colors["wallpaper"] = image_path
         cache_base.mkdir(parents=True, exist_ok=True)
-        color_cache.write_text(json.dumps(our_colors, indent=4))
+        _atomic_write(color_cache, json.dumps(our_colors, indent=4))
 
         our_colors["wallpaper"]       = display_path
         our_colors["sourceWallpaper"] = source_path
@@ -1366,7 +1369,7 @@ def main() -> None:
         primary = _quantize_and_score(image_path)
         print(f"[gen_colors] quantize+score: {(time.time()-t0)*1000:.0f}ms", flush=True)
         cache_base.mkdir(parents=True, exist_ok=True)
-        score_cache.write_text(str(primary.to_int()))
+        _atomic_write(score_cache, str(primary.to_int()))
 
     chosen = seed_primary(image_path, img_hash, seed_idx)
     if chosen is not None:
@@ -1380,7 +1383,7 @@ def main() -> None:
 
     our_colors["wallpaper"] = image_path
     cache_base.mkdir(parents=True, exist_ok=True)
-    color_cache.write_text(json.dumps(our_colors, indent=4))
+    _atomic_write(color_cache, json.dumps(our_colors, indent=4))
 
     our_colors["wallpaper"]       = display_path
     our_colors["sourceWallpaper"] = source_path

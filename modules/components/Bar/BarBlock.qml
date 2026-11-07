@@ -588,22 +588,14 @@ Item {
             return
         }
         if (k === "launcher") {
-            if (ServiceLauncher.position === "block") {
-                barBlock.tabSnap = snap
-                barBlock.plateFrom(null)
-                barBlock.srcX = 0
-                barBlock.srcW = barBlock.width
-                barBlock.flushSource("launcher")
-                barBlock.tabSnap = false
-                return
-            }
-            const it = barBlock.itemFor("launcher")
-            if (snap) {
-                barBlock.snapSource(it, "launcher")
-            } else {
-                barBlock.sourceFrom(it)
-                barBlock.flushSource("launcher")
-            }
+            barBlock.tabSnap = snap
+            barBlock.plateFrom(null)
+            const w = barBlock.alongOf("launcher")
+            const it = ServiceLauncher.position === "item" ? barBlock.itemFor("launcher") : null
+            const cx = it ? barBlock.centerOfItem(it) : barBlock.width / 2
+            barBlock.srcX = barBlock.alignX(w, cx)
+            barBlock.srcW = w
+            barBlock.tabSnap = false
             return
         }
         const item = BarLayout.panelItemHost(k) && barBlock.hasItem(k) ? barBlock.itemFor(k) : null

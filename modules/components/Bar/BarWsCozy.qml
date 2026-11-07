@@ -491,8 +491,8 @@ Item {
                             readonly property var mon: st.ws ? st.ws.monitor : null
                             readonly property real mx: stage.mon ? stage.mon.x : 0
                             readonly property real my: stage.mon ? stage.mon.y : 0
-                            readonly property real mw: cozy.owner ? cozy.owner.screenW : 1920
-                            readonly property real mh: cozy.owner ? cozy.owner.screenH : 1080
+                            readonly property real mw: Math.max(1, cozy.owner?.screenW ?? Quickshell.screens[0]?.width ?? 0)
+                            readonly property real mh: Math.max(1, cozy.owner?.screenH ?? Quickshell.screens[0]?.height ?? 0)
 
                             Repeater {
                                 model: st.ws ? st.ws.toplevels : null

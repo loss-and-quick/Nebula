@@ -179,7 +179,7 @@ Singleton{
     property int notificationCenterCount: 0
     property var widgetBackdrop: null
     property var widgetBackdropSharp: null
-    property vector2d widgetScreenSize: Qt.vector2d(1920, 1080)
+    property vector2d widgetScreenSize: Qt.vector2d(Quickshell.screens[0]?.width ?? 0, Quickshell.screens[0]?.height ?? 0)
     property real desktopCursorX: 0
     property real desktopCursorY: 0
     property bool desktopCursorActive: false

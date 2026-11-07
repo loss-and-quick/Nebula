@@ -33,8 +33,8 @@ Scope {
         activeAsync: scope.loaded
 
         component: FloatingWindow {
-            implicitWidth: 1440
-            implicitHeight: 900
+            implicitWidth: Math.min(1440, (screen?.width ?? Quickshell.screens[0]?.width ?? 0) * 0.85)
+            implicitHeight: Math.min(900, (screen?.height ?? Quickshell.screens[0]?.height ?? 0) * 0.85)
             title: "Reading"
             color: Colors.surface
 

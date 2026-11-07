@@ -130,7 +130,7 @@ Singleton {
         command: ["nmcli", "device", "wifi", "rescan"]
     }
 
-    property string qrImagePath: "/tmp/wifi_qr.png"
+    property string qrImagePath: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/wifi_qr.png"
     signal qrGenerated(string path)
     signal qrFailed()
 

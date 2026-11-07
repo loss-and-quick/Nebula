@@ -120,8 +120,16 @@ Singleton {
         id: info
         running: true
         command: ["bash", "-c",
-            "cat /etc/hostname 2>/dev/null || echo; uname -r; pacman -Qq 2>/dev/null | wc -l; "
-            + "head -c 40 /var/log/pacman.log 2>/dev/null | grep -oE '[0-9]{4}-[0-9]{2}-[0-9]{2}' | head -1 || true; echo; "
+            "cat /etc/hostname 2>/dev/null || echo; uname -r; "
+            + "if command -v pacman >/dev/null 2>&1; then count=$(pacman -Qq 2>/dev/null | wc -l); "
+            + "elif command -v dpkg-query >/dev/null 2>&1; then count=$(dpkg-query -f '.\\n' -W 2>/dev/null | wc -l); "
+            + "elif command -v rpm >/dev/null 2>&1; then count=$(rpm -qa 2>/dev/null | wc -l); "
+            + "elif command -v nix-store >/dev/null 2>&1; then count=$(nix-store -q --requisites /run/current-system 2>/dev/null | wc -l); "
+            + "else count=0; fi; "
+            + "if command -v flatpak >/dev/null 2>&1; then flatpak_count=$(flatpak list --app --columns=application 2>/dev/null | wc -l); count=$((count + flatpak_count)); fi; echo \"$count\"; "
+            + "date=$(stat -c %w / 2>/dev/null | cut -d' ' -f1 | grep -oE '^[0-9]{4}-[0-9]{2}-[0-9]{2}'); "
+            + "if [ -z \"$date\" ] || [ \"$date\" = \"-\" ]; then date=$(head -c 40 /var/log/pacman.log 2>/dev/null | grep -oE '[0-9]{4}-[0-9]{2}-[0-9]{2}' | head -1); fi; "
+            + "echo \"$date\"; "
             + "(. /etc/os-release 2>/dev/null && echo \"$NAME\") || echo Linux; cut -d' ' -f1 /proc/uptime"]
         stdout: StdioCollector {
             onStreamFinished: {

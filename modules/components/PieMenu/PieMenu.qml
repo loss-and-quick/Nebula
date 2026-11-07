@@ -130,18 +130,19 @@ Scope {
         stdout: StdioCollector {
             onStreamFinished: {
                 const scr = Quickshell.screens.find(s => s.name === pie.monitorName) ?? Quickshell.screens[0]
+                if (!scr) return
                 const mon = Hyprland.monitors.values.find(m => m.name === pie.monitorName)
                 const mx = mon?.lastIpcObject?.x ?? 0
                 const my = mon?.lastIpcObject?.y ?? 0
-                let x = (scr?.width ?? 1920) / 2
-                let y = (scr?.height ?? 1080) / 2
+                let x = scr.width / 2
+                let y = scr.height / 2
                 try {
                     const p = JSON.parse(text)
                     x = p.x - mx
                     y = p.y - my
                 } catch (e) {}
-                const w = scr?.width ?? 1920
-                const h = scr?.height ?? 1080
+                const w = scr.width
+                const h = scr.height
                 pie.cx = Math.max(pie.outer + 8, Math.min(w - pie.outer - 8, x))
                 pie.cy = Math.max(pie.outer + 8, Math.min(h - pie.outer - 8, y))
                 pie.open = true

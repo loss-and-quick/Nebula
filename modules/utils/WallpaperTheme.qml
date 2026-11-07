@@ -73,7 +73,7 @@ Singleton {
             h = Math.max(h, Math.ceil(s.height * s.devicePixelRatio))
         }
         const over = (SettingsConfig.general.wallpaperGlide ?? true) && SettingsConfig.general.wallpaperFill !== "full" ? 1.25 : 1
-        return Qt.size(Math.ceil((w || 1920) * over), h || 1080)
+        return Qt.size(Math.ceil(w * over), h)
     }
 
     readonly property string _tone: KindleMode.wallpaper === "keep" ? "" : KindleMode.wallpaper === "eink" ? "eink" : "grey"
@@ -82,7 +82,7 @@ Singleton {
     on_CoverSizeChanged: Qt.callLater(root._rescale)
     on_ToneChanged: Qt.callLater(root._rescale)
     function _rescale() {
-        if (root.wallpaper === "")
+        if (root.wallpaper === "" || root._coverSize.width <= 0 || root._coverSize.height <= 0)
             return
         if (scaleProc.running) {
             scaleProc.pending = true

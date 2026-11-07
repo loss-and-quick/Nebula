@@ -1,5 +1,6 @@
 pragma ComponentBehavior: Bound
 
+import Quickshell
 import QtQuick
 import QtQuick.Layouts
 import qs.modules.utils
@@ -10,7 +11,7 @@ ColumnLayout {
 
     property string kind: ""
     readonly property var spec: BarLayout.panelSpecs[sizes.kind] ?? null
-    readonly property real screenH: sizes.Window.window ? sizes.Window.window.height : 1080
+    readonly property real screenH: sizes.Window.window?.screen?.height ?? Quickshell.screens[0]?.height ?? 0
 
     spacing: 14
 

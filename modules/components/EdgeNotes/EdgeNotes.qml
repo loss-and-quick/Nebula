@@ -234,9 +234,9 @@ Scope {
                         onReleased: mouse => {
                             if (chipArea.dragging) {
                                 const p = mapToItem(win.contentItem, mouse.x, mouse.y)
-                                const winLeft = win.onRight ? (win.screen?.width ?? 1920) - win.width : 0
+                                const winLeft = win.onRight ? (win.screen?.width ?? Quickshell.screens[0]?.width ?? 0) - win.width : 0
                                 const gx = winLeft + p.x
-                                const half = (win.screen?.width ?? 1920) / 2
+                                const half = (win.screen?.width ?? Quickshell.screens[0]?.width ?? 0) / 2
                                 const side = gx < half ? "L" : "R"
                                 if (scope.stacked) {
                                     const row = win.ordered.filter(o => o.id !== chip.modelData.id)
@@ -350,9 +350,9 @@ Scope {
                                 notesOffset: targetOffset
                             })
 
-                            const winLeft = win.onRight ? (win.screen?.width ?? 1920) - win.width : 0
+                            const winLeft = win.onRight ? (win.screen?.width ?? Quickshell.screens[0]?.width ?? 0) - win.width : 0
                             const gx = winLeft + p.x
-                            const half = (win.screen?.width ?? 1920) / 2
+                            const half = (win.screen?.width ?? Quickshell.screens[0]?.width ?? 0) / 2
                             const targetSide = gx < half ? "L" : "R"
                             if (targetSide !== win.side) {
                                 SettingsConfig.general = Object.assign({}, SettingsConfig.general, {

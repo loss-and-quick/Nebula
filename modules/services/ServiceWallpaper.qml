@@ -450,10 +450,11 @@ Singleton {
             const h = Math.round(s.height * (s.devicePixelRatio || 1))
             if (!best || w * h > best.w * best.h) best = { w: w, h: h }
         }
-        return best || { w: 1920, h: 1080 }
+        return best
     }
-    readonly property string fitAtleast: _bigScreen.w + "x" + _bigScreen.h
+    readonly property string fitAtleast: _bigScreen ? _bigScreen.w + "x" + _bigScreen.h : ""
     readonly property string fitRatio: {
+        if (!_bigScreen || !_bigScreen.h) return ""
         const r = _bigScreen.w / _bigScreen.h
         let best = "16x9"
         let gap = 99

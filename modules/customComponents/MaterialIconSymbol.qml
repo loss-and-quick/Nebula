@@ -43,12 +43,17 @@ Item {
             }
         }
 
-        transform: Scale {
-            xScale: root.width / 960
-            yScale: root.height / 960
-            origin.x: 0
-            origin.y: 0
-        }
+        transform: [
+            Scale {
+                xScale: root.width / 960
+                yScale: -root.height / 960
+                origin.x: 0
+                origin.y: 0
+            },
+            Translate {
+                y: root.height
+            }
+        ]
     }
 
     CustomText {

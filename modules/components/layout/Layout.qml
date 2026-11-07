@@ -991,8 +991,15 @@ PanelWindow{
             Qt.callLater(root.refreshGapMarks)
         }
 
-        property bool allGaps: false
+        readonly property bool allGaps: GlobalStates.showGaps
         property string gapFocus: ""
+
+        Connections {
+            target: GlobalStates
+            function onShowGapsChanged() {
+                root.queueGapMarks()
+            }
+        }
 
         function focusBlock() {
             if (barEditor.mode !== "")
@@ -1510,7 +1517,7 @@ PanelWindow{
                 EditSession.peek = false
                 event.accepted = true
             } else if (event.key === Qt.Key_Alt && !event.isAutoRepeat) {
-                root.allGaps = false
+                GlobalStates.showGaps = false
                 root.queueGapMarks()
             }
         }
@@ -1524,8 +1531,8 @@ PanelWindow{
             const shift = event.modifiers & Qt.ShiftModifier
             const k = event.key
             if (k === Qt.Key_Alt) {
-                if (!event.isAutoRepeat && !root.allGaps) {
-                    root.allGaps = true
+                if (!event.isAutoRepeat && !GlobalStates.showGaps) {
+                    GlobalStates.showGaps = true
                     root.queueGapMarks()
                 }
                 event.accepted = true

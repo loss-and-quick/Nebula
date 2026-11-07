@@ -23,9 +23,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - run: cargo install mdbook --version 0.5.4 --locked
+      - run: mdbook build docs
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: docs
+          path: docs/book
       - id: deploy
         uses: actions/deploy-pages@v4

@@ -1,0 +1,5 @@
+[book]
+title = "Nebula Shell"
+authors = ["Nebula Contributors"]
+language = "en"
+src = "src"

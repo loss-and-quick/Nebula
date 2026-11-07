@@ -109,8 +109,8 @@ Scope {
             Item {
                 id: chipBox
                 readonly property var ys: win.ordered.map(n => win.centerY(n))
-                readonly property real topY: win.ordered.length ? Math.min(...chipBox.ys) - 34 : win.height * 0.22 - 14
-                readonly property real bottomY: win.ordered.length ? Math.max(...chipBox.ys) + 60 : win.height * 0.22 + 34
+                readonly property real topY: win.ordered.length ? Math.min(...chipBox.ys) - 34 : win.stackTop - 14
+                readonly property real bottomY: win.ordered.length ? Math.max(...chipBox.ys) + 60 : win.stackTop + 34
                 x: win.edgeX(win.edgeW + 10)
                 y: chipBox.topY
                 width: win.edgeW + 10
@@ -257,25 +257,78 @@ Scope {
             }
 
             Rectangle {
+                id: addBtn
                 width: 24
                 height: 24
                 radius: 12
                 x: win.onRight ? win.width - 28 : 4
                 y: chipBox.bottomY - 28
-                visible: win.stripHover || addArea.containsMouse
-                color: addArea.containsMouse ? Colors.primary : Colors.surfaceContainerHigh
+                readonly property bool editActive: GlobalStates.widgetEditMode || GlobalStates.barEditMode
+                visible: win.stripHover || addArea.containsMouse || addBtn.editActive
+                color: (addArea.containsMouse || (addArea.dragging && addBtn.editActive)) ? Colors.primary : Colors.surfaceContainerHigh
+                border.width: addBtn.editActive ? 1.5 : 0
+                border.color: Colors.primary
+                Behavior on color { EffectsColorAnim { speed: "fast" } }
+
                 MaterialIconSymbol {
                     anchors.centerIn: parent
-                    content: "add"
+                    content: addBtn.editActive ? "open_with" : "add"
                     iconSize: 16
-                    customColor: addArea.containsMouse ? Colors.primaryText : Colors.surfaceVariantText
+                    customColor: (addArea.containsMouse || (addArea.dragging && addBtn.editActive)) ? Colors.primaryText : Colors.surfaceVariantText
                 }
+
                 MouseArea {
                     id: addArea
                     anchors.fill: parent
                     hoverEnabled: true
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: ServiceNotes.openId = ServiceNotes.add(win.side)
+                    preventStealing: true
+                    cursorShape: addBtn.editActive ? Qt.SizeAllCursor : Qt.PointingHandCursor
+
+                    property real pressX: 0
+                    property real pressY: 0
+                    property bool dragging: false
+
+                    onPressed: mouse => {
+                        pressX = mouse.x
+                        pressY = mouse.y
+                        dragging = false
+                    }
+
+                    onPositionChanged: mouse => {
+                        if (!pressed || !addBtn.editActive)
+                            return
+                        if (!dragging && Math.hypot(mouse.x - pressX, mouse.y - pressY) > 4)
+                            dragging = true
+                        if (dragging) {
+                            const p = mapToItem(win.contentItem, mouse.x, mouse.y)
+                            const newOffset = scope.anchorAt === "bottom"
+                                ? Math.max(20, Math.min(win.height - 100, win.height - p.y))
+                                : Math.max(20, Math.min(win.height - 100, p.y))
+                            SettingsConfig.general = Object.assign({}, SettingsConfig.general, {
+                                notesOffset: Math.round(newOffset)
+                            })
+                            const winLeft = win.onRight ? (win.screen?.width ?? 1920) - win.width : 0
+                            const gx = winLeft + p.x
+                            const half = (win.screen?.width ?? 1920) / 2
+                            const targetSide = gx < half ? "L" : "R"
+                            if (targetSide !== win.side) {
+                                SettingsConfig.general = Object.assign({}, SettingsConfig.general, {
+                                    notesSide: targetSide
+                                })
+                                ServiceNotes.moveAll(targetSide)
+                            }
+                        }
+                    }
+
+                    onReleased: {
+                        if (dragging) {
+                            dragging = false
+                            return
+                        }
+                        if (addBtn.editActive)
+                            return
+                        ServiceNotes.openId = ServiceNotes.add(win.side)
+                    }
                 }
             }
 

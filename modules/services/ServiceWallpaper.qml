@@ -370,10 +370,22 @@ Singleton {
     }
 
     function saveFavorites() {
+        if (favSaver.running) {
+            favSaver.pending = true
+            return
+        }
         const data = JSON.stringify(Object.keys(favorites))
         favSaver.command = [
             "python3", "-c",
-            "import sys,json; json.dump(json.loads(sys.argv[1]),open(sys.argv[2],'w'),indent=2)",
+            "import sys,json,os,tempfile\n" +
+            "path = sys.argv[2]\n" +
+            "fd, tmp = tempfile.mkstemp(dir=os.path.dirname(path) or '.')\n" +
+            "try:\n" +
+            "    with os.fdopen(fd, 'w') as f:\n" +
+            "        json.dump(json.loads(sys.argv[1]), f, indent=2)\n" +
+            "    os.replace(tmp, path)\n" +
+            "finally:\n" +
+            "    if os.path.exists(tmp): os.unlink(tmp)",
             data, favoritesPath
         ]
         favSaver.running = true
@@ -383,7 +395,7 @@ Singleton {
         favLoader._buffer = ""
         favLoader.command = [
             "bash", "-c",
-            "[ -f '" + favoritesPath + "' ] && cat '" + favoritesPath + "' || echo '[]'"
+            "[ -f \"$1\" ] && cat -- \"$1\" || echo '[]'", "sh", favoritesPath
         ]
         favLoader.running = true
     }
@@ -904,7 +916,7 @@ Singleton {
 
     Process {
         id: createCacheDir
-        command: ["sh", "-c", "mkdir -p '" + root.cacheDir + "' && ls '" + root.cacheDir + "' > /dev/null"]
+        command: ["mkdir", "-p", "--", root.cacheDir]
         running: true
         onExited: (exitCode) => {
             if (exitCode === 0) {
@@ -1383,9 +1395,14 @@ Singleton {
 
     Process {
         id: favSaver
+        property bool pending: false
         onExited: (exitCode) => {
             if (exitCode !== 0)
                 console.error("[ServiceWallpaper] Failed to save favorites, exit:", exitCode)
+            if (favSaver.pending) {
+                favSaver.pending = false
+                Qt.callLater(root.saveFavorites)
+            }
         }
     }
     // ── End Favorites processes ─────────────────────────────────────────────

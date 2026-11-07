@@ -137,9 +137,17 @@ Singleton {
     property string _pendingSsid: ""
     property string _pendingAuth: ""
     property string _fetchedPassword: ""
+    property bool _qrBusy: false
+    property var _qrQueue: []
+    property string _qrPayload: ""
 
     // security: WifiSecurityType value from WifiNetwork.security
     function generateQr(ssid, security) {
+        if (root._qrBusy) {
+            root._qrQueue = root._qrQueue.concat([{ ssid: ssid, security: security }])
+            return
+        }
+        root._qrBusy = true
         root._pendingSsid = ssid
         root._pendingAuth = _securityToQrAuth(security)
         root._fetchedPassword = ""
@@ -147,11 +155,29 @@ Singleton {
         if (root._pendingAuth === "nopass") {
             // open network — no password needed
             var wifiString = "WIFI:T:nopass;S:" + _escapeWifi(ssid) + ";;"
-            qrProcess.command = ["qrencode", "-o", root.qrImagePath, "-s", "10", wifiString]
-            qrProcess.running = true
+            root._startQrProcess(wifiString)
         } else {
             passwordFetcher.command = ["nmcli", "-s", "-g", "802-11-wireless-security.psk", "connection", "show", ssid]
             passwordFetcher.running = true
+        }
+    }
+
+    function _startQrProcess(payload) {
+        root._qrPayload = payload
+        qrProcess.running = true
+    }
+
+    function _finishQr(success) {
+        root._pendingSsid = ""
+        root._fetchedPassword = ""
+        root._qrPayload = ""
+        root._qrBusy = false
+        if (success) root.qrGenerated(root.qrImagePath)
+        else root.qrFailed()
+        if (!root._qrBusy && root._qrQueue.length > 0) {
+            const next = root._qrQueue[0]
+            root._qrQueue = root._qrQueue.slice(1)
+            root.generateQr(next.ssid, next.security)
         }
     }
 
@@ -189,10 +215,9 @@ Singleton {
                 var wifiString = "WIFI:T:" + root._pendingAuth
                     + ";S:" + root._escapeWifi(root._pendingSsid)
                     + ";P:" + root._escapeWifi(root._fetchedPassword) + ";;"
-                qrProcess.command = ["qrencode", "-o", root.qrImagePath, "-s", "10", wifiString]
-                qrProcess.running = true
+                root._startQrProcess(wifiString)
             } else {
-                root.qrFailed()
+                Qt.callLater(root._finishQr, false)
             }
         }
     }
@@ -200,11 +225,16 @@ Singleton {
     Process {
         id: qrProcess
         running: false
+        command: ["qrencode", "-o", root.qrImagePath, "-s", "10"]
+        stdinEnabled: true
+        onStarted: {
+            qrProcess.write(root._qrPayload)
+            root._qrPayload = ""
+            qrProcess.stdinEnabled = false
+        }
         onExited: function(code) {
-            if (code === 0)
-                root.qrGenerated(root.qrImagePath)
-            else
-                root.qrFailed()
+            qrProcess.stdinEnabled = true
+            Qt.callLater(root._finishQr, code === 0)
         }
     }
 }

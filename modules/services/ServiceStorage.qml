@@ -17,6 +17,7 @@ Singleton {
 
     property string childrenPath: ""
     property string scanTarget: ""
+    property string pendingScan: ""
 
     property var pathStack: []
     readonly property string currentPath:
@@ -65,6 +66,11 @@ Singleton {
 
     function scanPath(path) {
         if (!path) return
+        if (root.mapScanning) {
+            root.pendingScan = path
+            return
+        }
+        root.pendingScan = ""
         root.scanTarget = path
         root.mapScanning = true
         childrenProc.rows = []
@@ -177,12 +183,17 @@ Singleton {
             childrenProc.rows = []
             childrenProc.dirty = false
             root.mapScanning = false
+            if (root.pendingScan !== "")
+                Qt.callLater(() => {
+                    if (!root.mapScanning && root.pendingScan !== "")
+                        root.scanPath(root.pendingScan)
+                })
         }
     }
 
     Process {
         id: dfProc
-        command: ["df", "-B1", "--output=source,target,fstype,size,used,avail",
+        command: ["df", "-B1", "--output=source,fstype,size,used,avail,pcent,target",
                   "-x", "tmpfs", "-x", "devtmpfs", "-x", "efivarfs", "-x", "squashfs"]
         property string buffer: ""
 
@@ -194,13 +205,13 @@ Singleton {
             const lines = dfProc.buffer.trim().split("\n")
             const out = []
             for (let i = 1; i < lines.length; i++) {
-                const p = lines[i].trim().split(/\s+/)
-                if (p.length < 6) continue
+                const p = lines[i].trim().match(/^(\S.*?)\s+(\S+)\s+(\d+)\s+(\d+)\s+(-?\d+)\s+(\d+)%\s+(.+)$/)
+                if (!p) continue
                 const size = parseFloat(p[3])
                 const used = parseFloat(p[4])
-                if (!isFinite(size) || size <= 0) continue
+                if (size <= 0) continue
                 out.push({
-                    source: p[0], target: p[1], fstype: p[2],
+                    source: p[1], target: p[7], fstype: p[2],
                     size: size, used: used, avail: parseFloat(p[5]),
                     pct: Math.max(0, Math.min(1, used / size))
                 })

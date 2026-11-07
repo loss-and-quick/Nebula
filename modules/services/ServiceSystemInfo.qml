@@ -93,11 +93,13 @@ Singleton {
 
     Process {
         running: true
-        command: ["bash", "-c", "echo gpu:$(lspci | grep -i vga | sed 's/.*: //')"]
+        command: ["lspci"]
         stdout: SplitParser {
             onRead: data => {
-                if (data.startsWith("gpu:"))
-                    root.gpuName = data.slice(4)
+                if (root.gpuName === "" && /vga/i.test(data)) {
+                    const separator = data.lastIndexOf(": ")
+                    if (separator >= 0) root.gpuName = data.slice(separator + 2).trim()
+                }
             }
         }
     }
@@ -107,7 +109,7 @@ Singleton {
         repeat: true
         triggeredOnStart: true
         running: root._refCount > 0
-        onTriggered: fanProc.running = true
+        onTriggered: if (!fanProc.running) fanProc.running = true
     }
 
     Process {

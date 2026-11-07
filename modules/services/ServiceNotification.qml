@@ -88,14 +88,12 @@ Singleton {
                 popup: !root.muted && !root._suppressPopups,
                 notification: notif
             })
-            notif.closed.connect(() => root.removeNotification(item))
+            notif.closed.connect(() => root.removeNotification(item, true))
 
             root.allNotifications.push(item)
-            // Keep at most 100 notifications; drop oldest when exceeded
-            if (root.allNotifications.length > 100)
-                root.allNotifications.splice(0, root.allNotifications.length - 100)
+            while (root.allNotifications.length > 100)
+                root.removeNotification(root.allNotifications[0])
             root.allNotifications = root.allNotifications.slice()
-            root.arrived(item)
 
             // Find existing group for this app
             var existingGroup = null
@@ -119,6 +117,7 @@ Singleton {
                 root.groupedNotifications.push(group)
                 root.groupedNotifications = root.groupedNotifications.slice()
             }
+            root.arrived(item)
         }
     }
 
@@ -182,17 +181,16 @@ Singleton {
     }
 
     function clear() {
-        root.allNotifications = []
-        root.groupedNotifications = []
+        while (root.allNotifications.length > 0)
+            root.removeNotification(root.allNotifications[0])
     }
 
-    function removeNotification(notificationItem) {
+    function removeNotification(notificationItem, closed) {
         // Remove from flat list
         var idx = root.allNotifications.indexOf(notificationItem)
-        if (idx > -1) {
-            root.allNotifications.splice(idx, 1)
-            root.allNotifications = root.allNotifications.slice()
-        }
+        if (idx < 0) return
+        root.allNotifications.splice(idx, 1)
+        root.allNotifications = root.allNotifications.slice()
 
         // Remove from its group; drop the group when it becomes empty
         for (var i = 0; i < root.groupedNotifications.length; i++) {
@@ -203,28 +201,23 @@ Singleton {
                 if (group.notifications.length === 0) {
                     root.groupedNotifications.splice(i, 1)
                     root.groupedNotifications = root.groupedNotifications.slice()
+                    group.destroy()
                 } else {
                     group.notifications = group.notifications.slice()
                 }
                 break
             }
         }
+        if (!closed && notificationItem.notification)
+            notificationItem.notification.dismiss()
+        notificationItem.destroy()
     }
 
     // Dismiss every notification in a group at once
     function removeGroup(group) {
-        for (var j = group.notifications.length - 1; j >= 0; j--) {
-            var ni = root.allNotifications.indexOf(group.notifications[j])
-            if (ni > -1)
-                root.allNotifications.splice(ni, 1)
-        }
-        root.allNotifications = root.allNotifications.slice()
-
-        var gi = root.groupedNotifications.indexOf(group)
-        if (gi > -1) {
-            root.groupedNotifications.splice(gi, 1)
-            root.groupedNotifications = root.groupedNotifications.slice()
-        }
+        const items = group.notifications.slice()
+        for (const item of items)
+            root.removeNotification(item)
     }
 
     function toggleMute() {

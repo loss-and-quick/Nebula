@@ -1,10 +1,41 @@
 import QtQuick
+import QtQuick.Templates as T
 import qs.modules.utils
 import qs.modules.settings
 import qs.modules.customComponents
 
-Rectangle {
+T.Control {
     id: root
+
+    property alias color: container.color
+    property alias radius: container.radius
+    property alias border: container.border
+    property alias topLeftRadius: container.topLeftRadius
+    property alias topRightRadius: container.topRightRadius
+    property alias bottomLeftRadius: container.bottomLeftRadius
+    property alias bottomRightRadius: container.bottomRightRadius
+    property bool _keyboardDown: false
+    readonly property bool down: ripple.pressed || _keyboardDown
+    hoverEnabled: true
+    focusPolicy: Qt.TabFocus
+    enabled: enabledButton
+    Accessible.role: Accessible.Button
+    Accessible.name: label !== "" ? label : icon
+    Keys.onPressed: event => {
+        if (!event.isAutoRepeat && (event.key === Qt.Key_Space || event.key === Qt.Key_Return || event.key === Qt.Key_Enter)) {
+            _keyboardDown = true
+            ripple.trigger(width / 2, height / 2)
+            event.accepted = true
+        }
+    }
+    Keys.onReleased: event => {
+        if (!event.isAutoRepeat && _keyboardDown && (event.key === Qt.Key_Space || event.key === Qt.Key_Return || event.key === Qt.Key_Enter)) {
+            _keyboardDown = false
+            clicked()
+            event.accepted = true
+        }
+    }
+    onActiveFocusChanged: if (!activeFocus) _keyboardDown = false
 
     // "xsmall" | "small" | "medium" | "large" | "xlarge"
     property string size: "small"
@@ -42,7 +73,7 @@ Rectangle {
         + (_hasLabel ? _label.implicitWidth : 0))
 
     // Shape morph: round ⇄ square, and a tighter corner while pressed.
-    radius: ripple.pressed ? s.press : (square ? s.sq : height / 2)
+    radius: down ? s.press : (square ? s.sq : height / 2)
     Behavior on radius {
         NumberAnimation {
             duration: M3Motion.container.radiusDuration
@@ -80,29 +111,41 @@ Rectangle {
 
     opacity: enabledButton ? 1 : 0.6
 
-    Row {
-        id: _row
-        anchors.centerIn: parent
-        spacing: root._hasIcon && root._hasLabel ? root.s.gap : 0
+    contentItem: Item {
+        Row {
+            anchors.centerIn: parent
+            spacing: root._hasIcon && root._hasLabel ? root.s.gap : 0
 
-        MaterialIconSymbol {
-            id: _icon
-            visible: root._hasIcon
-            anchors.verticalCenter: parent.verticalCenter
-            content: root.icon
-            iconSize: root.s.icon
-            fill: root.iconFill
-            customColor: root._onContainer
-            Behavior on fill { NumberAnimation { duration: M3Motion.effects.defaultDuration } }
+            MaterialIconSymbol {
+                id: _icon
+                visible: root._hasIcon
+                anchors.verticalCenter: parent.verticalCenter
+                content: root.icon
+                iconSize: root.s.icon
+                fill: root.iconFill
+                customColor: root._onContainer
+                Behavior on fill { NumberAnimation { duration: M3Motion.effects.defaultDuration } }
+            }
+
+            CustomText {
+                id: _label
+                visible: root._hasLabel
+                anchors.verticalCenter: parent.verticalCenter
+                content: root.label
+                size: root.s.text
+                customColor: root._onContainer
+            }
         }
+    }
 
-        CustomText {
-            id: _label
-            visible: root._hasLabel
-            anchors.verticalCenter: parent.verticalCenter
-            content: root.label
-            size: root.s.text
-            customColor: root._onContainer
+    background: Rectangle {
+        id: container
+
+        Rectangle {
+            anchors.fill: parent
+            radius: root.radius
+            color: root.hovered || root.visualFocus ? Qt.alpha(root._onContainer, 0.08) : "transparent"
+            Behavior on color { ColorAnimation { duration: M3Motion.effects.fastDuration } }
         }
     }
 
@@ -110,10 +153,10 @@ Rectangle {
         id: ripple
         anchors.fill: parent
         radius: root.radius
-        enabled: root.enabledButton
-        hoverColor:  Qt.alpha(root._onContainer, 0.08)
+        enabled: root.enabled
+        hoverColor: "transparent"
         rippleColor: Qt.alpha(root._onContainer, 0.20)
-        onClicked: if (root.enabledButton) root.clicked()
-        onRightClicked: if (root.enabledButton) root.rightClicked()
+        onClicked: root.clicked()
+        onRightClicked: root.rightClicked()
     }
 }

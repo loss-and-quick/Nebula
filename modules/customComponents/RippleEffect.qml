@@ -33,6 +33,16 @@ Item {
     signal clicked
     signal rightClicked
 
+    function trigger(x, y) {
+        const d = (ox, oy) => ox * ox + oy * oy
+        _anim.px = x; _anim.py = y
+        _anim.r = Math.sqrt(Math.max(
+            d(x, y), d(x, height - y),
+            d(width - x, y), d(width - x, height - y)
+        ))
+        _anim.restart()
+    }
+
     // Hover tint — uses corner radii for visual shape
     Rectangle {
         anchors.fill: parent
@@ -105,15 +115,7 @@ Item {
         cursorShape: Qt.PointingHandCursor
         acceptedButtons: Qt.LeftButton | Qt.RightButton
 
-        onPressed: event => {
-            const d = (ox, oy) => ox*ox + oy*oy
-            _anim.px = event.x; _anim.py = event.y
-            _anim.r = Math.sqrt(Math.max(
-                d(event.x, event.y), d(event.x, height - event.y),
-                d(width - event.x, event.y), d(width - event.x, height - event.y)
-            ))
-            _anim.restart()
-        }
+        onPressed: event => root.trigger(event.x, event.y)
 
         onClicked: mouse => mouse.button === Qt.RightButton ? root.rightClicked() : root.clicked()
     }

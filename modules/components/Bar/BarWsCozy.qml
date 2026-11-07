@@ -491,15 +491,15 @@ Item {
                             readonly property var mon: st.ws ? st.ws.monitor : null
                             readonly property real mx: stage.mon ? stage.mon.x : 0
                             readonly property real my: stage.mon ? stage.mon.y : 0
-                            readonly property real mw: Math.max(1, cozy.owner?.screenW ?? Quickshell.screens[0]?.width ?? 0)
-                            readonly property real mh: Math.max(1, cozy.owner?.screenH ?? Quickshell.screens[0]?.height ?? 0)
+                            readonly property real mw: Math.max(1, stage.mon?.width ?? cozy.owner?.screenW ?? Quickshell.screens[0]?.width ?? 0)
+                            readonly property real mh: Math.max(1, stage.mon?.height ?? cozy.owner?.screenH ?? Quickshell.screens[0]?.height ?? 0)
 
                             Repeater {
                                 model: st.ws ? st.ws.toplevels : null
                                 delegate: Rectangle {
                                     required property var modelData
                                     readonly property var geo: modelData?.lastIpcObject ?? null
-                                    readonly property bool placed: !!geo && !!geo.size && geo.size[0] > 0 && geo.size[1] > 0
+                                    readonly property bool placed: geo?.at?.length >= 2 && geo?.size?.length >= 2 && geo.size[0] > 0 && geo.size[1] > 0
                                     visible: placed
                                     x: placed ? (geo.at[0] - stage.mx) / stage.mw * stage.width : 0
                                     y: placed ? (geo.at[1] - stage.my) / stage.mh * stage.height : 0

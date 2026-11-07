@@ -110,12 +110,13 @@ Item {
 
                 readonly property var box: {
                     let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9
-                    for (const m of root.mons) {
+                    const enabled = root.mons.filter(m => !m.disabled)
+                    for (const m of enabled) {
                         const r = root.logical(m)
                         x0 = Math.min(x0, r.x); y0 = Math.min(y0, r.y)
                         x1 = Math.max(x1, r.x + r.w); y1 = Math.max(y1, r.y + r.h)
                     }
-                    return root.mons.length ? { x: x0, y: y0, w: x1 - x0, h: y1 - y0 } : { x: 0, y: 0, w: 1, h: 1 }
+                    return enabled.length ? { x: x0, y: y0, w: x1 - x0, h: y1 - y0 } : { x: 0, y: 0, w: 1, h: 1 }
                 }
                 readonly property real s: Math.min((width - 80) / Math.max(1, box.w), (height - 60) / Math.max(1, box.h))
                 readonly property real ox: (width - box.w * s) / 2

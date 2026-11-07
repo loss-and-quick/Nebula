@@ -115,7 +115,7 @@ Item {
         : Math.min(Math.max(80, root.maxHeight - root.fixedHeight), listCol.implicitHeight)
 
     implicitWidth: 400
-    implicitHeight: root.fixedHeight + root.listHeight
+    implicitHeight: Math.min(root.maxHeight, root.fixedHeight + root.listHeight)
 
     function nextMorning() {
         const d = new Date()

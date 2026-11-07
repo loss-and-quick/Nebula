@@ -14,7 +14,7 @@ Item {
 
     property real maxHeight: 640
     property int iconIndex: 0
-    readonly property var liveApps: Hyprland.toplevels.values.filter(t => (t.lastIpcObject?.workspace?.id ?? 0) > 0)
+    readonly property var liveApps: (Hyprland.toplevels?.values ?? []).filter(t => (t.lastIpcObject?.workspace?.id ?? 0) > 0)
     readonly property int liveWs: new Set(root.liveApps.map(t => t.lastIpcObject.workspace.id)).size
 
     implicitWidth: 360

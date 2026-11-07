@@ -181,7 +181,7 @@ Item {
         id: folderPicker
         title: "Select wallpaper directory"
         onAccepted: {
-            root.patchGeneral({ wallpaperDir: folderPicker.folder.toString().replace(/^file:\/\//, "") })
+            root.patchGeneral({ wallpaperDir: decodeURIComponent(folderPicker.folder.toString().replace(/^file:\/\//, "")) })
             GlobalStates.fileDialogOpen = false
         }
         onRejected: GlobalStates.fileDialogOpen = false
@@ -905,7 +905,11 @@ Item {
                     subtitle: "Default weight for body text"
                     options: root.weights.map(w => w.label)
                     current: root.weights.find(w => w.value === root.fontWeight)?.label ?? ""
-                    onPicked: name => root.patch({ fontWeight: root.weights.find(w => w.label === name).value })
+                    onPicked: name => {
+                        const f = root.weights.find(w => w.label === name)
+                        if (f)
+                            root.patch({ fontWeight: f.value })
+                    }
                 }
             }
         }

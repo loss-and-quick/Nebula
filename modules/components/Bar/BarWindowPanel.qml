@@ -59,7 +59,7 @@ Item {
     readonly property var siblings: {
         if (!root.target || root.appClass === "")
             return []
-        return Hyprland.toplevels.values.filter(t => t !== root.target
+        return (Hyprland.toplevels?.values ?? []).filter(t => t !== root.target
             && (t.lastIpcObject?.["class"] ?? t.wayland?.appId ?? "") === root.appClass).slice(0, 4)
     }
 

@@ -4,7 +4,7 @@ import QtQuick
 import QtQuick.Controls.Basic
 import QtQuick.Layouts
 import qs.modules.utils
-import qs.modules.customComponents
+import qs.modules.components.custom
 import qs.modules.settings
 
 PanelWindow {

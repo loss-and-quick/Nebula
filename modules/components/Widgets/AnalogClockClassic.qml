@@ -4,9 +4,9 @@ import QtQuick.Layouts
 import qs.modules.utils
 import qs.modules.services
 import qs.modules.settings
-import qs.modules.customComponents
-import "../../MatrialShapes/" as MaterialShapes
-import "../../MatrialShapes/material-shapes.js" as MaterialShapeFn
+import qs.modules.components.custom
+import "../../MaterialShapes/" as MaterialShapes
+import "../../MaterialShapes/material-shapes.js" as MaterialShapeFn
 
 WidgetHost {
     id: root

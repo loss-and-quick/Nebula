@@ -1,9 +1,9 @@
 import QtQuick
 import QtQuick.Layouts
 import qs.modules.utils
-import qs.modules.customComponents
-import "../../MatrialShapes/" as MaterialShapes
-import "../../MatrialShapes/material-shapes.js" as MaterialShapeFn
+import qs.modules.components.custom
+import "../../MaterialShapes/" as MaterialShapes
+import "../../MaterialShapes/material-shapes.js" as MaterialShapeFn
 
 // Shown by every expanded music surface when no MPRIS player is alive. Same
 // shape-plus-glyph treatment the settings pages use for their empty sections,

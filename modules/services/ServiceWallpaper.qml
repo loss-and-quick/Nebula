@@ -44,7 +44,7 @@ Singleton {
     property bool gowallAvailable: false
     property bool gowallChecked: false
 
-    // CustomListNew renders modelData.name, so the picker needs objects.
+    // CustomDropdown renders modelData.name, so the picker needs objects.
     readonly property var gowallOptions: [{ name: "off" }, { name: "match" }]
         .concat(root.gowallThemes.map(t => ({ name: t })))
 

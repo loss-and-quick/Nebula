@@ -2,7 +2,7 @@ import QtQuick
 import QtQuick.Layouts
 import qs.modules.utils
 import qs.modules.settings
-import qs.modules.customComponents
+import qs.modules.components.custom
 
 SetupScroll {
     id: scroll

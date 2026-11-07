@@ -1,5 +1,5 @@
 import QtQuick
-import "../../MatrialShapes/" as MaterialShapes
+import "../../MaterialShapes/" as MaterialShapes
 
 Item {
     id: root

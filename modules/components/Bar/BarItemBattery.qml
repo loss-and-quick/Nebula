@@ -2,7 +2,7 @@ import QtQuick
 import Quickshell.Services.UPower
 import qs.modules.utils
 import qs.modules.services
-import qs.modules.customComponents
+import qs.modules.components.custom
 
 Rectangle {
     id: root

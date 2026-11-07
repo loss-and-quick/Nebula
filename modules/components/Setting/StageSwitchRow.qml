@@ -1,5 +1,5 @@
 import QtQuick
-import qs.modules.customComponents
+import qs.modules.components.custom
 
 StageRow {
     id: row

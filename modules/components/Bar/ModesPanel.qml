@@ -3,7 +3,7 @@ import Quickshell.Widgets
 import QtQuick
 import QtQuick.Layouts
 import qs.modules.utils
-import qs.modules.customComponents
+import qs.modules.components.custom
 import qs.modules.services
 import qs.modules.settings
 

@@ -2,7 +2,7 @@ import QtQuick
 import Quickshell.Widgets
 import qs.modules.services
 import qs.modules.utils
-import qs.modules.customComponents
+import qs.modules.components.custom
 
 Row {
     id: root

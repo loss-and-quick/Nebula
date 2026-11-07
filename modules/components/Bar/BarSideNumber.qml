@@ -1,6 +1,6 @@
 import QtQuick
 import qs.modules.utils
-import qs.modules.customComponents
+import qs.modules.components.custom
 
 CustomText {
     id: num

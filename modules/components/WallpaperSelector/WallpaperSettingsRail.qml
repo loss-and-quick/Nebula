@@ -6,7 +6,7 @@ import Qt.labs.platform
 import qs.modules.utils
 import qs.modules.settings
 import qs.modules.services
-import qs.modules.customComponents
+import qs.modules.components.custom
 
 Item {
     id: root
@@ -205,7 +205,7 @@ Item {
                         title: "Colour scheme"
                         sub: "How colours are pulled from the wallpaper"
 
-                        CustomListNew {
+                        CustomDropdown {
                             Layout.fillWidth: true
                             Layout.preferredHeight: 30
                             color: Colors.surfaceContainerHighest
@@ -226,7 +226,7 @@ Item {
                         title: "Transition"
                         sub: "Animation when the wallpaper changes"
 
-                        CustomListNew {
+                        CustomDropdown {
                             Layout.fillWidth: true
                             Layout.preferredHeight: 30
                             color: Colors.surfaceContainerHighest
@@ -285,7 +285,7 @@ Item {
                             return "Off: the wallpaper keeps its own colours"
                         }
 
-                        CustomListNew {
+                        CustomDropdown {
                             Layout.fillWidth: true
                             Layout.preferredHeight: 30
                             color: Colors.surfaceContainerHighest

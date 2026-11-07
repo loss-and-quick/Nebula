@@ -5,7 +5,7 @@ import QtQuick.Effects
 import Qt.labs.platform
 import qs.modules.utils
 import qs.modules.settings
-import qs.modules.customComponents
+import qs.modules.components.custom
 
 WelcomeTile {
     id: tile
@@ -128,7 +128,7 @@ WelcomeTile {
 
         CustomText { content: "Font"; size: 12; customColor: Colors.outline }
 
-        CustomListNew {
+        CustomDropdown {
             Layout.preferredWidth: 170
             Layout.preferredHeight: 30
             color: Colors.surfaceContainerHighest

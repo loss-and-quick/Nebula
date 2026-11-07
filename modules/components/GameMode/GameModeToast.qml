@@ -5,7 +5,7 @@ import QtQuick.Layouts
 import qs.modules.utils
 import qs.modules.settings
 import qs.modules.services
-import qs.modules.customComponents
+import qs.modules.components.custom
 
 // Brief confirmation pill for game mode. Its own surface on the Overlay layer
 // because everything else the shell draws is hidden by the time this needs to

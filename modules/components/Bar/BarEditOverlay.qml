@@ -9,7 +9,7 @@ import QtQuick.Controls
 import qs.modules.utils
 import qs.modules.settings
 import qs.modules.services
-import qs.modules.customComponents
+import qs.modules.components.custom
 import qs.modules.components.Edit
 import qs.modules.components.Widgets
 import qs.modules.components.Bar

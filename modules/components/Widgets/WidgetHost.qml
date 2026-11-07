@@ -3,7 +3,7 @@ import QtQuick.Effects
 import Quickshell.Widgets
 import qs.modules.utils
 import qs.modules.settings
-import qs.modules.customComponents
+import qs.modules.components.custom
 import qs.modules.services
 
 // Shared chrome for every desktop widget.

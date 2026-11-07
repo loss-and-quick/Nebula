@@ -13,9 +13,9 @@ import qs.modules.components.ToolsWidget
 import qs.modules.components.Setting
 import qs.modules.components.Notification
 import qs.modules.services
-import qs.modules.customComponents
-import "../../MatrialShapes/" as MaterialShapes
-import "../../MatrialShapes/material-shapes.js" as MatrialShapeFn
+import qs.modules.components.custom
+import "../../MaterialShapes/" as MaterialShapes
+import "../../MaterialShapes/material-shapes.js" as MaterialShapeFn
 
 
 PanelWindow{
@@ -69,14 +69,14 @@ PanelWindow{
             MaterialShapes.ShapeCanvas{
                 implicitHeight: 36
                 implicitWidth: 36
-                roundedPolygon: MatrialShapeFn.getCircle()
+                roundedPolygon: MaterialShapeFn.getCircle()
                 color: Colors.primary
             }
 
             MaterialShapes.ShapeCanvas{
                 implicitHeight: 36
                 implicitWidth: 36
-                roundedPolygon: MatrialShapeFn.getCookie6Sided()
+                roundedPolygon: MaterialShapeFn.getCookie6Sided()
                 color: Colors.primary
             }
         }

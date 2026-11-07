@@ -3,7 +3,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Shapes
 import qs.modules.utils
-import qs.modules.customComponents
+import qs.modules.components.custom
 
 Item {
     id: root

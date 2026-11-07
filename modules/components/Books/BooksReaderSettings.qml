@@ -3,7 +3,7 @@ import QtQuick.Layouts
 import qs.modules.utils
 import qs.modules.settings
 import qs.modules.services
-import qs.modules.customComponents
+import qs.modules.components.custom
 
 Rectangle {
     id: panel
@@ -167,7 +167,7 @@ Rectangle {
                 Row2 {
                     MaterialIconSymbol { content: "font_download"; iconSize: 18; customColor: Colors.surfaceVariantText }
                     CustomText { Layout.fillWidth: true; content: "Typeface"; size: 13 }
-                    CustomListNew {
+                    CustomDropdown {
                         Layout.preferredWidth: 170
                         Layout.preferredHeight: 34
                         color: Colors.surfaceContainerHighest

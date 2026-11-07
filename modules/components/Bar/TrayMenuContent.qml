@@ -2,7 +2,7 @@ import Quickshell
 import QtQuick
 import QtQuick.Layouts
 import qs.modules.utils
-import qs.modules.customComponents
+import qs.modules.components.custom
 
 Item {
     id: root

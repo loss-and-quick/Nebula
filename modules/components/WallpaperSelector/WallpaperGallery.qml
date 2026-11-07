@@ -7,7 +7,7 @@ import QtQuick.Shapes
 import qs.modules.utils
 import qs.modules.services
 import qs.modules.settings
-import qs.modules.customComponents
+import qs.modules.components.custom
 
 Item {
     id: root
@@ -2128,7 +2128,7 @@ Item {
                             customColor: pal.text
                         }
 
-                        CustomListNew {
+                        CustomDropdown {
                             Layout.preferredWidth: 130
                             Layout.preferredHeight: 30
                             color: pal.containerHighest

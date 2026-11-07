@@ -1,8 +1,8 @@
 import QtQuick
 import qs.modules.utils
-import qs.modules.customComponents
-import "../../MatrialShapes/" as MaterialShapes
-import "../../MatrialShapes/shape-library.js" as ShapeLibrary
+import qs.modules.components.custom
+import "../../MaterialShapes/" as MaterialShapes
+import "../../MaterialShapes/shape-library.js" as ShapeLibrary
 
 Item {
     id: m

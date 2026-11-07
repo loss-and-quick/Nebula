@@ -7,9 +7,9 @@ import QtQuick.Layouts
 import qs.modules.utils
 import qs.modules.services
 import qs.modules.settings
-import qs.modules.customComponents
+import qs.modules.components.custom
 import qs.modules.components.LockScreen
-import "../../MatrialShapes/" as MaterialShapes
+import "../../MaterialShapes/" as MaterialShapes
 
 Item {
     id: root

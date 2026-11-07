@@ -1,7 +1,7 @@
 import QtQuick
 import QtQuick.Shapes
 import qs.modules.utils
-import qs.modules.customComponents
+import qs.modules.components.custom
 
 Shape {
     id: arc

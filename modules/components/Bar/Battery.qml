@@ -5,7 +5,7 @@ import QtQuick.Effects
 import QtQuick.Layouts
 import qs.modules.utils
 import qs.modules.services
-import qs.modules.customComponents
+import qs.modules.components.custom
 
 Rectangle{
     color: Colors.surfaceContainerHigh

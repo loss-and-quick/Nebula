@@ -2,7 +2,7 @@ import QtQuick
 import QtQuick.Layouts
 import qs.modules.utils
 import qs.modules.services
-import qs.modules.customComponents
+import qs.modules.components.custom
 
 // Which player the panel is actually controlling. Worth the 20px: with several
 // MPRIS clients alive at once, the transport buttons are otherwise acting on an

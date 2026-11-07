@@ -1,7 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import qs.modules.utils
-import qs.modules.customComponents
+import qs.modules.components.custom
 
 StageRow {
     id: row
@@ -13,7 +13,7 @@ StageRow {
 
     readonly property var items: row.options.map(o => typeof o === "string" ? ({ name: o }) : o)
 
-    CustomListNew {
+    CustomDropdown {
         Layout.preferredWidth: row.dropdownWidth
         Layout.preferredHeight: 32
         color: Colors.surfaceContainerHighest

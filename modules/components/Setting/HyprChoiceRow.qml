@@ -2,7 +2,7 @@ import QtQuick
 import QtQuick.Layouts
 import qs.modules.utils
 import qs.modules.services
-import qs.modules.customComponents
+import qs.modules.components.custom
 
 CustomCard {
     id: row
@@ -48,7 +48,7 @@ CustomCard {
 
         Item { Layout.fillWidth: true }
 
-        CustomListNew {
+        CustomDropdown {
             Layout.preferredWidth: row.dropdownWidth
             Layout.preferredHeight: 32
             color: Colors.surfaceContainerHighest

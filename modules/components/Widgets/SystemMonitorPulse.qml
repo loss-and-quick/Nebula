@@ -4,7 +4,7 @@ import QtQuick.Layouts
 import qs.modules.utils
 import qs.modules.services
 import qs.modules.settings
-import qs.modules.customComponents
+import qs.modules.components.custom
 
 // CPU history as the hero, with the other metrics demoted to a footer strip.
 // The existing default/compact styles are both gauge grids — this one is about

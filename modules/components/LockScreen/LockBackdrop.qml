@@ -5,7 +5,7 @@ import QtQuick.Shapes
 import QtQuick.Effects
 import qs.modules.utils
 import qs.modules.services
-import qs.modules.customComponents
+import qs.modules.components.custom
 import qs.modules.components.Widgets
 
 Item {

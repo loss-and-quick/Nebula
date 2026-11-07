@@ -6,7 +6,7 @@ import QtQuick.Layouts
 import qs.modules.utils
 import qs.modules.settings
 import qs.modules.services
-import qs.modules.customComponents
+import qs.modules.components.custom
 
 Item {
     id: root

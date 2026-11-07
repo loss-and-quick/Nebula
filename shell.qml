@@ -31,7 +31,7 @@ import qs.modules.components.EdgeNotes
 import qs.modules.components.Tuck
 import qs.modules.components.Spotlight
 import qs.modules.components.Bar
-import qs.modules.customComponents
+import qs.modules.components.custom
 import qs.modules.services
 import qs.modules.settings
 

@@ -1,7 +1,7 @@
 import QtQuick
 import Quickshell.Io
 import qs.modules.utils
-import qs.modules.customComponents
+import qs.modules.components.custom
 
 Item {
     id: root

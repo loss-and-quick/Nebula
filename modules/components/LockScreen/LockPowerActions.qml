@@ -5,7 +5,7 @@ import QtQuick.Layouts
 import Quickshell
 import qs.modules.utils
 import qs.modules.settings
-import qs.modules.customComponents
+import qs.modules.components.custom
 
 // Sleep / restart / shut down. Two-stage: the first click arms a red confirm,
 // a second click within 4s runs it. Anything else collapses it.

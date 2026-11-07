@@ -4,7 +4,7 @@ import QtQuick
 import QtQuick.Layouts
 import qs.modules.utils
 import qs.modules.settings
-import qs.modules.customComponents
+import qs.modules.components.custom
 
 // Password entry plus a reserved line beneath it for the failure message. The
 // message lives outside the field so it stays readable once the user has

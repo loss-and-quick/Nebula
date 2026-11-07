@@ -1,10 +1,10 @@
 import QtQuick
 import QtQuick.Effects
 import qs.modules.utils
-import qs.modules.customComponents
+import qs.modules.components.custom
 import qs.modules.components.Widgets
-import "../../MatrialShapes/" as MaterialShapes
-import "../../MatrialShapes/shape-library.js" as ShapeLibrary
+import "../../MaterialShapes/" as MaterialShapes
+import "../../MaterialShapes/shape-library.js" as ShapeLibrary
 
 Item {
     id: root

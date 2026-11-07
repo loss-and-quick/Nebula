@@ -3,9 +3,9 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
-import qs.modules.customComponents
+import qs.modules.components.custom
 import qs.modules.utils
-import "modules/customComponents/LogoMotion.js" as Motion
+import "modules/components/custom/LogoMotion.js" as Motion
 
 ShellRoot {
     id: root

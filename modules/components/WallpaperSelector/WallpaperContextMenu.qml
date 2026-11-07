@@ -3,7 +3,7 @@ import QtQuick
 import QtQuick.Layouts
 import qs.modules.utils
 import qs.modules.services
-import qs.modules.customComponents
+import qs.modules.components.custom
 
 // Right-click context menu for wallpaper tiles (local and online).
 // Instantiate with anchors.fill on the grid container Item so position

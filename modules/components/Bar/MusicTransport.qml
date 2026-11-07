@@ -3,7 +3,7 @@ import QtQuick
 import QtQuick.Layouts
 import qs.modules.utils
 import qs.modules.services
-import qs.modules.customComponents
+import qs.modules.components.custom
 
 // Shuffle / prev / play / next / repeat, shared by every music surface in the
 // bar. Sizes are parameterised because the wide panel and the column panel have

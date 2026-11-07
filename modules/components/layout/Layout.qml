@@ -16,7 +16,7 @@ import qs.modules.components.Notification
 import qs.modules.components.Osd
 import qs.modules.components.Widgets
 import qs.modules.services
-import qs.modules.customComponents
+import qs.modules.components.custom
 import "../Bar/BarOps.js" as BarOps
 
 PanelWindow{

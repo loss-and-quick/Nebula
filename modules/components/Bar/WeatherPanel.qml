@@ -3,11 +3,11 @@ pragma ComponentBehavior: Bound
 import Quickshell
 import QtQuick
 import QtQuick.Layouts
-import qs.modules.customComponents
+import qs.modules.components.custom
 import qs.modules.utils
 import qs.modules.settings
 import qs.modules.services
-import "../../MatrialShapes/" as MaterialShapes
+import "../../MaterialShapes/" as MaterialShapes
 
 Item {
     id: root

@@ -5,7 +5,7 @@ import QtQuick
 import QtQuick.Layouts
 import qs.modules.utils
 import qs.modules.services
-import qs.modules.customComponents
+import qs.modules.components.custom
 
 // List view over ServiceLauncher.results — used by calc, run and windows.
 // Emoji gets its own grid instead. Mirrors ListApps' selection and hover

@@ -6,7 +6,7 @@ import QtQuick.Layouts
 import qs.modules.utils
 import qs.modules.settings
 import qs.modules.services
-import qs.modules.customComponents
+import qs.modules.components.custom
 
 Item {
     id: root
@@ -87,7 +87,7 @@ Item {
                         Layout.fillWidth: true
                         spacing: 8
 
-                        CustomListNew {
+                        CustomDropdown {
                             id: outList
                             Layout.fillWidth: true
                             Layout.preferredHeight: 30
@@ -231,7 +231,7 @@ Item {
                         Layout.fillWidth: true
                         spacing: 8
 
-                        CustomListNew {
+                        CustomDropdown {
                             id: inList
                             Layout.fillWidth: true
                             Layout.preferredHeight: 30

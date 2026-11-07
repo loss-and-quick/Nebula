@@ -1,6 +1,6 @@
 import QtQuick
 import QtQuick.Controls
-import qs.modules.customComponents
+import qs.modules.components.custom
 
 Flickable {
     id: scroller

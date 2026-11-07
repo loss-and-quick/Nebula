@@ -2,7 +2,7 @@ import Quickshell
 import Quickshell.Hyprland
 import QtQuick
 import QtQuick.Layouts
-import qs.modules.customComponents
+import qs.modules.components.custom
 import qs.modules.utils
 import qs.modules.settings
 import qs.modules.services

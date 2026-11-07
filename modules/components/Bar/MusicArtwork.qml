@@ -2,7 +2,7 @@ import Quickshell.Widgets
 import QtQuick
 import qs.modules.utils
 import qs.modules.services
-import qs.modules.customComponents
+import qs.modules.components.custom
 
 // Album art with a placeholder for the (common) case of a player that publishes
 // no artwork. `interactive` adds a scrim + play/pause overlay on hover, which is

@@ -3,7 +3,7 @@ import QtQuick.Layouts
 import qs.modules.utils
 import qs.modules.services
 import qs.modules.settings
-import qs.modules.customComponents
+import qs.modules.components.custom
 
 Item {
     id: root
@@ -418,7 +418,7 @@ Item {
                         customColor: Colors.outline
                     }
 
-                    CustomListNew {
+                    CustomDropdown {
                         readonly property var choices: [
                             { value: "grp:alt_shift_toggle", name: "Alt + Shift" },
                             { value: "grp:win_space_toggle", name: "Super + Space" },
@@ -703,7 +703,7 @@ Item {
                             }
                         }
 
-                        CustomListNew {
+                        CustomDropdown {
                             id: addLayout
                             width: 190
                             height: 32

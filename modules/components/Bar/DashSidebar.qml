@@ -5,9 +5,9 @@ import QtQuick.Layouts
 import qs.modules.utils
 import qs.modules.settings
 import qs.modules.services
-import qs.modules.customComponents
-import "../../MatrialShapes/" as MaterialShapes
-import "../../MatrialShapes/material-shapes.js" as MatrialShapeFn
+import qs.modules.components.custom
+import "../../MaterialShapes/" as MaterialShapes
+import "../../MaterialShapes/material-shapes.js" as MaterialShapeFn
 
 Item {
     id: root
@@ -195,7 +195,7 @@ Item {
                         implicitHeight: 56
                         MaterialShapes.ShapeCanvas {
                             anchors.fill: parent
-                            roundedPolygon: MatrialShapeFn.getCookie9Sided()
+                            roundedPolygon: MaterialShapeFn.getCookie9Sided()
                             color: Colors.surfaceContainerHigh
                         }
                         MaterialIconSymbol {

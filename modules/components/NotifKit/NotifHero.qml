@@ -2,7 +2,7 @@ import QtQuick
 import Quickshell.Io
 import Quickshell.Widgets
 import qs.modules.utils
-import qs.modules.customComponents
+import qs.modules.components.custom
 
 ClippingRectangle {
     id: hero

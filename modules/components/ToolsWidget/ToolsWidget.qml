@@ -5,7 +5,7 @@ import QtQuick
 import qs.modules.utils
 import qs.modules.services
 import qs.modules.settings
-import qs.modules.customComponents
+import qs.modules.components.custom
 
 Scope {
     id: scope

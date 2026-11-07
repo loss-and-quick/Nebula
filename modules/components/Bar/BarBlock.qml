@@ -7,7 +7,7 @@ import QtQuick.Shapes
 import qs.modules.utils
 import qs.modules.settings
 import qs.modules.services
-import qs.modules.customComponents
+import qs.modules.components.custom
 import qs.modules.components.Clipboard
 import qs.modules.components.WallpaperSelector
 import qs.modules.components.Osd

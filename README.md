@@ -111,4 +111,4 @@ If you use an external theming system (such as NixOS Stylix, pywal, or base16) a
 
 The material shape geometry in `plugins/Nebula/shapes.cpp` is a C++ port of
 rounded-polygon-qmljs by end_4, used under its original
-[Apache License 2.0](modules/MatrialShapes/LICENSE).
+[Apache License 2.0](modules/MaterialShapes/LICENSE).

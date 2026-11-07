@@ -7,9 +7,9 @@ import QtQuick.Shapes
 import qs.modules.utils
 import qs.modules.settings
 import qs.modules.services
-import qs.modules.customComponents
+import qs.modules.components.custom
 import qs.modules.components.Setting
-import "../../MatrialShapes/" as MaterialShapes
+import "../../MaterialShapes/" as MaterialShapes
 
 Item {
     id: root

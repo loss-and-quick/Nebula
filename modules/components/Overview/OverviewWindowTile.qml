@@ -3,7 +3,7 @@ import Quickshell.Wayland
 import QtQuick
 import QtQuick.Layouts
 import qs.modules.utils
-import qs.modules.customComponents
+import qs.modules.components.custom
 
 // One window in the overview: a live capture of the window itself plus a footer
 // carrying the app icon and title.

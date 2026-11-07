@@ -5,7 +5,7 @@ import QtQuick
 import qs.modules.utils
 import qs.modules.settings
 import qs.modules.services
-import qs.modules.customComponents
+import qs.modules.components.custom
 import qs.modules.components.Clipboard
 import qs.modules.components.WallpaperSelector
 import qs.modules.components.Osd
@@ -79,7 +79,7 @@ Item {
                 anchors.fill: parent
                 sourceComponent: calHost.calStyle === "rail" ? calRailComp : calAltComp
             }
-            Component { id: calRailComp; Calander {} }
+            Component { id: calRailComp; Calendar {} }
             Component { id: calAltComp; CalendarPanelAlt { style: calHost.calStyle } }
         }
     }

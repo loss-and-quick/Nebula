@@ -1,7 +1,7 @@
 import QtQuick
 import qs.modules.utils
-import "../../MatrialShapes/" as MaterialShapes
-import "../../MatrialShapes/material-shapes.js" as MaterialShapeFn
+import "../../MaterialShapes/" as MaterialShapes
+import "../../MaterialShapes/material-shapes.js" as MaterialShapeFn
 
 WidgetHost {
     id: root

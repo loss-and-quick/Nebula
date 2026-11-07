@@ -1,6 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
-import qs.modules.customComponents
+import qs.modules.components.custom
 
 StageRow {
     id: row

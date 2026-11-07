@@ -1,3 +1,4 @@
+//@ pragma Env QT_QUICK_CONTROLS_STYLE=Basic
 //@ pragma UseQApplication
 //@ pragma Env QSG_ATLAS_WIDTH=512
 //@ pragma Env QSG_ATLAS_HEIGHT=512

@@ -43,7 +43,6 @@ INSTALL_DIR="$LEGACY_DIR/nebula"
 VENV_DIR="$XDG_STATE_HOME/quickshell/.venv"
 PLUGIN_DIR="$INSTALL_DIR/plugins/WfRecorder"
 NEBULA_PLUGIN_DIR="$INSTALL_DIR/plugins/Nebula"
-LAUNCHER_DIR="$INSTALL_DIR/cli/launcher"
 
 # ── option defaults ───────────────────────────────────────────────────────────
 ask=true
@@ -420,20 +419,12 @@ fi
 
 # ── nebula command ────────────────────────────────────────────────────────────
 step "nebula command"
-NEBULA_BIN="/usr/local/bin/nebula"
-NEBULA_CMD="nebula"
-if [[ -f "$LAUNCHER_DIR/build.sh" ]]; then
-  v bash "$LAUNCHER_DIR/build.sh"
-  [[ -x "$LAUNCHER_DIR/build/nebula" ]] && v sudo install -Dm755 "$LAUNCHER_DIR/build/nebula" "$NEBULA_BIN"
-fi
-if [[ -x "$NEBULA_BIN" ]] && cmp -s "$LAUNCHER_DIR/build/nebula" "$NEBULA_BIN"; then
-  [[ -L "$HOME/.local/bin/nebula" ]] && rm -f "$HOME/.local/bin/nebula"
-  ok "nebula installed to $NEBULA_BIN (run \`nebula help\`)"
-else
-  mkdir -p "$HOME/.local/bin"
-  ln -sfn "$INSTALL_DIR/bin/nebula" "$HOME/.local/bin/nebula"
-  NEBULA_CMD="$HOME/.local/bin/nebula"
-  warn "nebula was not installed to $NEBULA_BIN — linked ~/.local/bin/nebula instead"
+mkdir -p "$HOME/.local/bin"
+ln -sfn "$INSTALL_DIR/bin/nebula" "$HOME/.local/bin/nebula"
+NEBULA_CMD="$HOME/.local/bin/nebula"
+ok "nebula linked to $NEBULA_CMD (run \`nebula help\`)"
+if [[ -e /usr/local/bin/nebula ]]; then
+  warn "An existing /usr/local/bin/nebula may take precedence over $NEBULA_CMD"
 fi
 MIGRATED="$("$INSTALL_DIR/bin/nebula" migrate --quiet 2>/dev/null)"
 [[ -n "$MIGRATED" ]] && ok "Settings moved to $XDG_CONFIG_HOME/nebula, history to $XDG_STATE_HOME/nebula"

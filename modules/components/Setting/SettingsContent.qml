@@ -744,7 +744,6 @@ Item {
 
     Rectangle {
         anchors.fill: parent
-        radius: 20
         color: Colors.surface
 
         Item {

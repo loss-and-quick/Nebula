@@ -36,7 +36,7 @@ Scope {
             implicitWidth: 1000
             implicitHeight: 700
             title: "Settings"
-            color: "transparent"
+            color: Colors.surface
 
             readonly property real animT: settingsContent.t
 

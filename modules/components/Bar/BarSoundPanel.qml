@@ -17,8 +17,8 @@ Item {
     readonly property var streams: ServicePipewire.playbacks.filter(n => n && n.audio
         && (n.properties?.["media.class"] ?? "") === "Stream/Output/Audio")
 
-    readonly property var sinkList: ServicePipewire.sinks.map(n => ({ name: n.description }))
-    readonly property var sourceList: ServicePipewire.sources.map(n => ({ name: n.description }))
+    readonly property var sinkList: ServicePipewire.sinks.map(n => ({ name: n.description, icon: "volume_up" }))
+    readonly property var sourceList: ServicePipewire.sources.map(n => ({ name: n.description, icon: "mic" }))
 
     implicitWidth: 360
     implicitHeight: Math.min(root.maxHeight, column.implicitHeight + 24)

@@ -250,85 +250,29 @@ Item {
                         Keys.onEnterPressed: popup.choose(listView.currentIndex)
                         Keys.onEscapePressed: popup.close()
 
-                        delegate: Item {
+                        delegate: M3ItemDelegate {
                             id: row
                             required property var modelData
                             required property int index
                             readonly property bool selected: row.index === root.selectedIndex
-                            readonly property bool first: row.index === 0
-                            readonly property bool last: row.index === popup.count - 1
-                            readonly property bool keyed: listView.activeFocus && row.index === listView.currentIndex && !row.selected
-                            readonly property real outer: row.selected ? 12 : 12
-                            readonly property real inner: row.selected ? 12 : 4
-
                             width: ListView.view.width
                             height: popup.itemH
+                            padding: 6
+                            icon: row.modelData?.icon ?? ""
+                            label: row.modelData?.name ?? ""
+                            highlighted: row.selected || (listView.activeFocus && row.index === listView.currentIndex)
                             readonly property real delay: Math.min(8, Math.max(0, (row.y - listView.contentY) / (popup.itemH + popup.gap))) * 0.06
                             opacity: Math.max(0, Math.min(1, (popup.reveal - row.delay) / 0.5))
-
-                            Rectangle {
-                                anchors.fill: parent
-                                topLeftRadius: row.first ? row.outer : row.inner
-                                topRightRadius: row.first ? row.outer : row.inner
-                                bottomLeftRadius: row.last ? row.outer : row.inner
-                                bottomRightRadius: row.last ? row.outer : row.inner
-                                color: row.selected ? Colors.tertiaryContainer : Colors.surfaceContainer
-                                Behavior on color { EffectsColorAnim {} }
-                                Behavior on topLeftRadius { SpatialAnim { speed: "fast" } }
-                                Behavior on topRightRadius { SpatialAnim { speed: "fast" } }
-                                Behavior on bottomLeftRadius { SpatialAnim { speed: "fast" } }
-                                Behavior on bottomRightRadius { SpatialAnim { speed: "fast" } }
-
-                                Rectangle {
-                                    anchors.fill: parent
-                                    topLeftRadius: parent.topLeftRadius
-                                    topRightRadius: parent.topRightRadius
-                                    bottomLeftRadius: parent.bottomLeftRadius
-                                    bottomRightRadius: parent.bottomRightRadius
-                                    color: row.selected ? Colors.tertiaryContainerText : Colors.surfaceText
-                                    opacity: itemArea.pressed ? 0.12 : itemArea.containsMouse || row.keyed ? 0.08 : 0
-                                    Behavior on opacity { EffectsAnim { speed: "fast" } }
-                                }
-                            }
-
-                            RowLayout {
-                                anchors.fill: parent
-                                anchors.leftMargin: 12
-                                anchors.rightMargin: 10
-                                spacing: 10
-
-                                MaterialIconSymbol {
-                                    visible: (row.modelData?.icon ?? "") !== ""
-                                    content: row.modelData?.icon ?? ""
-                                    iconSize: 18
-                                    customColor: row.selected ? Colors.tertiaryContainerText : Colors.surfaceVariantText
-                                }
-
-                                CustomText {
-                                    Layout.fillWidth: true
-                                    content: row.modelData?.name ?? ""
-                                    size: 13
-                                    weight: row.selected ? 600 : 500
-                                    elide: Text.ElideRight
-                                    customColor: row.selected ? Colors.tertiaryContainerText : Colors.surfaceText
-                                }
-
+                            trailingComponent: Component {
                                 MaterialIconSymbol {
                                     visible: row.selected
                                     content: "check"
                                     iconSize: 18
-                                    customColor: Colors.tertiaryContainerText
+                                    customColor: Colors.primary
                                 }
                             }
-
-                            MouseArea {
-                                id: itemArea
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
-                                onEntered: listView.currentIndex = row.index
-                                onClicked: popup.choose(row.index)
-                            }
+                            onHoveredChanged: if (hovered) listView.currentIndex = row.index
+                            onClicked: popup.choose(row.index)
                         }
                     }
                 }

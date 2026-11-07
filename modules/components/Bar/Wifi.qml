@@ -847,98 +847,48 @@ Item {
                     Repeater {
                         model: ScriptModel { values: root.rows }
 
-                        Rectangle {
+                        M3ItemDelegate {
                             id: net
-
                             required property var modelData
-                            required property int index
-                            readonly property bool first: net.index === 0
-                            readonly property bool last: net.index === root.rows.length - 1
                             readonly property bool saved: net.modelData?.known ?? false
                             readonly property bool secured: root.isSecured(net.modelData?.security)
                             readonly property bool busy: net.modelData?.state === ConnectionState.Connecting
                                 || net.modelData?.state === ConnectionState.Disconnecting
-
                             Layout.fillWidth: true
-                            implicitHeight: 56
-                            topLeftRadius: net.first ? 24 : 6
-                            topRightRadius: net.first ? 24 : 6
-                            bottomLeftRadius: net.last ? 24 : 6
-                            bottomRightRadius: net.last ? 24 : 6
-                            color: netRipple.containsMouse ? Colors.surfaceContainerHigh : Colors.surfaceContainer
-                            Behavior on color { EffectsColorAnim {} }
-
-                            Connections {
-                                target: net.modelData
-                                ignoreUnknownSignals: true
-                                function onConnectionFailed(reason) {
-                                    root.handleFailure(net.modelData, reason)
-                                }
-                                function onConnectedChanged() {
-                                    if (net.modelData?.connected) {
-                                        root.connectionError = ""
-                                        if (root.pendingNetwork === net.modelData) root.passwordPrompt = false
-                                    }
-                                }
+                            color: Colors.surfaceContainer
+                            label: net.modelData?.name ?? ""
+                            sublabel: {
+                                const n = net.modelData
+                                if (n?.state === ConnectionState.Connecting) return "Connecting…"
+                                if (n?.state === ConnectionState.Disconnecting) return "Disconnecting…"
+                                const parts = [root.strengthLabel(n?.signalStrength)]
+                                if (net.saved) parts.unshift("Saved")
+                                parts.push(net.secured ? "secured" : "open")
+                                return parts.join(", ")
                             }
-
-                            RowLayout {
-                                anchors.fill: parent
-                                anchors.leftMargin: 16
-                                anchors.rightMargin: 8
-                                spacing: 14
-
+                            leadingComponent: Component {
                                 WifiGlyph {
                                     size: 22
                                     strength: net.modelData?.signalStrength ?? 0
                                     color: net.saved ? Colors.primary : Colors.surfaceVariantText
                                 }
-
-                                ColumnLayout {
-                                    Layout.fillWidth: true
-                                    Layout.minimumWidth: 0
-                                    spacing: 1
-
-                                    CustomText {
-                                        Layout.fillWidth: true
-                                        content: net.modelData?.name ?? ""
-                                        size: 14
-                                        weight: 700
-                                    }
-
-                                    CustomText {
-                                        Layout.fillWidth: true
-                                        content: {
-                                            const n = net.modelData
-                                            if (n?.state === ConnectionState.Connecting) return "Connecting…"
-                                            if (n?.state === ConnectionState.Disconnecting) return "Disconnecting…"
-                                            const parts = [root.strengthLabel(n?.signalStrength)]
-                                            if (net.saved) parts.unshift("Saved")
-                                            parts.push(net.secured ? "secured" : "open")
-                                            return parts.join(", ")
-                                        }
-                                        size: 11
-                                        weight: 500
-                                        customColor: Colors.surfaceVariantText
-                                    }
-                                }
-
-                                CustomText {
-                                    visible: !net.busy
-                                    Layout.rightMargin: 10
-                                    content: "Connect"
-                                    size: 13
-                                    weight: 800
-                                    customColor: Colors.primary
-                                }
-
+                            }
+                            trailingComponent: Component {
                                 Item {
-                                    visible: net.busy
-                                    Layout.preferredWidth: 36
-                                    Layout.preferredHeight: 36
-
+                                    implicitWidth: net.busy ? 36 : connectText.implicitWidth
+                                    implicitHeight: 36
+                                    CustomText {
+                                        id: connectText
+                                        anchors.centerIn: parent
+                                        visible: !net.busy
+                                        content: net.modelData?.connected ? "Disconnect" : "Connect"
+                                        size: 13
+                                        weight: 800
+                                        customColor: Colors.primary
+                                    }
                                     CustomCircularLoader {
                                         anchors.centerIn: parent
+                                        visible: net.busy
                                         size: 18
                                         trackWidth: 2
                                         waveAmplitude: 0
@@ -947,15 +897,17 @@ Item {
                                     }
                                 }
                             }
-
-                            RippleEffect {
-                                id: netRipple
-                                anchors.fill: parent
-                                topLeftRadius: net.topLeftRadius
-                                topRightRadius: net.topRightRadius
-                                bottomLeftRadius: net.bottomLeftRadius
-                                bottomRightRadius: net.bottomRightRadius
-                                onClicked: if (!net.busy) root.activate(net.modelData)
+                            onClicked: if (!net.busy) root.activate(net.modelData)
+                            Connections {
+                                target: net.modelData
+                                ignoreUnknownSignals: true
+                                function onConnectionFailed(reason) { root.handleFailure(net.modelData, reason) }
+                                function onConnectedChanged() {
+                                    if (net.modelData?.connected) {
+                                        root.connectionError = ""
+                                        if (root.pendingNetwork === net.modelData) root.passwordPrompt = false
+                                    }
+                                }
                             }
                         }
                     }

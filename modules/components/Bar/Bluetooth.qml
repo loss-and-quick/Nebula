@@ -271,79 +271,45 @@ Item {
         bottomRightRadius: dr.last ? 24 : 6
         color: Colors.surfaceContainer
 
-        RowLayout {
-            x: 10
-            y: 10
-            width: parent.width - 20
-            height: 44
-            spacing: 12
-
-            Item {
-                Layout.preferredWidth: 44
-                Layout.preferredHeight: 44
-
-                MaterialShapes.ShapeCanvas {
-                    anchors.fill: parent
-                    roundedPolygon: root.deviceShape(dr.device?.icon)
-                    color: dr.isConnected ? Colors.tertiaryContainer : Colors.surfaceContainerHighest
-                    Behavior on color { EffectsColorAnim {} }
-                }
-
-                MaterialIconSymbol {
-                    anchors.centerIn: parent
-                    content: root.deviceIcon(dr.device?.icon)
-                    iconSize: 22
-                    fill: 1
-                    customColor: dr.isConnected ? Colors.tertiaryContainerText : Colors.surfaceVariantText
-                }
+        M3ItemDelegate {
+            width: parent.width
+            height: 64
+            color: Colors.surfaceContainer
+            icon: root.deviceIcon(dr.device?.icon)
+            label: root.nameOf(dr.device)
+            sublabel: root.stateText(dr.device)
+            onClicked: {
+                if (!dr.device || dr.busy) return
+                if (dr.isConnected) dr.device.disconnect()
+                else dr.device.connect()
             }
-
-            ColumnLayout {
-                Layout.fillWidth: true
-                Layout.minimumWidth: 0
-                spacing: 2
-
-                CustomText {
-                    Layout.fillWidth: true
-                    content: root.nameOf(dr.device)
-                    size: 14
-                    weight: 800
-                }
-
-                CustomText {
-                    Layout.fillWidth: true
-                    content: root.stateText(dr.device)
-                    size: 12
-                    weight: 500
-                    customColor: Colors.surfaceVariantText
-                }
-            }
-
-            SplitButton {
-                visible: !dr.busy
-                label: dr.isConnected ? "Disconnect" : "Connect"
-                strong: dr.isConnected
-                open: dr.open
-                onPressed: {
-                    if (!dr.device) return
-                    if (dr.isConnected) dr.device.disconnect()
-                    else dr.device.connect()
-                }
-                onToggled: root.openAddress = dr.open ? "" : (dr.device?.address ?? "")
-            }
-
-            Item {
-                visible: dr.busy
-                Layout.preferredWidth: 40
-                Layout.preferredHeight: 40
-
-                CustomCircularLoader {
-                    anchors.centerIn: parent
-                    size: 22
-                    trackWidth: 2
-                    waveAmplitude: 0
-                    highlightColor: Colors.primary
-                    trackColor: Colors.surfaceContainerHighest
+            trailingComponent: Component {
+                RowLayout {
+                    SplitButton {
+                        visible: !dr.busy
+                        label: dr.isConnected ? "Disconnect" : "Connect"
+                        strong: dr.isConnected
+                        open: dr.open
+                        onPressed: {
+                            if (!dr.device) return
+                            if (dr.isConnected) dr.device.disconnect()
+                            else dr.device.connect()
+                        }
+                        onToggled: root.openAddress = dr.open ? "" : (dr.device?.address ?? "")
+                    }
+                    Item {
+                        visible: dr.busy
+                        implicitWidth: 40
+                        implicitHeight: 40
+                        CustomCircularLoader {
+                            anchors.centerIn: parent
+                            size: 22
+                            trackWidth: 2
+                            waveAmplitude: 0
+                            highlightColor: Colors.primary
+                            trackColor: Colors.surfaceContainerHighest
+                        }
+                    }
                 }
             }
         }
@@ -429,58 +395,31 @@ Item {
         }
     }
 
-    component NearbyRow: Rectangle {
+    component NearbyRow: M3ItemDelegate {
         id: nr
         property var device: null
         property bool first: false
         property bool last: false
         readonly property bool busy: root.busy(nr.device)
-
         Layout.fillWidth: true
-        implicitHeight: 56
-        topLeftRadius: nr.first ? 24 : 6
-        topRightRadius: nr.first ? 24 : 6
-        bottomLeftRadius: nr.last ? 24 : 6
-        bottomRightRadius: nr.last ? 24 : 6
-        color: nrRipple.containsMouse ? Colors.surfaceContainerHigh : Colors.surfaceContainer
-        Behavior on color { EffectsColorAnim {} }
-
-        RowLayout {
-            anchors.fill: parent
-            anchors.leftMargin: 18
-            anchors.rightMargin: 8
-            spacing: 14
-
-            MaterialIconSymbol {
-                content: root.deviceIcon(nr.device?.icon)
-                iconSize: 22
-                fill: 1
-                customColor: Colors.surfaceVariantText
-            }
-
-            CustomText {
-                Layout.fillWidth: true
-                content: root.nameOf(nr.device)
-                size: 14
-                weight: 700
-            }
-
-            CustomText {
-                visible: !nr.busy
-                Layout.rightMargin: 10
-                content: "Pair"
-                size: 13
-                weight: 800
-                customColor: Colors.primary
-            }
-
+        color: Colors.surfaceContainer
+        icon: root.deviceIcon(nr.device?.icon)
+        label: root.nameOf(nr.device)
+        trailingComponent: Component {
             Item {
-                visible: nr.busy
-                Layout.preferredWidth: 36
-                Layout.preferredHeight: 36
-
+                implicitWidth: 36
+                implicitHeight: 36
+                CustomText {
+                    anchors.centerIn: parent
+                    visible: !nr.busy
+                    content: "Pair"
+                    size: 13
+                    weight: 800
+                    customColor: Colors.primary
+                }
                 CustomCircularLoader {
                     anchors.centerIn: parent
+                    visible: nr.busy
                     size: 18
                     trackWidth: 2
                     waveAmplitude: 0
@@ -489,16 +428,7 @@ Item {
                 }
             }
         }
-
-        RippleEffect {
-            id: nrRipple
-            anchors.fill: parent
-            topLeftRadius: nr.topLeftRadius
-            topRightRadius: nr.topRightRadius
-            bottomLeftRadius: nr.bottomLeftRadius
-            bottomRightRadius: nr.bottomRightRadius
-            onClicked: if (!nr.busy && nr.device) root.pair(nr.device)
-        }
+        onClicked: if (!nr.busy && nr.device) root.pair(nr.device)
     }
 
     ColumnLayout {

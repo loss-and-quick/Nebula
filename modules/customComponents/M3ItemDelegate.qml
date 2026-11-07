@@ -12,7 +12,7 @@ T.Control {
     property string icon: ""
     property string label: ""
     property string sublabel: ""
-    property color customColor: Colors.surfaceText
+    property color customColor: highlighted || checked ? Colors.primary : Colors.surfaceText
     property Component leadingComponent: null
     property Component trailingComponent: null
     property alias color: container.color
@@ -83,12 +83,14 @@ T.Control {
 
         ColumnLayout {
             Layout.fillWidth: true
+            Layout.minimumWidth: 0
             spacing: 2
 
             CustomText {
                 Layout.fillWidth: true
                 visible: root.label !== ""
                 content: root.label
+                elide: Text.ElideRight
                 size: 14
                 customColor: root.customColor
             }
@@ -97,6 +99,7 @@ T.Control {
                 Layout.fillWidth: true
                 visible: root.sublabel !== ""
                 content: root.sublabel
+                elide: Text.ElideRight
                 size: 12
                 customColor: Colors.outline
             }
@@ -112,7 +115,7 @@ T.Control {
     background: Rectangle {
         id: container
 
-        color: Colors.surfaceContainerHigh
+        color: root.highlighted || root.checked ? Colors.primaryContainer : Colors.surfaceContainerHigh
         radius: 12
         border.width: root.visualFocus ? 1 : 0
         border.color: Colors.primary

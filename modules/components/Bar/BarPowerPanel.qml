@@ -216,58 +216,29 @@ Item {
             }
         }
 
-        Rectangle {
+        M3Button {
             Layout.fillWidth: true
             Layout.topMargin: 4
             implicitHeight: 44
-            radius: 22
-            color: root.firmwareAsk ? Colors.errorContainer
-                 : fwMa.containsMouse ? Colors.surfaceContainerHigh : Colors.surfaceContainer
-            Behavior on color { EffectsColorAnim { speed: "fast" } }
-
-            Row {
-                anchors.centerIn: parent
-                spacing: 8
-
-                MaterialIconSymbol {
-                    anchors.verticalCenter: parent.verticalCenter
-                    content: "developer_board"
-                    iconSize: 18
-                    customColor: root.firmwareAsk ? Colors.errorContainerText : Colors.surfaceVariantText
+            variant: "tonal"
+            icon: "developer_board"
+            label: root.firmwareAsk ? "Click again to restart to firmware" : "Restart to firmware"
+            color: root.firmwareAsk ? Colors.errorContainer : Colors.surfaceContainer
+            onClicked: {
+                if (root.firmwareAsk) {
+                    root.firmwareAsk = false
+                    root.run("firmware")
+                    return
                 }
-                CustomText {
-                    anchors.verticalCenter: parent.verticalCenter
-                    content: root.firmwareAsk ? "Click again to restart to firmware" : "Restart to firmware"
-                    size: 13
-                    weight: 500
-                    customColor: root.firmwareAsk ? Colors.errorContainerText : Colors.surfaceVariantText
-                }
-            }
-
-            MouseArea {
-                id: fwMa
-                anchors.fill: parent
-                hoverEnabled: true
-                cursorShape: Qt.PointingHandCursor
-                onClicked: {
-                    if (root.firmwareAsk) {
-                        root.firmwareAsk = false
-                        root.run("firmware")
-                        return
-                    }
-                    root.firmwareAsk = true
-                    firmwareTimer.restart()
-                }
+                root.firmwareAsk = true
+                firmwareTimer.restart()
             }
         }
     }
 
-    component PowerTile: Rectangle {
+    component PowerTile: M3Button {
         id: tile
-
         property string action: ""
-        property string icon: ""
-        property string label: ""
         property string detail: ""
         property string key: ""
         property color tone
@@ -276,67 +247,56 @@ Item {
         Layout.fillWidth: true
         Layout.preferredWidth: 1
         implicitHeight: 96
-        radius: tileMa.pressed ? 18 : 28
-        color: tileMa.containsMouse ? Qt.tint(tile.tone, Qt.alpha(tile.ink, 0.08)) : tile.tone
-        Behavior on radius { SpatialAnim { speed: "fast" } }
-        Behavior on color { EffectsColorAnim { speed: "fast" } }
+        radius: tile.down ? 18 : 28
+        color: tile.tone
+        onClicked: root.run(tile.action)
 
-        MaterialIconSymbol {
-            x: 16
-            y: 14
-            content: tile.icon
-            iconSize: 28
-            fill: 1
-            customColor: tile.ink
-        }
-
-        Rectangle {
-            anchors.right: parent.right
-            anchors.top: parent.top
-            anchors.margins: 14
-            width: 22
-            height: 22
-            radius: 7
-            color: Qt.alpha(tile.ink, 0.14)
-
-            CustomText {
-                anchors.centerIn: parent
-                content: tile.key
-                size: 11
-                weight: 700
+        contentItem: Item {
+            MaterialIconSymbol {
+                x: 16
+                y: 14
+                content: tile.icon
+                iconSize: 28
+                fill: 1
                 customColor: tile.ink
             }
-        }
-
-        Column {
-            x: 16
-            anchors.bottom: parent.bottom
-            anchors.bottomMargin: 14
-            width: tile.width - 32
-            spacing: 1
-
-            CustomText {
-                content: tile.label
-                size: 16
-                weight: 600
-                customColor: tile.ink
+            Rectangle {
+                anchors.right: parent.right
+                anchors.top: parent.top
+                anchors.margins: 14
+                width: 22
+                height: 22
+                radius: 7
+                color: Qt.alpha(tile.ink, 0.14)
+                CustomText {
+                    anchors.centerIn: parent
+                    content: tile.key
+                    size: 11
+                    weight: 700
+                    customColor: tile.ink
+                }
             }
-            CustomText {
-                width: parent.width
-                content: tile.detail
-                size: 12
-                weight: 400
-                elide: Text.ElideRight
-                customColor: tile.ink
+            Column {
+                x: 16
+                anchors.bottom: parent.bottom
+                anchors.bottomMargin: 14
+                width: tile.width - 32
+                spacing: 1
+                CustomText {
+                    content: tile.label
+                    size: 16
+                    weight: 600
+                    customColor: tile.ink
+                }
+                CustomText {
+                    width: parent.width
+                    content: tile.detail
+                    size: 12
+                    weight: 400
+                    elide: Text.ElideRight
+                    customColor: tile.ink
+                }
             }
-        }
-
-        MouseArea {
-            id: tileMa
-            anchors.fill: parent
-            hoverEnabled: true
-            cursorShape: Qt.PointingHandCursor
-            onClicked: root.run(tile.action)
         }
     }
 

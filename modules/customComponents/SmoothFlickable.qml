@@ -1,5 +1,5 @@
 import QtQuick
-import Qt5Compat.GraphicalEffects
+import QtQuick.Effects
 
 Flickable {
     id: root
@@ -42,8 +42,12 @@ Flickable {
     onMovementStarted: glide.stop()
 
     layer.enabled: root.fadeEdges && root.scrollable && root.visible
-    layer.effect: OpacityMask {
+    layer.effect: MultiEffect {
+        maskEnabled: true
+        maskThresholdMin: 0.5
+        maskSpreadAtMin: 1.0
         maskSource: Rectangle {
+            layer.enabled: true
             width: root.width
             height: root.height
             gradient: Gradient {

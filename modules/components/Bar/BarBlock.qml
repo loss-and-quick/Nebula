@@ -2,7 +2,7 @@ import Quickshell
 import Quickshell.Hyprland
 import Quickshell.Widgets
 import QtQuick
-import Qt5Compat.GraphicalEffects as GE
+import QtQuick.Effects
 import QtQuick.Shapes
 import qs.modules.utils
 import qs.modules.settings
@@ -1812,7 +1812,7 @@ Item {
             clip: true
             layer.enabled: barBlock.tabMoving && barBlock.panelCorner > 0
             layer.smooth: true
-            layer.effect: GE.OpacityMask { maskSource: panelCornerMask }
+            layer.effect: MultiEffect { maskEnabled: true; maskSource: panelCornerMask; maskThresholdMin: 0.5; maskSpreadAtMin: 1.0 }
 
             PanelSlot { id: slotA }
             PanelSlot { id: slotB }
@@ -1831,6 +1831,7 @@ Item {
 
         Rectangle {
             id: panelCornerMask
+            layer.enabled: true
             readonly property real r: Math.min(barBlock.panelCorner, width / 2, height / 2)
             visible: false
             width: panelClip.width
@@ -2392,10 +2393,11 @@ Item {
 
         layer.enabled: slot.reveal < 1 && slot.visible
         layer.smooth: true
-        layer.effect: GE.OpacityMask { maskSource: wipe }
+        layer.effect: MultiEffect { maskEnabled: true; maskSource: wipe; maskThresholdMin: 0.5; maskSpreadAtMin: 1.0 }
 
         Item {
             id: wipe
+            layer.enabled: true
             visible: false
             width: slot.width
             height: slot.height

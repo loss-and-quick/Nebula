@@ -1,5 +1,5 @@
 import QtQuick
-import Qt5Compat.GraphicalEffects
+import QtQuick.Effects
 import qs.modules.utils
 import qs.modules.settings
 
@@ -44,14 +44,18 @@ Item {
         Behavior on color { ColorAnimation { duration: 150 } }
     }
 
-    // Ripple container — OpacityMask clips circle to the rounded shape
+    // Ripple container clipped to the rounded shape
     Item {
         id: _rippleClip
         anchors.fill: parent
 
         layer.enabled: _anim.running
-        layer.effect: OpacityMask {
+        layer.effect: MultiEffect {
+            maskEnabled: true
+            maskThresholdMin: 0.5
+            maskSpreadAtMin: 1.0
             maskSource: Rectangle {
+                layer.enabled: true
                 width:              _rippleClip.width
                 height:             _rippleClip.height
                 topLeftRadius:     root.topLeftRadius

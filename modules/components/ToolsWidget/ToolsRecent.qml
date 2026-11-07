@@ -1,6 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
-import Qt5Compat.GraphicalEffects
+import QtQuick.Effects
 import Quickshell
 import qs.modules.utils
 import qs.modules.settings
@@ -96,8 +96,12 @@ ColumnLayout {
                         visible: status === Image.Ready
 
                         layer.enabled: true
-                        layer.effect: OpacityMask {
+                        layer.effect: MultiEffect {
+                            maskEnabled: true
+                            maskThresholdMin: 0.5
+                            maskSpreadAtMin: 1.0
                             maskSource: Rectangle {
+                                layer.enabled: true
                                 width:  thumb.width
                                 height: thumb.height
                                 radius: 14

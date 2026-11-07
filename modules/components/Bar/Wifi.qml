@@ -521,7 +521,7 @@ Item {
                     GroupRow {
                         first: true
                         last: true
-                        color: root.wifiOn ? Colors.primaryContainer : Colors.surfaceContainer
+                        color: Colors.surfaceContainer
 
                         RowLayout {
                             anchors.fill: parent
@@ -538,7 +538,7 @@ Item {
                                     content: "Use Wi-Fi"
                                     size: 15
                                     weight: 800
-                                    customColor: root.wifiOn ? Colors.primaryContainerText : Colors.surfaceText
+                                    customColor: Colors.surfaceText
                                 }
 
                                 CustomText {

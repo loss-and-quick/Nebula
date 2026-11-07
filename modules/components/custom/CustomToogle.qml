@@ -50,8 +50,8 @@ Item {
         radius: height / 2
         color: root._on ? Colors.primary : Colors.surfaceContainer
 
-        border.width: root._on ? 0 : 2 * root._s
-        border.color: Colors.outline
+        border.width: 2 * root._s
+        border.color: root._on ? Qt.alpha(Colors.primaryText, 0.4) : Colors.outline
 
         Behavior on color {
             ColorAnimation {

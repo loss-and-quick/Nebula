@@ -542,7 +542,7 @@ Item {
                     GroupRow {
                         first: true
                         last: !root.bluetoothOn
-                        color: root.bluetoothOn ? Colors.primaryContainer : Colors.surfaceContainer
+                        color: Colors.surfaceContainer
 
                         RowLayout {
                             anchors.fill: parent
@@ -555,7 +555,7 @@ Item {
                                 content: root.adapter ? "Use Bluetooth" : "No Bluetooth adapter"
                                 size: 15
                                 weight: 800
-                                customColor: root.bluetoothOn ? Colors.primaryContainerText : Colors.surfaceText
+                                customColor: Colors.surfaceText
                             }
 
                             CustomToogle {

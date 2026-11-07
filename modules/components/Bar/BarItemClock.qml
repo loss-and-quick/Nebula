@@ -67,11 +67,7 @@ Item {
         islandTimer.restart()
     }
 
-    Timer {
-        interval: 3000
-        running: true
-        onTriggered: root.armed = true
-    }
+    Component.onCompleted: root.armed = true
 
     Binding {
         target: GlobalStates

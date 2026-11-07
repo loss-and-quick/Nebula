@@ -129,7 +129,7 @@ Singleton {
     property var gapDraft: null
     readonly property bool gapDragging: root.gapDraft !== null
     property real gapDragT: root.gapDragging ? 1 : 0
-    Behavior on gapDragT { NumberAnimation { duration: 160; easing.type: Easing.OutCubic } }
+    Behavior on gapDragT { enabled: root.settled; NumberAnimation { duration: 160; easing.type: Easing.OutCubic } }
 
     readonly property var gapCfg: {
         const bar = SettingsConfig.bar ?? {}
@@ -381,18 +381,7 @@ Singleton {
 
     property QtObject editor: null
 
-    property bool settled: false
-
-    Timer {
-        interval: 1000
-        running: SettingsConfig.settingsReady && !root.settled
-        onTriggered: root.settled = true
-    }
-
-    Connections {
-        target: ServiceLayouts
-        function onApplying() { root.settled = false }
-    }
+    readonly property bool settled: SettingsConfig.settingsReady && (Quickshell.screens?.length ?? 0) > 0
 
     readonly property bool launcherItemHost: (ServiceLauncher.position === "item" || ServiceLauncher.position === "block")
         && root.allBlocks.some(b => b.items.indexOf("launcher") >= 0 && !root.edge(b.edge).hidden)

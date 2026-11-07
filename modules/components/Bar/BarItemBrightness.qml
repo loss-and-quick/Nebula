@@ -44,11 +44,7 @@ Item {
         interval: 700
         onTriggered: root.sunAngle = Math.round(root.sunAngle / 90) * 90
     }
-    Timer {
-        interval: 1500
-        running: true
-        onTriggered: root.armed = true
-    }
+    Component.onCompleted: root.armed = true
     readonly property color plateTone: root.bigCookie ? (root.host.plateFill ?? Colors.surface) : Colors.surface
 
     readonly property var monitor: ServiceBrightness.getMonitorForScreen(layout.screen)

@@ -63,8 +63,10 @@ Item {
     Component.onCompleted: {
         ServiceSystemInfo.retain()
         topoProc.running = true
-        freqProc.running = true
-        topProc.running = true
+        if (root.visible) {
+            freqProc.running = true
+            topProc.running = true
+        }
     }
     Component.onDestruction: ServiceSystemInfo.release()
 
@@ -84,11 +86,11 @@ Item {
         }
     }
 
-    Timer {
-        interval: 2000
-        repeat: true
-        running: root.visible
-        onTriggered: if (!freqProc.running) freqProc.running = true
+    Connections {
+        target: ServiceSystemInfo
+        function onCpuCoresChanged() {
+            if (root.visible && !freqProc.running) freqProc.running = true
+        }
     }
 
     Process {
@@ -112,7 +114,7 @@ Item {
 
     Process {
         id: topProc
-        command: ["sh", "-c", "top -b -n 2 -d 1.5 -o %CPU -w 512 | awk '/^top -/{n++} n==2 && $1 ~ /^[0-9]+$/ {print $9, $12}' | head -40"]
+        command: ["bash", "-o", "pipefail", "-c", "top -b -n 2 -d 1.5 -o %CPU -w 512 | awk '/^top -/{n++} n==2 && $1 ~ /^[0-9]+$/ && count++ < 40 {print $9, $12}'"]
         property var acc: ({})
         stdout: SplitParser {
             onRead: line => {
@@ -124,21 +126,20 @@ Item {
                 if (!isNaN(pct) && pct > 0) topProc.acc[name] = (topProc.acc[name] ?? 0) + pct
             }
         }
-        onExited: {
+        onExited: (exitCode, exitStatus) => {
             const n = Math.max(1, root.loads.length)
             root.procs = Object.keys(topProc.acc).map(k => ({ name: k, share: topProc.acc[k] / n }))
                 .sort((a, b) => b.share - a.share).slice(0, 4)
             topProc.acc = {}
-            if (root.visible) topRestart.restart()
+            if (root.visible && exitCode === 0) Qt.callLater(() => { if (root.visible && !topProc.running) topProc.running = true })
         }
     }
-
-    Timer {
-        id: topRestart
-        interval: 1500
-        onTriggered: if (root.visible && !topProc.running) topProc.running = true
+    onVisibleChanged: {
+        if (root.visible) {
+            if (!freqProc.running) freqProc.running = true
+            if (!topProc.running) topProc.running = true
+        }
     }
-    onVisibleChanged: if (root.visible && !topProc.running) topProc.running = true
 
     ColumnLayout {
         id: col

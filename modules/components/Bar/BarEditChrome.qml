@@ -278,14 +278,6 @@ Item {
         chrome.selFound = false
     }
 
-    Timer {
-        interval: 60
-        repeat: true
-        running: chrome.editing && chrome.sel !== ""
-        triggeredOnStart: true
-        onTriggered: chrome.locate()
-    }
-
     property rect blockRect: Qt.rect(0, 0, 0, 0)
     property string blockEdge: "top"
     property bool blockFound: false
@@ -301,14 +293,6 @@ Item {
             return
         }
         chrome.blockFound = false
-    }
-
-    Timer {
-        interval: 60
-        repeat: true
-        running: chrome.editing && chrome.selBlock !== ""
-        triggeredOnStart: true
-        onTriggered: chrome.locateBlock()
     }
 
 
@@ -1876,11 +1860,40 @@ Item {
             chrome.capShiftTarget = shift
     }
 
-    Timer {
-        interval: 120
-        repeat: true
-        running: chrome.editing
-        onTriggered: chrome.scanBusy()
+    readonly property string geometrySnapshot: {
+        if (!chrome.editing)
+            return ""
+        const values = [chrome.sel, chrome.selBlock, chrome.stage, chrome.width, chrome.height,
+                        chrome.insetLeft, chrome.insetRight, capsule.fullW, capsule.dockTop,
+                        stageCard.y, stageCard.height, stageCard.minW, stageCard.maxW]
+        const track = item => {
+            for (let p = item; p && p !== chrome; p = p.parent)
+                values.push(p.x, p.y, p.width, p.height, p.visible)
+        }
+        for (const surf of chrome.surfaces) {
+            if (!surf) continue
+            values.push(surf.side, surf.visible, surf.present, surf.thickness)
+            track(surf)
+            for (const block of surf.visibleBlocks) {
+                values.push(block.blockId, block.barH, block.tabH, block.tabOpen, block.shownKind)
+                track(block)
+                if (chrome.sel !== "" && block.hasItem(chrome.sel)) {
+                    const item = block.itemFor(chrome.sel)
+                    if (item) track(item)
+                }
+                const tab = surf.tabRect(block)
+                const goal = surf.tabGoalRect(block)
+                values.push(tab.x, tab.y, tab.width, tab.height, goal.x, goal.y, goal.width, goal.height)
+            }
+        }
+        return JSON.stringify(values)
+    }
+    onGeometrySnapshotChanged: {
+        if (chrome.editing) {
+            Qt.callLater(chrome.locate)
+            Qt.callLater(chrome.locateBlock)
+            Qt.callLater(chrome.scanBusy)
+        }
     }
 
     Connections {

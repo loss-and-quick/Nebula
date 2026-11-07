@@ -22,6 +22,10 @@ Item {
             if (Hyprland.activeToplevel)
                 root.target = Hyprland.activeToplevel
         }
+        function onRawEvent(event) {
+            if (["openwindow", "closewindow", "movewindowv2", "changefloatingmode", "fullscreen", "activewindowv2", "pin"].indexOf(event.name) >= 0)
+                Hyprland.refreshToplevels()
+        }
     }
 
     readonly property var ipc: root.target ? (root.target.lastIpcObject ?? {}) : ({})
@@ -63,10 +67,6 @@ Item {
         return `window = "address:${a}"`
     }
 
-    function refreshSoon() {
-        refresh.restart()
-    }
-
     function act(v) {
         if (root.address === "")
             return
@@ -83,14 +83,12 @@ Item {
             Quickshell.clipboardText = root.title
             copied.restart()
         }
-        root.refreshSoon()
     }
 
     function moveTo(ws) {
         if (root.address === "" || ws === root.wsId)
             return
         Hyprland.dispatch(`hl.dsp.window.move({ ${root.sel(root.address)}, workspace = ${ws}, follow = false })`)
-        root.refreshSoon()
     }
 
     function closeWindow() {
@@ -104,12 +102,6 @@ Item {
         const a = t.address.startsWith("0x") ? t.address : "0x" + t.address
         Hyprland.dispatch(`hl.dsp.focus({ ${root.sel(a)} })`)
         root.closed()
-    }
-
-    Timer {
-        id: refresh
-        interval: 160
-        onTriggered: Hyprland.refreshToplevels()
     }
 
     Timer {

@@ -441,20 +441,14 @@ Item {
             implicitWidth: mapRow.implicitWidth + 4 * cozy.k
             implicitHeight: 32 * cozy.k
 
-            Timer {
-                id: refresh
-                interval: 200
-                onTriggered: Hyprland.refreshToplevels()
-            }
-
-            Component.onCompleted: refresh.restart()
+            Component.onCompleted: Hyprland.refreshToplevels()
 
             Connections {
                 target: Hyprland
                 function onRawEvent(event) {
                     if (["openwindow", "closewindow", "movewindowv2", "changefloatingmode", "fullscreen",
                          "activewindowv2", "workspacev2"].indexOf(event.name) >= 0)
-                        refresh.restart()
+                        Hyprland.refreshToplevels()
                 }
             }
 

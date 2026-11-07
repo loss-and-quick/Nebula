@@ -6,6 +6,7 @@ import qs.modules.settings
 import qs.modules.components.custom
 
 Rectangle {
+    id: root
     anchors.fill: parent
     topLeftRadius: Appearance.radius.large
     topRightRadius: Appearance.radius.extraLarge
@@ -16,18 +17,9 @@ Rectangle {
         NumberAnimation { duration: Appearance.duration.normal; easing.type: Easing.OutQuad }
     }
 
-    onVisibleChanged: if (visible && !colLoader.active) buildTimer.restart()
-    Component.onCompleted: if (visible) buildTimer.restart()
-
-    Timer {
-        id: buildTimer
-        interval: 0
-        onTriggered: colLoader.active = true
-    }
-
     Loader {
         id: colLoader
-        active: false
+        active: root.visible
         visible: active
         anchors.fill: parent
         sourceComponent: WallpaperGallery {}

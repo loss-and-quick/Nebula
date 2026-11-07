@@ -931,37 +931,14 @@ Item {
                 aside: root.fileOf(root.group)
 
                 readonly property var rows: root.entries.filter(e => e.group === root.group)
-                property int built: 0
-
-                function feed(step) {
-                    const n = Math.min(groupPage.built + step, groupPage.rows.length)
-                    for (; groupPage.built < n; groupPage.built++)
-                        rowModel.append({ i: groupPage.built })
-                }
-
-                onRowsChanged: {
-                    if (rowModel.count === groupPage.rows.length)
-                        return
-                    rowModel.clear()
-                    groupPage.built = 0
-                    groupPage.feed(8)
-                }
-
-                ListModel { id: rowModel }
-
-                Timer {
-                    interval: 16
-                    repeat: true
-                    running: groupPage.built < groupPage.rows.length
-                    onTriggered: groupPage.feed(3)
-                }
 
                 Repeater {
-                    model: rowModel
+                    model: groupPage.rows
 
                     BindRow {
-                        required property int i
-                        entry: groupPage.rows[i] ?? ({})
+                        required property var modelData
+                        required property int index
+                        entry: modelData ?? ({})
                     }
                 }
             }

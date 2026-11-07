@@ -506,15 +506,9 @@ Item {
                             Loader {
                                 id: previewLoader
                                 anchors.fill: parent
-                                active: false
+                                active: root.visible
                                 sourceComponent: L.LockPreview {
                                     layoutStyle: root.activeLayout
-                                }
-
-                                Timer {
-                                    interval: 520
-                                    running: root.visible && !previewLoader.active
-                                    onTriggered: previewLoader.active = true
                                 }
 
                                 opacity: previewLoader.status === Loader.Ready ? 1 : 0

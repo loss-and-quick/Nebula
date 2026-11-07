@@ -296,6 +296,7 @@ Item {
         anchors.margins: appLauncher.contentInset
         visible: false
         transform: Translate { id: colRise; y: 0 }
+        onVisibleChanged: if (visible) appLauncher.focusSearch()
 
         Timer {
             id: showTimer
@@ -304,20 +305,10 @@ Item {
                 col.visible = true
                 if (appLauncher.entranceRise !== 0)
                     entranceAnim.start()
-                appLauncher.focusSearch()
             }
         }
 
-        Timer {
-            id: buildTimer
-            interval: 0
-            onTriggered: styleLoader.active = true
-        }
-
-        Component.onCompleted: {
-            showTimer.start()
-            buildTimer.start()
-        }
+        Component.onCompleted: showTimer.start()
 
         NumberAnimation {
             id: entranceAnim
@@ -331,7 +322,7 @@ Item {
         Loader {
             id: styleLoader
             anchors.fill: parent
-            active: false
+            active: true
             sourceComponent: ServiceLauncher.style === "hearth" ? hearthComp : paletteComp
             onLoaded: {
                 const q = appLauncher.query

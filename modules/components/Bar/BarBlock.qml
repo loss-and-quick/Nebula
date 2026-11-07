@@ -1215,14 +1215,14 @@ Item {
     property bool heightFollow: false
     property bool followLock: false
     property real followAcross: 0
-    property real followVel: 0
-    property real followSeen: 0
-    property real followMoved: 0
-    property bool followRun: false
+    Behavior on followAcross {
+        enabled: barBlock.heightFollow
+        SpringAnimation { spring: 3.5; damping: 0.35; epsilon: 0.25 }
+    }
     onLiveAcrossChanged: {
         if (!barBlock.heightFollow)
             return
-        barBlock.followRun = true
+        barBlock.followAcross = barBlock.liveAcross
         barBlock.rememberHeight()
     }
     readonly property real liveAcross: barBlock.shownKind !== "" ? barBlock.acrossOf(barBlock.shownKind) + barBlock.tuckShown : 0
@@ -1232,10 +1232,6 @@ Item {
             return
         barBlock.followLock = true
         barBlock.followAcross = barBlock.liveAcross
-        barBlock.followSeen = barBlock.liveAcross
-        barBlock.followMoved = 0
-        barBlock.followVel = 0
-        barBlock.followRun = false
         barBlock.heightFollow = true
         barBlock.rememberHeight()
     }
@@ -1269,42 +1265,7 @@ Item {
         if (!barBlock.heightFollow)
             return
         barBlock.followLock = false
-        barBlock.followRun = false
         barBlock.heightFollow = false
-    }
-
-    FrameAnimation {
-        running: barBlock.heightFollow && barBlock.followRun
-        onTriggered: {
-            const live = barBlock.liveAcross
-            const step = live - barBlock.followSeen
-            const now = Date.now()
-            const moving = now - barBlock.followMoved < 120
-            barBlock.followSeen = live
-            let x = barBlock.followAcross
-            let v = barBlock.followVel
-            if (Math.abs(step) > 0.01) {
-                if (Math.abs(step) <= 6 || (moving && Math.abs(step) <= 120))
-                    x += step
-                barBlock.followMoved = now
-            }
-            const w = 22
-            const n = 3
-            const dt = Math.min(frameTime, 1 / 30) / n
-            for (let i = 0; i < n; i++) {
-                v += (w * w * (live - x) - 2 * w * v) * dt
-                x += v * dt
-            }
-            if (Math.abs(live - x) < 0.25 && Math.abs(v) < 2) {
-                x = live
-                v = 0
-            }
-            barBlock.followVel = v
-            if (x !== barBlock.followAcross)
-                barBlock.followAcross = x
-            if (x === live && v === 0 && Math.abs(step) <= 0.01)
-                barBlock.followRun = false
-        }
     }
 
     readonly property real tabH: Math.max(barBlock.barH, barBlock.tabHRaw)
@@ -2473,7 +2434,7 @@ Item {
         height: barBlock.barH
         visible: barBlock.revealT > 0.001 && BarLayout.gapDragT < 0.999
         opacity: barBlock.revealT * (1 - BarLayout.gapDragT)
-        layer.enabled: true
+        layer.enabled: visible
         layer.samples: 4
 
         ShapePath {

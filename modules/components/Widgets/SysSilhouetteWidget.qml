@@ -123,6 +123,7 @@ WidgetHost {
     property var vel: []
     property var ghost: []
     property int frame: 0
+    property bool springActive: false
 
     function syncShape() {
         if (root.cur.length !== root.n) {
@@ -131,14 +132,14 @@ WidgetHost {
             root.ghost = root.ghostTargets.slice()
             root.frame++
         }
-        spring.running = true
+        root.springActive = true
     }
     onTargetsChanged: root.syncShape()
     onGhostTargetsChanged: root.syncShape()
 
     FrameAnimation {
         id: spring
-        running: false
+        running: root.visible && root.springActive
         onTriggered: {
             const t = root.targets, g = root.ghostTargets
             const c = root.cur, v = root.vel, gh = root.ghost
@@ -156,7 +157,7 @@ WidgetHost {
                     moving = true
             root.frame++
             if (!moving)
-                spring.running = false
+                root.springActive = false
         }
     }
 

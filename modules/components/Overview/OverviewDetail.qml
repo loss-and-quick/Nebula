@@ -1,7 +1,7 @@
 import Quickshell
 import QtQuick
 import QtQuick.Layouts
-import Qt5Compat.GraphicalEffects
+import QtQuick.Effects
 import qs.modules.utils
 import qs.modules.settings
 import qs.modules.services
@@ -166,8 +166,12 @@ ColumnLayout {
             opacity: 0.35
 
             layer.enabled: true
-            layer.effect: OpacityMask {
+            layer.effect: MultiEffect {
+                maskEnabled: true
+                maskThresholdMin: 0.5
+                maskSpreadAtMin: 1.0
                 maskSource: Rectangle {
+                    layer.enabled: true
                     width:  stageWall.width
                     height: stageWall.height
                     radius: 18

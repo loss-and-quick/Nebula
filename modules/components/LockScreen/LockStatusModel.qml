@@ -31,8 +31,19 @@ QtObject {
             return out
 
         try {
+            out.push({
+                id: "keyboard",
+                icon: "keyboard",
+                name: "Language",
+                value: ServiceKeyboard.code,
+                sub: ServiceKeyboard.keymap,
+                iconColor: Colors.primary,
+                valueColor: Colors.surfaceText
+            })
+
             if (Features.weather && ServiceWeather.currentCondition !== null)
                 out.push({
+                    id: "weather",
                     icon: ServiceWeather.weatherIconPath.icon,
                     name: "Weather",
                     value: ServiceWeather.temperature,
@@ -43,6 +54,7 @@ QtObject {
 
             if (UPower.displayDevice?.isLaptopBattery ?? false)
                 out.push({
+                    id: "battery",
                     icon: root._batteryIcon,
                     name: "Battery",
                     value: Math.round(root._level * 100) + "%",
@@ -54,6 +66,7 @@ QtObject {
 
             const online = ServiceNetwork.connectionType !== "disconnected"
             out.push({
+                id: "network",
                 icon: ServiceNetwork.icon,
                 name: "Network",
                 value: ServiceNetwork.connectionLabel !== "" ? ServiceNetwork.connectionLabel : "Offline",
@@ -64,6 +77,7 @@ QtObject {
 
             if (ServiceNotification.notificationsNumber > 0)
                 out.push({
+                    id: "notifications",
                     icon: "notifications",
                     name: "Notifications",
                     value: ServiceNotification.notificationsNumber.toString(),
@@ -76,6 +90,7 @@ QtObject {
             console.warn("lock status entry skipped:", e)
         }
 
-        return out
+        const selected = SettingsConfig.lockscreen?.statusWidgets ?? ["keyboard", "weather", "battery", "network", "notifications"]
+        return selected.map(id => out.find(entry => entry.id === id)).filter(entry => entry !== undefined)
     }
 }

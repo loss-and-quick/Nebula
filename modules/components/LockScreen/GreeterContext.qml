@@ -2,6 +2,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import Quickshell.Services.Greetd
+import qs.modules.services
 
 Scope {
     id: root
@@ -14,7 +15,7 @@ Scope {
     property bool unlockInProgress: false
     property bool showFailure: false
     property int failedAttempts: 0
-    property bool capsLockOn: false
+    readonly property bool capsLockOn: ServiceKeyboard.capsLockOn
 
     // Clear the failure text once the user starts typing
     onCurrentTextChanged: showFailure = false

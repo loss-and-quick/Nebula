@@ -2,9 +2,11 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Layouts
+import QtQuick.Templates as T
 import qs.modules.utils
 import qs.modules.settings
 import qs.modules.components.custom
+import qs.modules.services
 
 // Password entry plus a reserved line beneath it for the failure message. The
 // message lives outside the field so it stays readable once the user has
@@ -77,6 +79,34 @@ ColumnLayout {
         active: !root._split
         visible: active
         sourceComponent: classicComp
+    }
+
+    component KeyboardBadge: T.Button {
+        id: badge
+        readonly property bool warning: ServiceKeyboard.code !== "EN" && ServiceKeyboard.code !== "US" && ServiceKeyboard.code !== "—"
+        readonly property color ink: badge.warning ? Colors.errorContainerText : Colors.surfaceText
+        implicitWidth: badgeRow.implicitWidth + 18
+        implicitHeight: 28
+        leftPadding: 9
+        rightPadding: 9
+        focusPolicy: Qt.TabFocus
+        hoverEnabled: true
+        Accessible.name: "Switch keyboard language, " + ServiceKeyboard.keymap
+        onClicked: ServiceKeyboard.switchNext()
+
+        background: Rectangle {
+            radius: height / 2
+            color: Qt.tint(badge.warning ? Colors.errorContainer : Colors.surfaceContainerHigh,
+                Qt.alpha(badge.ink, badge.down ? 0.16 : badge.hovered ? 0.08 : 0))
+            border.width: badge.activeFocus ? 1 : 0
+            border.color: badge.ink
+        }
+        contentItem: RowLayout {
+            id: badgeRow
+            spacing: 5
+            MaterialIconSymbol { content: "keyboard"; iconSize: 15; customColor: badge.ink }
+            CustomText { content: ServiceKeyboard.code; size: 11; weight: 700; customColor: badge.ink }
+        }
     }
 
     Component {
@@ -161,6 +191,8 @@ ColumnLayout {
                             }
                         }
                     }
+
+                    KeyboardBadge { Layout.alignment: Qt.AlignVCenter }
 
                     Rectangle {
                         Layout.preferredWidth: (root.context?.capsLockOn ?? false) ? splitCaps.implicitWidth + 18 : 0
@@ -338,6 +370,8 @@ ColumnLayout {
                         }
                     }
                 }
+
+                KeyboardBadge { Layout.alignment: Qt.AlignVCenter }
 
                 // Caps lock warning — slides in from the trailing edge
                 Rectangle {

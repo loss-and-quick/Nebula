@@ -4,6 +4,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import Quickshell.Services.Pam
+import qs.modules.services
 
 Scope {
 	id: root
@@ -16,12 +17,10 @@ Scope {
 	property bool unlockInProgress: false
 	property bool showFailure: false
 
-	// Driven by LockScreen. Gates the caps-lock watcher so nothing polls
-	// while the session is unlocked.
 	property bool active: false
 
 	property int failedAttempts: 0
-	property bool capsLockOn: false
+	readonly property bool capsLockOn: ServiceKeyboard.capsLockOn
 	property bool clockAwake: false
 
 	function wakeClock() {
@@ -53,8 +52,6 @@ Scope {
 			failedAttempts = 0
 			showFailure = false
 			clockAwake = false
-		} else {
-			capsLockOn = false
 		}
 	}
 
@@ -71,24 +68,6 @@ Scope {
 		pokeClock()
 		if (currentText.length > 0) {
 			passwordClearTimer.restart()
-		}
-	}
-
-	// Caps lock state. One long-lived shell loop that only prints on a change,
-	// so the QML side wakes up on transitions rather than every tick.
-	Process {
-		id: capsWatcher
-		running: root.active
-		command: ["bash", "-c",
-			"prev=x; while :; do s=0; " +
-			"for f in /sys/class/leds/*::capslock/brightness; do " +
-			"[ -r \"$f\" ] || continue; read -r v < \"$f\"; " +
-			"[ \"$v\" != 0 ] && s=1; done; " +
-			"if [ \"$s\" != \"$prev\" ]; then echo \"$s\"; prev=$s; fi; " +
-			"sleep 0.4; done"]
-
-		stdout: SplitParser {
-			onRead: data => root.capsLockOn = data.trim() === "1"
 		}
 	}
 

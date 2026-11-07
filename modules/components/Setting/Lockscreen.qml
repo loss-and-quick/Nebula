@@ -37,6 +37,7 @@ Item {
         { key: "showPower", icon: "power_settings_new", label: "Power", blurb: "Sleep, restart and shut down" }
     ]
     readonly property int shownCount: root.toggles.filter(t => root.cfg[t.key] ?? true).length
+    readonly property var statusWidgets: root.cfg.statusWidgets ?? ["keyboard", "weather", "battery", "network", "notifications"]
 
     function patch(o) {
         const base = Object.assign({}, SettingsConfig.lockscreen)
@@ -639,6 +640,31 @@ Item {
                             const o = {}
                             o[modelData.key] = on
                             root.patch(o)
+                        }
+                    }
+                }
+
+                StageHeading { text: "Status widgets" }
+
+                Repeater {
+                    model: [
+                        { key: "keyboard", icon: "keyboard", label: "Keyboard language" },
+                        { key: "weather", icon: "sunny", label: "Weather" },
+                        { key: "battery", icon: "battery_full", label: "Battery" },
+                        { key: "network", icon: "wifi", label: "Network" },
+                        { key: "notifications", icon: "notifications", label: "Notifications" }
+                    ]
+
+                    StageSwitchRow {
+                        required property var modelData
+                        icon: modelData.icon
+                        title: modelData.label
+                        checked: root.statusWidgets.includes(modelData.key)
+                        onToggled: on => {
+                            const selected = root.statusWidgets.filter(id => id !== modelData.key)
+                            if (on)
+                                selected.push(modelData.key)
+                            root.patch({ statusWidgets: selected })
                         }
                     }
                 }

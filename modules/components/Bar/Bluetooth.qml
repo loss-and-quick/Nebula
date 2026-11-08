@@ -18,8 +18,7 @@ Item {
     signal backClicked
     property bool showBack: true
 
-    property bool scanning: false
-    property var pendingPair: null
+    readonly property bool scanning: ServiceBluetooth.scanning
     property string openAddress: ""
 
     readonly property var adapter: Bluetooth.defaultAdapter
@@ -56,51 +55,11 @@ Item {
     function busy(device) { return ServiceBluetooth.busy(device) }
     function stateText(device) { return ServiceBluetooth.stateText(device) }
 
-    function startScan() {
-        if (!root.adapter || !root.bluetoothOn) return
-        root.adapter.discovering = true
-        root.scanning = true
-        scanTimer.restart()
-    }
-
-    function stopScan() {
-        scanTimer.stop()
-        root.scanning = false
-        if (root.adapter) root.adapter.discovering = false
-    }
-
-    function pair(device) {
-        if (!device) return
-        root.pendingPair = device
-        device.pair()
-    }
-
     function openSettings(from) {
         GlobalStates.openQuickSettings(5, from)
     }
 
-    Connections {
-        target: root.pendingPair
-        ignoreUnknownSignals: true
-        function onPairedChanged() {
-            const d = root.pendingPair
-            if (!d?.paired) return
-            d.trusted = true
-            d.connect()
-            root.pendingPair = null
-        }
-    }
-
-    Timer {
-        id: scanTimer
-        interval: 10000
-        onTriggered: root.stopScan()
-    }
-
-    Component.onDestruction: {
-        if (scanTimer.running && Bluetooth.defaultAdapter)
-            Bluetooth.defaultAdapter.discovering = false
-    }
+    Component.onDestruction: ServiceBluetooth.stopScan()
 
     opacity: 0
     EffectsAnim {
@@ -280,8 +239,8 @@ Item {
             sublabel: root.stateText(dr.device)
             onClicked: {
                 if (!dr.device || dr.busy) return
-                if (dr.isConnected) dr.device.disconnect()
-                else dr.device.connect()
+                if (dr.isConnected) ServiceBluetooth.disconnectDevice(dr.device)
+                else ServiceBluetooth.connectDevice(dr.device)
             }
             trailingComponent: Component {
                 RowLayout {
@@ -292,8 +251,8 @@ Item {
                         open: dr.open
                         onPressed: {
                             if (!dr.device) return
-                            if (dr.isConnected) dr.device.disconnect()
-                            else dr.device.connect()
+                            if (dr.isConnected) ServiceBluetooth.disconnectDevice(dr.device)
+                            else ServiceBluetooth.connectDevice(dr.device)
                         }
                         onToggled: root.openAddress = dr.open ? "" : (dr.device?.address ?? "")
                     }
@@ -344,7 +303,7 @@ Item {
 
                 CustomToogle {
                     isToggleOn: dr.device?.trusted ?? false
-                    onToggled: s => { if (dr.device) dr.device.trusted = s }
+                    onToggled: s => ServiceBluetooth.setDeviceTrusted(dr.device, s)
                 }
             }
 
@@ -387,7 +346,7 @@ Item {
                         rippleColor: Qt.alpha(Colors.error, 0.18)
                         onClicked: {
                             root.openAddress = ""
-                            dr.device?.forget()
+                            ServiceBluetooth.forgetDevice(dr.device)
                         }
                     }
                 }
@@ -428,7 +387,7 @@ Item {
                 }
             }
         }
-        onClicked: if (!nr.busy && nr.device) root.pair(nr.device)
+        onClicked: if (!nr.busy && nr.device) ServiceBluetooth.pairDevice(nr.device)
     }
 
     ColumnLayout {
@@ -500,7 +459,7 @@ Item {
                     radius: 20
                     hoverColor: Qt.alpha(Colors.tertiaryContainerText, 0.08)
                     rippleColor: Qt.alpha(Colors.tertiaryContainerText, 0.18)
-                    onClicked: root.scanning ? root.stopScan() : root.startScan()
+                    onClicked: ServiceBluetooth.scanning ? ServiceBluetooth.stopScan() : ServiceBluetooth.startScan()
                 }
 
                 CustomToolTip {
@@ -561,7 +520,7 @@ Item {
                             CustomToogle {
                                 visible: !!root.adapter
                                 isToggleOn: root.bluetoothOn
-                                onToggled: s => { if (root.adapter) root.adapter.enabled = s }
+                                onToggled: s => ServiceBluetooth.setAdapterEnabled(s)
                             }
                         }
                     }
@@ -622,7 +581,7 @@ Item {
 
                             CustomToogle {
                                 isToggleOn: root.adapter?.discoverable ?? false
-                                onToggled: s => { if (root.adapter) root.adapter.discoverable = s }
+                                onToggled: s => ServiceBluetooth.setAdapterDiscoverable(s)
                             }
                         }
                     }

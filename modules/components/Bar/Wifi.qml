@@ -1,7 +1,6 @@
 pragma ComponentBehavior: Bound
 
 import Quickshell
-import Quickshell.Io
 import Quickshell.Networking
 import QtQuick
 import QtQuick.Controls.Basic
@@ -22,7 +21,6 @@ Item {
     property bool scanning: false
     property bool passwordPrompt: false
     property bool addMode: false
-    property bool joining: false
     property var pendingNetwork: null
     property string connectionError: ""
     property bool detailsOpen: true
@@ -30,11 +28,6 @@ Item {
     property bool showQr: false
     property string qrSource: ""
     property bool qrFailed: false
-
-    property string ipAddress: ""
-    property int freqMhz: 0
-    property bool autoconnect: true
-    property int savedCount: 0
 
     readonly property bool wifiOn: Networking.wifiEnabled
     readonly property bool hardwareOn: Networking.wifiHardwareEnabled
@@ -58,7 +51,7 @@ Item {
         const n = root.current
         if (!n) return ""
         if (n.state === ConnectionState.Disconnecting) return "Disconnecting…"
-        return [root.strengthLabel(n.signalStrength) + " signal", root.band(root.freqMhz), root.securityLabel(n.security)]
+        return [root.strengthLabel(n.signalStrength) + " signal", root.band(ServiceNetwork.freqMhz), root.securityLabel(n.security)]
             .filter(s => s !== "").join(", ")
     }
 
@@ -76,22 +69,18 @@ Item {
     }
 
     function submitPassword(psk) {
-        if (root.pendingNetwork) root.pendingNetwork.connectWithPsk(psk)
+        if (root.pendingNetwork) ServiceNetwork.connectTo(root.pendingNetwork, psk)
         root.passwordPrompt = false
     }
 
     function joinHidden(ssid, psk) {
         root.connectionError = ""
-        root.joining = true
-        joiner.command = ["nmcli", "dev", "wifi", "connect", ssid, "hidden", "yes"]
-            .concat(psk !== "" ? ["password", psk] : [])
-        joiner.running = true
+        ServiceNetwork.joinHidden(ssid, psk)
     }
 
     function dismissPassword() {
         root.passwordPrompt = false
         root.addMode = false
-        root.joining = false
         root.pendingNetwork = null
         root.connectionError = ""
     }
@@ -100,14 +89,14 @@ Item {
         if (!network) return
         root.connectionError = ""
         if (network.connected) {
-            network.disconnect()
+            ServiceNetwork.disconnectFrom(network)
             return
         }
         if (!network.known && root.isSecured(network.security)) {
             root.askPassword(network)
             return
         }
-        network.connect()
+        ServiceNetwork.connectTo(network)
     }
 
     function handleFailure(network, reason) {
@@ -148,79 +137,13 @@ Item {
         ServiceNetwork.generateQr(root.current.name, root.current.security)
     }
 
-    function refreshInfo() {
-        if (info.running) return
-        info.command = ["sh", "-c",
-            "nmcli -t -g IP4.ADDRESS dev show \"$1\" 2>/dev/null | head -n1; "
-            + "nmcli -t -f ACTIVE,FREQ dev wifi list --rescan no 2>/dev/null | awk -F: '$1==\"yes\"{print $2+0; exit}'; echo; "
-            + "nmcli -g connection.autoconnect connection show id \"$2\" 2>/dev/null; echo; "
-            + "nmcli -t -f TYPE connection show 2>/dev/null | awk '/802-11-wireless/{c++} END{print c+0}'",
-            "sh", root.iface, root.current?.name ?? ""]
-        info.running = true
-    }
-
-    function setAutoconnect(on) {
-        if (!root.current) return
-        root.autoconnect = on
-        Quickshell.execDetached(["nmcli", "connection", "modify", "id", root.current.name,
-                                 "connection.autoconnect", on ? "yes" : "no"])
-    }
-
-    function forgetCurrent() {
-        if (!root.current) return
-        const n = root.current
-        n.forget()
-        infoTimer.restart()
-    }
-
-    Process {
-        id: info
-        stdout: StdioCollector {
-            id: infoOut
-            onStreamFinished: {
-                const lines = infoOut.text.split("\n").map(l => l.trim()).filter(l => l !== "")
-                const ipLine = lines.find(l => /^\d+\.\d+\.\d+\.\d+/.test(l)) ?? ""
-                root.ipAddress = ipLine.split("/")[0]
-                const f = lines.find(l => /^\d{4}$/.test(l))
-                root.freqMhz = f ? parseInt(f) : 0
-                const ac = lines.find(l => l === "yes" || l === "no")
-                root.autoconnect = ac !== "no"
-                const count = lines.length > 0 ? parseInt(lines[lines.length - 1]) : 0
-                root.savedCount = isNaN(count) ? 0 : count
-            }
-        }
-    }
-
-    Process {
-        id: joiner
-        stderr: StdioCollector { id: joinErr }
-        onExited: code => {
-            root.joining = false
-            if (code === 0) {
-                root.dismissPassword()
-                infoTimer.restart()
-            } else {
-                const msg = (joinErr.text || "").trim().split("\n").pop()
-                root.connectionError = msg !== "" ? msg.replace(/^Error:\s*/, "") : "Couldn't join that network"
-            }
-        }
-    }
-
-    Timer {
-        id: infoTimer
-        interval: 1200
-        onTriggered: root.refreshInfo()
-    }
-
-    onCurrentChanged: infoTimer.restart()
-
     property var downHist: []
     property var upHist: []
 
     Component.onCompleted: {
         ServiceSystemInfo.retain()
         if (root.wifiOn) root.startScan()
-        root.refreshInfo()
+        ServiceNetwork.refreshInfo()
     }
     Component.onDestruction: ServiceSystemInfo.release()
 
@@ -235,13 +158,24 @@ Item {
         }
     }
 
+    Connections {
+        target: ServiceNetwork
+        function onJoinFinished(success, error) {
+            if (success) {
+                root.dismissPassword()
+            } else {
+                root.connectionError = error
+            }
+        }
+    }
+
     Loader {
         active: root.passwordPrompt
         sourceComponent: WifiPasswordPrompt {
             askName: root.addMode
-            working: root.joining
+            working: ServiceNetwork.joining
             network: root.addMode ? null : root.pendingNetwork
-            errorText: root.connectionError
+            errorText: root.connectionError || ServiceNetwork.connectionError
             onSubmitted: psk => root.submitPassword(psk)
             onSubmittedHidden: (ssid, psk) => root.joinHidden(ssid, psk)
             onDismissed: root.dismissPassword()
@@ -554,7 +488,7 @@ Item {
                             CustomToogle {
                                 isToggleOn: Networking.wifiEnabled
                                 opacity: root.hardwareOn ? 1 : 0.4
-                                onToggled: s => { if (root.hardwareOn) Networking.wifiEnabled = s }
+                                onToggled: s => { if (root.hardwareOn) ServiceNetwork.setWifiEnabled(s) }
                             }
                         }
                     }
@@ -625,7 +559,7 @@ Item {
                             SplitButton {
                                 label: "Disconnect"
                                 open: root.detailsOpen
-                                onPressed: root.current?.disconnect()
+                                onPressed: ServiceNetwork.disconnectFrom(root.current)
                                 onToggled: root.detailsOpen = !root.detailsOpen
                             }
                         }
@@ -641,7 +575,7 @@ Item {
 
                             DetailLine {
                                 label: "IP address"
-                                value: root.ipAddress !== "" ? root.ipAddress : "—"
+                                value: ServiceNetwork.ipAddress !== "" ? ServiceNetwork.ipAddress : "—"
                             }
 
                             RowLayout {
@@ -658,8 +592,8 @@ Item {
                                 }
 
                                 CustomToogle {
-                                    isToggleOn: root.autoconnect
-                                    onToggled: s => root.setAutoconnect(s)
+                                    isToggleOn: ServiceNetwork.autoconnect
+                                    onToggled: s => ServiceNetwork.setAutoconnect(root.current?.name, s)
                                 }
                             }
 
@@ -737,7 +671,7 @@ Item {
                                         bottomRightRadius: 20
                                         hoverColor: Qt.alpha(Colors.error, 0.08)
                                         rippleColor: Qt.alpha(Colors.error, 0.18)
-                                        onClicked: root.forgetCurrent()
+                                        onClicked: ServiceNetwork.forgetNetwork(root.current)
                                     }
                                 }
                             }
@@ -947,7 +881,7 @@ Item {
                                 CustomText { Layout.fillWidth: true; content: "Saved networks"; size: 14; weight: 700 }
                                 CustomText {
                                     Layout.fillWidth: true
-                                    content: root.savedCount === 1 ? "1 network" : root.savedCount + " networks"
+                                    content: ServiceNetwork.savedCount === 1 ? "1 network" : ServiceNetwork.savedCount + " networks"
                                     size: 12
                                     weight: 500
                                     customColor: Colors.surfaceVariantText

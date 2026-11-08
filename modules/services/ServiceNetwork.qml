@@ -39,6 +39,15 @@ Singleton {
 
     property string currentSSID: connectedNetwork?.name ?? ""
 
+    property string ipAddress: ""
+    property int freqMhz: 0
+    property bool autoconnect: true
+    property int savedCount: 0
+
+    property bool joining: false
+    property string connectionError: ""
+    signal joinFinished(bool success, string error)
+
     property string connectionType: {
         if (wiredDevice?.connected) return "ethernet"
         if (Networking.wifiEnabled && connectedNetwork) return "wifi"
@@ -59,6 +68,68 @@ Singleton {
 
     function toggleWifi() {
         Networking.wifiEnabled = !Networking.wifiEnabled
+    }
+
+    function setWifiEnabled(enabled) {
+        Networking.wifiEnabled = enabled
+    }
+
+    function refreshInfo() {
+        if (infoProcess.running) return
+        const iface = root.wifiDevice?.name ?? ""
+        const curName = root.connectedNetwork?.name ?? ""
+        infoProcess.command = ["sh", "-c",
+            "nmcli -t -g IP4.ADDRESS dev show \"$1\" 2>/dev/null | head -n1; "
+            + "nmcli -t -f ACTIVE,FREQ dev wifi list --rescan no 2>/dev/null | awk -F: '$1==\"yes\"{print $2+0; exit}'; echo; "
+            + "nmcli -g connection.autoconnect connection show id \"$2\" 2>/dev/null; echo; "
+            + "nmcli -t -f TYPE connection show 2>/dev/null | awk '/802-11-wireless/{c++} END{print c+0}'",
+            "sh", iface, curName]
+        infoProcess.running = true
+    }
+
+    function setAutoconnect(uuid, enabled) {
+        if (typeof uuid === "boolean" && enabled === undefined) {
+            enabled = uuid
+            uuid = root.connectedNetwork?.name ?? ""
+        }
+        const target = (typeof uuid === "object" ? (uuid?.name || uuid?.uuid) : uuid) || root.connectedNetwork?.name || ""
+        if (!target) return
+        root.autoconnect = !!enabled
+        Quickshell.execDetached(["nmcli", "connection", "modify", target,
+                                 "connection.autoconnect", enabled ? "yes" : "no"])
+        infoTimer.restart()
+    }
+
+    function connectTo(network, password) {
+        if (!network) return
+        root.connectionError = ""
+        if (password !== undefined && password !== null && password !== "") {
+            network.connectWithPsk(password)
+        } else {
+            network.connect()
+        }
+    }
+
+    function disconnectFrom(network) {
+        const target = network || root.connectedNetwork
+        if (!target) return
+        target.disconnect()
+    }
+
+    function forgetNetwork(network) {
+        const target = network || root.connectedNetwork
+        if (!target) return
+        target.forget()
+        infoTimer.restart()
+    }
+
+    function joinHidden(ssid, password) {
+        root.connectionError = ""
+        root.joining = true
+        const psk = password || ""
+        joinerProcess.command = ["nmcli", "dev", "wifi", "connect", ssid, "hidden", "yes"]
+            .concat(psk !== "" ? ["password", psk] : [])
+        joinerProcess.running = true
     }
 
     function scan() {
@@ -236,5 +307,54 @@ Singleton {
             qrProcess.stdinEnabled = true
             Qt.callLater(root._finishQr, code === 0)
         }
+    }
+
+    Process {
+        id: infoProcess
+        running: false
+        stdout: StdioCollector {
+            id: infoOut
+            onStreamFinished: {
+                const lines = infoOut.text.split("\n").map(l => l.trim()).filter(l => l !== "")
+                const ipLine = lines.find(l => /^\d+\.\d+\.\d+\.\d+/.test(l)) ?? ""
+                root.ipAddress = ipLine.split("/")[0]
+                const f = lines.find(l => /^\d{4}$/.test(l))
+                root.freqMhz = f ? parseInt(f) : 0
+                const ac = lines.find(l => l === "yes" || l === "no")
+                root.autoconnect = ac !== "no"
+                const count = lines.length > 0 ? parseInt(lines[lines.length - 1]) : 0
+                root.savedCount = isNaN(count) ? 0 : count
+            }
+        }
+    }
+
+    Timer {
+        id: infoTimer
+        interval: 1200
+        onTriggered: root.refreshInfo()
+    }
+
+    onConnectedNetworkChanged: infoTimer.restart()
+
+    Process {
+        id: joinerProcess
+        running: false
+        stderr: StdioCollector { id: joinErr }
+        onExited: function(code) {
+            root.joining = false
+            if (code === 0) {
+                root.connectionError = ""
+                root.joinFinished(true, "")
+                infoTimer.restart()
+            } else {
+                const msg = (joinErr.text || "").trim().split("\n").pop()
+                root.connectionError = msg !== "" ? msg.replace(/^Error:\s*/, "") : "Couldn't join that network"
+                root.joinFinished(false, root.connectionError)
+            }
+        }
+    }
+
+    Component.onCompleted: {
+        root.refreshInfo()
     }
 }

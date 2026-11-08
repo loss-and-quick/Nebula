@@ -20,6 +20,94 @@ Singleton {
     property int connectedDevices: list.filter(device => device.state === 1).length
     property bool state: Bluetooth.defaultAdapter && Bluetooth.defaultAdapter.state === 1 ? true : false
 
+    readonly property var adapter: Bluetooth.defaultAdapter
+    property bool scanning: false
+    property var pendingPair: null
+
+    function startScan() {
+        const ad = root.adapter
+        if (!ad || !ad.enabled) return
+        ad.discovering = true
+        root.scanning = true
+        scanTimer.restart()
+    }
+
+    function stopScan() {
+        scanTimer.stop()
+        root.scanning = false
+        if (root.adapter) root.adapter.discovering = false
+    }
+
+    function pairDevice(device) {
+        if (!device) return
+        root.pendingPair = device
+        device.pair()
+    }
+
+    function connectDevice(device) {
+        if (!device) return
+        device.connect()
+    }
+
+    function disconnectDevice(device) {
+        if (!device) return
+        device.disconnect()
+    }
+
+    function forgetDevice(device) {
+        if (!device) return
+        if (root.pendingPair === device) root.pendingPair = null
+        device.forget()
+    }
+
+    function setDeviceTrusted(device, trusted) {
+        if (!device) return
+        device.trusted = trusted
+    }
+
+    function setAdapterEnabled(enabled) {
+        if (root.adapter) root.adapter.enabled = enabled
+    }
+
+    function setAdapterDiscoverable(discoverable) {
+        if (root.adapter) root.adapter.discoverable = discoverable
+    }
+
+    Connections {
+        target: root.pendingPair
+        ignoreUnknownSignals: true
+        function onPairedChanged() {
+            const d = root.pendingPair
+            if (!d?.paired) return
+            d.trusted = true
+            d.connect()
+            root.pendingPair = null
+        }
+    }
+
+    Timer {
+        id: scanTimer
+        interval: 10000
+        onTriggered: root.stopScan()
+    }
+
+    Connections {
+        target: root.adapter
+        ignoreUnknownSignals: true
+        function onDiscoveringChanged() {
+            if (!root.adapter?.discovering) {
+                root.scanning = false
+                scanTimer.stop()
+            }
+        }
+    }
+
+    Component.onDestruction: {
+        if (scanTimer.running && Bluetooth.defaultAdapter) {
+            Bluetooth.defaultAdapter.discovering = false
+        }
+    }
+
     function deviceIcon(icon) {
         switch (icon) {
         case "audio-headset":

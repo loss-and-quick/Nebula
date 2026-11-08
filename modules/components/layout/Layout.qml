@@ -1513,6 +1513,17 @@ PanelWindow{
 
         Keys.onEscapePressed: event => {
             if (!layout.barEditing) {
+                if (GlobalStates.appLauncherOpen) {
+                    GlobalStates.appLauncherOpen = false
+                    event.accepted = true
+                    return
+                }
+                const panels = layout.openPanels
+                if (panels.length > 0) {
+                    panels[panels.length - 1].block.closePanel()
+                    event.accepted = true
+                    return
+                }
                 event.accepted = false
                 return
             }

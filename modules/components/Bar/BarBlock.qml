@@ -501,6 +501,7 @@ Item {
     visible: barBlock.pc > 0.001
     z: blockEditor.gripHovered ? 1 : 0
     width: barBlock.implicitWidth * barBlock.pc
+    height: barBlock.barH
     implicitWidth: barBlock.sticky && barBlock.frame && barBlock.frame.stickyRoom ? barBlock.frame.stickyRoom(barBlock) : blockLayout.collapsedWidth
     implicitHeight: barBlock.barH
     enabled: !barBlock.tuckedAway

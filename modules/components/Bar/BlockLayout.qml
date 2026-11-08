@@ -466,6 +466,7 @@ Item {
                     x: blockLayout.slotShift(slot.listIndex)
                     Behavior on x {
                         SpatialAnim {
+                            role: "bar.slide"
                             speed: "fast"
                         }
                     }

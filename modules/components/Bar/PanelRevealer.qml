@@ -788,10 +788,10 @@ Item {
     readonly property int sizeDuration: revealer.gliding ? M3Motion.spatialDuration("move") : revealer.caeMotion ? 500 : revealer.drawer && revealer.panelMotion ? M3Motion.spatialDuration("default") : revealer.quickMotion ? (revealer.motionClosing ? 240 : 380) : revealer.panelMotion && !revealer.motionClosing ? M3Motion.panel.openDuration : M3Motion.spatialDuration("fast")
     readonly property var sizeCurve: revealer.gliding ? M3Motion.spatialCurve("move") : !revealer.panelMotion ? M3Motion.spatialCurve("fast") : revealer.caeMotion ? revealer.caeCurve : revealer.drawer ? M3Motion.spatialCurve("default") : revealer.quickMotion ? (revealer.motionClosing ? [0.3, 0.0, 1.0, 1.0, 1, 1] : [0.05, 0.7, 0.1, 1.0, 1, 1]) : revealer.motionClosing ? M3Motion.panel.closeCurve : M3Motion.panel.openCurve
 
-    readonly property int spanDuration: revealer.panelMotion && revealer.motionClosing && !revealer.quickMotion && !revealer.drawer && !revealer.caeMotion ? M3Motion.panel.closeDuration : revealer.sizeDuration
-    readonly property var spanCurve: revealer.sizeCurve
+    readonly property int spanDuration: revealer.shownKind === "dockPreview" ? MotionRegistry.durationFor("dock.preview", "default") : revealer.panelMotion && revealer.motionClosing && !revealer.quickMotion && !revealer.drawer && !revealer.caeMotion ? M3Motion.panel.closeDuration : revealer.sizeDuration
+    readonly property var spanCurve: revealer.shownKind === "dockPreview" ? MotionRegistry.curveFor("dock.preview", "default") : revealer.sizeCurve
     readonly property int dropDuration: revealer.spanDuration
-    readonly property var dropCurve: revealer.sizeCurve
+    readonly property var dropCurve: revealer.spanCurve
 
     readonly property real snapReach: block.frame && block.frame.tabPullFor ? block.frame.tabPullFor(block) : revealer.panelCorner
 
@@ -1330,15 +1330,15 @@ Item {
             to: "open"
             NumberAnimation {
                 properties: "tabX,tabW"
-                duration: revealer.spanDuration
+                duration: MotionRegistry.durationFor("panel.open", "default")
                 easing.type: Easing.BezierSpline
-                easing.bezierCurve: revealer.spanCurve
+                easing.bezierCurve: MotionRegistry.curveFor("panel.open", "default")
             }
             NumberAnimation {
                 properties: "tabHRaw,contentT"
-                duration: revealer.dropDuration
+                duration: MotionRegistry.durationFor("panel.open", "default")
                 easing.type: Easing.BezierSpline
-                easing.bezierCurve: revealer.dropCurve
+                easing.bezierCurve: MotionRegistry.curveFor("panel.open", "default")
             }
             onRunningChanged: if (!running)
                 revealer.checkSettled()
@@ -1349,15 +1349,15 @@ Item {
             to: "closed"
             NumberAnimation {
                 properties: "tabX,tabW"
-                duration: revealer.spanDuration
+                duration: MotionRegistry.durationFor("panel.close", "default")
                 easing.type: Easing.BezierSpline
-                easing.bezierCurve: revealer.spanCurve
+                easing.bezierCurve: MotionRegistry.curveFor("panel.close", "default")
             }
             NumberAnimation {
                 properties: "tabHRaw,contentT"
-                duration: revealer.dropDuration
+                duration: MotionRegistry.durationFor("panel.close", "default")
                 easing.type: Easing.BezierSpline
-                easing.bezierCurve: revealer.dropCurve
+                easing.bezierCurve: MotionRegistry.curveFor("panel.close", "default")
             }
             onRunningChanged: if (!running)
                 revealer.checkSettled()

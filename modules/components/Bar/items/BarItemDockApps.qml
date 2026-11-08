@@ -144,11 +144,13 @@ Item {
                 y: root.vertical ? root.shiftFor(dockItem.index) : dockItem.lift
                 Behavior on x {
                     SpatialAnim {
+                        role: root.vertical ? "dock.icon.lift" : ""
                         speed: "fast"
                     }
                 }
                 Behavior on y {
                     SpatialAnim {
+                        role: root.vertical ? "" : "dock.icon.lift"
                         speed: "default"
                     }
                 }

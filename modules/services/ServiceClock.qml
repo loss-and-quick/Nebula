@@ -7,22 +7,22 @@ import Quickshell.Io
 import QtQuick
 import qs.modules.settings
 
-Singleton{
+Singleton {
     id: root
 
-    SystemClock{
+    SystemClock {
         id: clock
         precision: SystemClock.Seconds
     }
 
-    property var time : Qt.formatDateTime(clock.date, "h:mm a")
-    property string hour : Qt.formatDateTime(clock.date, "hh")
-    property string minute: Qt.formatDateTime(clock.date, "mm")
+    property var time: Qt.formatDateTime(clock.date, "h:mm a")
+    property var hour: Qt.formatDateTime(clock.date, "hh")
+    property var minute: Qt.formatDateTime(clock.date, "mm")
     property var seconds: Qt.formatDateTime(clock.date, "ss")
-    property var day : Qt.formatDateTime(clock.date, "dddd")
+    property var day: Qt.formatDateTime(clock.date, "dddd")
     property var month: Qt.formatDateTime(clock.date, "MMMM")
     property var year: Qt.formatDateTime(clock.date, "yyyy")
-    property var date : Qt.formatDateTime(clock.date, "dd")
+    property var date: Qt.formatDateTime(clock.date, "dd")
 
     // Holiday data - stores holidays for the currently displayed year
     property var holidayData: []
@@ -72,7 +72,8 @@ Singleton{
         root.loadHolidays();
     }
 
-    Component.onCompleted: if (!SettingsConfig.greeterMode) root.loadHolidays()
+    Component.onCompleted: if (!SettingsConfig.greeterMode)
+        root.loadHolidays()
 
     onHolidayCountryChanged: root.resetHolidays()
 
@@ -84,12 +85,8 @@ Singleton{
         }
     }
 
-
     function getMonthName(month) {
-        const months = [
-            "January", "February", "March", "April", "May", "June",
-            "July", "August", "September", "October", "November", "December"
-        ];
+        const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
         return months[month];
     }
 
@@ -101,15 +98,16 @@ Singleton{
         return new Date(year, month, 1).getDay();
     }
 
-    function checkHoliday(day, year, month){
+    function checkHoliday(day, year, month) {
         if (!holidaysLoaded || !holidayData) {
-            return { isHoliday: false, info: [] };
+            return {
+                isHoliday: false,
+                info: []
+            };
         }
 
         // Format date as YYYY-MM-DD for comparison
-        const dateStr = year + "-" +
-                        String(month + 1).padStart(2, '0') + "-" +
-                        String(day).padStart(2, '0');
+        const dateStr = year + "-" + String(month + 1).padStart(2, '0') + "-" + String(day).padStart(2, '0');
 
         // Find all holidays for this date
         const holidays = holidayData.filter(h => h.date === dateStr);
@@ -118,15 +116,18 @@ Singleton{
             return {
                 isHoliday: true,
                 info: holidays.map(h => ({
-                    name: h.name,
-                    date: h.date,
-                    dayOfWeek: h.dayOfWeek,
-                    dayOfWeekShort: h.dayOfWeekShort
-                }))
+                            name: h.name,
+                            date: h.date,
+                            dayOfWeek: h.dayOfWeek,
+                            dayOfWeekShort: h.dayOfWeekShort
+                        }))
             };
         }
 
-        return { isHoliday: false, info: [] };
+        return {
+            isHoliday: false,
+            info: []
+        };
     }
 
     function generateCalendarGrid(year, month, startDay) {
@@ -157,9 +158,7 @@ Singleton{
                 isHoliday: holidayInfo.isHoliday,
                 info: holidayInfo.info,
                 isCurrentMonth: false,
-                isToday: today.getFullYear() === prevYear &&
-                today.getMonth() === prevMonth &&
-                today.getDate() === day
+                isToday: today.getFullYear() === prevYear && today.getMonth() === prevMonth && today.getDate() === day
             });
         }
 
@@ -174,9 +173,7 @@ Singleton{
                 isCurrentMonth: true,
                 isHoliday: holidayInfo.isHoliday,
                 info: holidayInfo.info,
-                isToday: today.getFullYear() === year &&
-                today.getMonth() === month &&
-                today.getDate() === day
+                isToday: today.getFullYear() === year && today.getMonth() === month && today.getDate() === day
             });
         }
 
@@ -199,13 +196,10 @@ Singleton{
                 isCurrentMonth: false,
                 isHoliday: holidayInfo.isHoliday,
                 info: holidayInfo.info,
-                isToday: today.getFullYear() === nextYear &&
-                today.getMonth() === nextMonth &&
-                today.getDate() === day
+                isToday: today.getFullYear() === nextYear && today.getMonth() === nextMonth && today.getDate() === day
             });
         }
 
         return grid;
     }
-
 }

@@ -1038,7 +1038,7 @@ PanelWindow{
             target: layout
             function onBarEditingChanged() {
                 if (!layout.barEditing) {
-                    root.allGaps = false
+                    GlobalStates.showGaps = false
                     root.gapFocus = ""
                 }
             }

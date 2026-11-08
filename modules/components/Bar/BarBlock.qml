@@ -1746,9 +1746,14 @@ Item {
         barBlock.presence = Qt.binding(() => barBlock.wanted ? 1 : 0)
     }
 
+    function checkHoverLeave() {
+        if (!blockHover.hovered && !tabHover.hovered)
+            barBlock.hoverKind = ""
+    }
+
     HoverHandler {
         id: blockHover
-        onHoveredChanged: if (!hovered && !tabHover.hovered) barBlock.hoverKind = ""
+        onHoveredChanged: if (!hovered) Qt.callLater(barBlock.checkHoverLeave)
     }
 
     MouseArea {
@@ -1767,12 +1772,12 @@ Item {
         y: barBlock.far ? barBlock.barH - Math.round(barBlock.tabH) - barBlock.floatGap : 0
         width: Math.round(barBlock.absX + barBlock.tabX + barBlock.tabW) - Math.round(barBlock.absX + barBlock.tabX)
         height: Math.round(barBlock.tabH) + barBlock.floatGap
-        visible: barBlock.tabOpen
+        visible: barBlock.tabOpen || barBlock.state === "open" || openTrans.running || closeTrans.running
         clip: true
 
         HoverHandler {
             id: tabHover
-            onHoveredChanged: if (!hovered && !blockHover.hovered) barBlock.hoverKind = ""
+            onHoveredChanged: if (!hovered) Qt.callLater(barBlock.checkHoverLeave)
         }
 
         Item {

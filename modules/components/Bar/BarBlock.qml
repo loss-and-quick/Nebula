@@ -362,9 +362,9 @@ Item {
         barBlock.edgeR = last ? barBlock.edgeShape(last, true) : null
     }
 
-    onSlotLayoutChanged: Qt.callLater(barBlock.measureEdges)
-    onBarHChanged: Qt.callLater(barBlock.measureEdges)
-    onShownCountChanged: Qt.callLater(barBlock.measureEdges)
+    onSlotLayoutChanged: barBlock.measureEdges()
+    onBarHChanged: barBlock.measureEdges()
+    onShownCountChanged: barBlock.measureEdges()
 
     readonly property real gap: barBlock.split ? Math.max(6, barBlock.edgeCfg.itemGap) : barBlock.edgeCfg.itemGap
 
@@ -530,7 +530,7 @@ Item {
         const c = barBlock.pendingClicked
         barBlock.pendingKind = ""
         barBlock.pendingItem = null
-        Qt.callLater(() => barBlock.beginOpen(k, it, c))
+        barBlock.beginOpen(k, it, c)
     }
 
     function flushSource(kind) {
@@ -1050,7 +1050,7 @@ Item {
                                barBlock.isTransient(barBlock.shownKind))
     }
     function queueSync() {
-        Qt.callLater(barBlock.syncBody)
+        barBlock.syncBody()
     }
     onTabTargetXChanged: barBlock.queueSync()
     onTabTargetWChanged: barBlock.queueSync()
@@ -1387,10 +1387,8 @@ Item {
     }
 
     function slotGone(id) {
-        Qt.callLater(() => {
-            BarLayout.dropLeaving(itemModel, barBlock.itemIds, "itemId", barBlock.itemLeaving, id)
-            barBlock.slotRev++
-        })
+        BarLayout.dropLeaving(itemModel, barBlock.itemIds, "itemId", barBlock.itemLeaving, id)
+        barBlock.slotRev++
     }
 
     property int slotRev: 0
@@ -1678,10 +1676,7 @@ Item {
         if (barBlock.panelKind === "dockMenu" && !barBlock.dockAppEntry)
             barBlock.closePanel()
         else if (barBlock.panelKind === "dockPreview" && barBlock.dockWinCount === 0)
-            Qt.callLater(() => {
-                if (barBlock.panelKind === "dockPreview" && barBlock.dockWinCount === 0)
-                    barBlock.hoverKind = ""
-            })
+            barBlock.hoverKind = ""
     }
 
     function appEntered(entry, item) {
@@ -1691,12 +1686,8 @@ Item {
         if (barBlock.panelKind === "dockMenu" || barBlock.clickedKind !== "")
             return
         if (entry.toplevels.length === 0) {
-            if (barBlock.panelKind === "dockPreview") {
-                Qt.callLater(() => {
-                    if (barBlock.panelKind === "dockPreview")
-                        barBlock.hoverKind = ""
-                })
-            }
+            if (barBlock.panelKind === "dockPreview")
+                barBlock.hoverKind = ""
             return
         }
         barBlock.dockAppId = entry.appId ?? ""
@@ -1762,7 +1753,7 @@ Item {
 
     HoverHandler {
         id: blockHover
-        onHoveredChanged: if (!hovered) Qt.callLater(barBlock.checkHoverLeave)
+        onHoveredChanged: if (!hovered) barBlock.checkHoverLeave()
     }
 
     MouseArea {
@@ -1786,7 +1777,7 @@ Item {
 
         HoverHandler {
             id: tabHover
-            onHoveredChanged: if (!hovered) Qt.callLater(barBlock.checkHoverLeave)
+            onHoveredChanged: if (!hovered) barBlock.checkHoverLeave()
         }
 
         Item {
@@ -2050,8 +2041,8 @@ Item {
                         if (barBlock && slot.fullForm)
                             barBlock.noteFull(slot.itemId, slot.rawW)
                     }
-                    onRawWChanged: if (slot.fullForm) Qt.callLater(slot.noteFull)
-                    onFullFormChanged: if (slot.fullForm) Qt.callLater(slot.noteFull)
+                    onRawWChanged: if (slot.fullForm) slot.noteFull()
+                    onFullFormChanged: if (slot.fullForm) slot.noteFull()
                     readonly property real contentWidth: slot.ghost ? 28 : (slot.upright ? slot.rawH : slot.rawW)
                     readonly property real contentStart: slot.margin[0] + (slot.innerWidth - slot.contentWidth) / 2
                     readonly property real chipWidth: barBlock.split
@@ -2436,14 +2427,7 @@ Item {
         Timer {
             id: slotCache
             interval: 30000
-            onTriggered: {
-                if (!slot.shown && slot.kind !== barBlock.residentKind) {
-                    Qt.callLater(() => {
-                        if (!slot.shown && slot.kind !== barBlock.residentKind)
-                            slot.kind = ""
-                    })
-                }
-            }
+            onTriggered: if (!slot.shown && slot.kind !== barBlock.residentKind) slot.kind = ""
         }
 
         Behavior on opacity {

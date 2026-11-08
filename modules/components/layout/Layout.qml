@@ -217,12 +217,12 @@ PanelWindow{
         }
     }
 
-    onClosed: Qt.callLater(layout.recoverSurface)
+    onClosed: layout.recoverSurface()
 
     Connections {
         target: Quickshell
         function onScreensChanged() {
-            Qt.callLater(layout.recoverSurface)
+            layout.recoverSurface()
         }
     }
 

@@ -33,25 +33,28 @@ ColumnLayout {
             implicitWidth: autoRow.implicitWidth + 26
             implicitHeight: 32
             radius: 16
-            color: active ? Colors.primary
-                 : autoMouse.containsMouse ? Colors.surfaceContainerHighest : Colors.surfaceContainerHigh
-            Behavior on color { EffectsColorAnim {} }
+            color: active ? Colors.primary : autoMouse.containsMouse ? Colors.surfaceContainerHighest : Colors.surfaceContainerHigh
+            Behavior on color {
+                EffectsColorAnim {}
+            }
 
             RowLayout {
                 id: autoRow
+                required property bool active
+                active: parent.active
                 anchors.centerIn: parent
                 spacing: 6
 
                 MaterialIconSymbol {
                     content: root.autoIcon
                     iconSize: 15
-                    customColor: parent.parent.active ? Colors.primaryText : Colors.surfaceText
+                    customColor: parent.active ? Colors.primaryText : Colors.surfaceText
                 }
                 CustomText {
                     content: root.autoLabel
                     size: 12
                     weight: 600
-                    customColor: parent.parent.active ? Colors.primaryText : Colors.surfaceText
+                    customColor: parent.active ? Colors.primaryText : Colors.surfaceText
                 }
             }
 
@@ -91,11 +94,12 @@ ColumnLayout {
                 implicitWidth: 34
                 implicitHeight: 34
                 radius: 10
-                color: cell.active ? Colors.primaryContainer
-                     : cellMouse.containsMouse ? Colors.surfaceContainerHighest : Colors.surfaceContainerHigh
+                color: cell.active ? Colors.primaryContainer : cellMouse.containsMouse ? Colors.surfaceContainerHighest : Colors.surfaceContainerHigh
                 border.width: cell.active ? 2 : 0
                 border.color: Colors.primary
-                Behavior on color { EffectsColorAnim {} }
+                Behavior on color {
+                    EffectsColorAnim {}
+                }
 
                 MaterialShapes.ShapeCanvas {
                     anchors.centerIn: parent

@@ -24,18 +24,22 @@ Rectangle {
 
     readonly property var pins: SettingsConfig.general.clipboardPins ?? []
     readonly property var counts: {
-        const c = { all: 0, text: 0, link: 0, image: 0 }
+        const c = {
+            all: 0,
+            text: 0,
+            link: 0,
+            image: 0
+        };
         for (const e of ServiceCliphist.entries) {
-            c.all++
-            c[ServiceCliphist.entryKind(e)]++
+            c.all++;
+            c[ServiceCliphist.entryKind(e)]++;
         }
-        return c
+        return c;
     }
     readonly property var pinnedEntries: ServiceCliphist.entries.filter(e => container.pins.indexOf(ServiceCliphist.getEntryId(e)) >= 0)
     readonly property var visibleEntries: {
-        const base = container.filter === "all" ? ServiceCliphist.filteredEntries
-            : ServiceCliphist.filteredEntries.filter(e => ServiceCliphist.entryKind(e) === container.filter)
-        return base.filter(e => container.pins.indexOf(ServiceCliphist.getEntryId(e)) < 0).slice(0, container.limit)
+        const base = container.filter === "all" ? ServiceCliphist.filteredEntries : ServiceCliphist.filteredEntries.filter(e => ServiceCliphist.entryKind(e) === container.filter);
+        return base.filter(e => container.pins.indexOf(ServiceCliphist.getEntryId(e)) < 0).slice(0, container.limit);
     }
     readonly property string activeEntry: container.visibleEntries[container.activeIndex] ?? ""
     readonly property int columns: Math.max(3, Math.floor((board.width + 12) / 232))
@@ -45,117 +49,150 @@ Rectangle {
     property string lanesKey: ""
 
     function relayout() {
-        const w = board.width
+        const w = board.width;
         if (w <= 0 || !container.visible)
-            return
-        const cols = Math.max(3, Math.floor((w + 12) / 232))
-        const colW = (w - (cols - 1) * 12) / cols
-        const list = container.visibleEntries
-        const key = cols + "|" + colW + "|" + list.map(e => ServiceCliphist.getEntryId(e)).join(",")
+            return;
+        const cols = Math.max(3, Math.floor((w + 12) / 232));
+        const colW = (w - (cols - 1) * 12) / cols;
+        const list = container.visibleEntries;
+        const key = cols + "|" + colW + "|" + list.map(e => ServiceCliphist.getEntryId(e)).join(",");
         if (key === container.lanesKey)
-            return
-        const lanes = []
-        const heights = []
+            return;
+        const lanes = [];
+        const heights = [];
         for (let i = 0; i < cols; i++) {
-            lanes.push([])
-            heights.push(0)
+            lanes.push([]);
+            heights.push(0);
         }
         list.forEach((e, i) => {
-            let k = 0
+            let k = 0;
             for (let j = 1; j < heights.length; j++)
-                if (heights[j] < heights[k]) k = j
-            const kind = container.kindOf(e)
-            const guess = container.estimate(e, colW, kind)
-            lanes[k].push({ entry: e, index: i, kind: kind, guess: guess })
-            heights[k] += guess + 12
-        })
-        container.lanesKey = key
-        container.lanes = lanes
+                if (heights[j] < heights[k])
+                    k = j;
+            const kind = container.kindOf(e);
+            const guess = container.estimate(e, colW, kind);
+            lanes[k].push({
+                entry: e,
+                index: i,
+                kind: kind,
+                guess: guess
+            });
+            heights[k] += guess + 12;
+        });
+        container.lanesKey = key;
+        container.lanes = lanes;
     }
 
     function kindOf(e) {
-        const k = ServiceCliphist.entryKind(e)
-        if (k !== "text") return k
-        const t = ServiceCliphist.getEntryText(e).trim()
-        if (/^(#[0-9a-f]{3}|#[0-9a-f]{6}|#[0-9a-f]{8}|rgba?\([^)]*\))$/i.test(t)) return "color"
-        if (/^(~\/|\/)[^\s]*$/.test(t)) return "path"
-        if (/[{};]|=>|^\s*(\$ |sudo |git |cd |ls |qs |hyprctl |nebula |pacman |yay |npm |python3? )/.test(t)) return "code"
-        return "text"
+        const k = ServiceCliphist.entryKind(e);
+        if (k !== "text")
+            return k;
+        const t = ServiceCliphist.getEntryText(e).trim();
+        if (/^(#[0-9a-f]{3}|#[0-9a-f]{6}|#[0-9a-f]{8}|rgba?\([^)]*\))$/i.test(t))
+            return "color";
+        if (/^(~\/|\/)[^\s]*$/.test(t))
+            return "path";
+        if (/[{};]|=>|^\s*(\$ |sudo |git |cd |ls |qs |hyprctl |nebula |pacman |yay |npm |python3? )/.test(t))
+            return "code";
+        return "text";
     }
 
     function estimate(e, colW, kind) {
-        const k = kind ?? container.kindOf(e)
+        const k = kind ?? container.kindOf(e);
         if (k === "image") {
-            const d = ServiceCliphist.getImageDimensions(e)
-            return d.width > 0 ? Math.min(220, Math.max(90, (colW ?? container.colWidth) * d.height / d.width)) + 44 : 160
+            const d = ServiceCliphist.getImageDimensions(e);
+            return d.width > 0 ? Math.min(220, Math.max(90, (colW ?? container.colWidth) * d.height / d.width)) + 44 : 160;
         }
-        if (k === "color") return 124
-        const len = ServiceCliphist.getEntryText(e).length
-        return 58 + Math.min(6, Math.ceil(len / 30)) * 18
+        if (k === "color")
+            return 124;
+        const len = ServiceCliphist.getEntryText(e).length;
+        return 58 + Math.min(6, Math.ceil(len / 30)) * 18;
     }
 
     function isPinned(e) {
-        return container.pins.indexOf(ServiceCliphist.getEntryId(e)) >= 0
+        return container.pins.indexOf(ServiceCliphist.getEntryId(e)) >= 0;
     }
 
     function togglePin(e) {
-        const id = ServiceCliphist.getEntryId(e)
-        if (!id) return
-        const next = container.pins.filter(p => p !== id)
-        if (next.length === container.pins.length) next.unshift(id)
-        SettingsConfig.general = Object.assign({}, SettingsConfig.general, { clipboardPins: next })
+        const id = ServiceCliphist.getEntryId(e);
+        if (!id)
+            return;
+        const next = container.pins.filter(p => p !== id);
+        if (next.length === container.pins.length)
+            next.unshift(id);
+        SettingsConfig.general = Object.assign({}, SettingsConfig.general, {
+            clipboardPins: next
+        });
     }
 
     function copy(e) {
-        if (!e) return
-        ServiceCliphist.copy(e)
-        container.closed()
+        if (!e)
+            return;
+        ServiceCliphist.copy(e);
+        container.closed();
     }
 
     function remove(e) {
-        if (!e) return
-        if (container.isPinned(e)) container.togglePin(e)
-        ServiceCliphist.deleteEntry(e)
+        if (!e)
+            return;
+        if (container.isPinned(e))
+            container.togglePin(e);
+        ServiceCliphist.deleteEntry(e);
     }
 
     function select(i) {
-        if (container.visibleEntries.length === 0) return
-        container.activeIndex = Math.max(0, Math.min(i, container.visibleEntries.length - 1))
+        if (container.visibleEntries.length === 0)
+            return;
+        container.activeIndex = Math.max(0, Math.min(i, container.visibleEntries.length - 1));
     }
 
     function cycleFilter(dir) {
-        const vals = ["all", "text", "image", "link"]
-        container.filter = vals[(vals.indexOf(container.filter) + dir + vals.length) % vals.length]
-        container.activeIndex = 0
+        const vals = ["all", "text", "image", "link"];
+        container.filter = vals[(vals.indexOf(container.filter) + dir + vals.length) % vals.length];
+        container.activeIndex = 0;
     }
 
     function colorOf(e) {
-        const t = ServiceCliphist.getEntryText(e).trim()
-        const m = /^rgba?\(([^)]*)\)$/i.exec(t)
-        if (!m) return t
-        const p = m[1].split(/[\s,\/]+/).filter(v => v !== "").map(parseFloat)
-        const alpha = p[3] === undefined ? 1 : p[3] > 1 ? p[3] / 100 : p[3]
-        return Qt.rgba((p[0] ?? 0) / 255, (p[1] ?? 0) / 255, (p[2] ?? 0) / 255, alpha)
+        const t = ServiceCliphist.getEntryText(e).trim();
+        const m = /^rgba?\(([^)]*)\)$/i.exec(t);
+        if (!m)
+            return t;
+        const p = m[1].split(/[\s,\/]+/).filter(v => v !== "").map(parseFloat);
+        const alpha = p[3] === undefined ? 1 : p[3] > 1 ? p[3] / 100 : p[3];
+        return Qt.rgba((p[0] ?? 0) / 255, (p[1] ?? 0) / 255, (p[2] ?? 0) / 255, alpha);
     }
 
     function labelOf(e) {
-        const k = container.kindOf(e)
-        if (k === "link") return ServiceCliphist.getEntryText(e).trim().replace(/^https?:\/\//, "").split("/")[0]
+        const k = container.kindOf(e);
+        if (k === "link")
+            return ServiceCliphist.getEntryText(e).trim().replace(/^https?:\/\//, "").split("/")[0];
         if (k === "image") {
-            const info = ServiceCliphist.imageInfo(e)
-            return info.width > 0 ? info.width + " × " + info.height + " · " + info.format.toUpperCase() : "Image"
+            const info = ServiceCliphist.imageInfo(e);
+            return info.width > 0 ? info.width + " × " + info.height + " · " + info.format.toUpperCase() : "Image";
         }
-        return { text: "Text", code: "Code", path: "File", color: "Colour" }[k] ?? "Text"
+        return {
+            text: "Text",
+            code: "Code",
+            path: "File",
+            color: "Colour"
+        }[k] ?? "Text";
     }
 
     function iconOf(k) {
-        return { text: "notes", code: "code", path: "folder", color: "palette", link: "link", image: "image" }[k] ?? "notes"
+        return {
+            text: "notes",
+            code: "code",
+            path: "folder",
+            color: "palette",
+            link: "link",
+            image: "image"
+        }[k] ?? "notes";
     }
 
     onVisibleEntriesChanged: {
         if (container.activeIndex >= container.visibleEntries.length)
-            container.activeIndex = Math.max(0, container.visibleEntries.length - 1)
-        container.relayout()
+            container.activeIndex = Math.max(0, container.visibleEntries.length - 1);
+        container.relayout();
     }
 
     Timer {
@@ -165,8 +202,9 @@ Rectangle {
     }
 
     Component.onCompleted: {
-        ServiceCliphist.updateSearch("")
-        if (!GlobalStates.barEditMode) searchInput.forceActiveFocus()
+        ServiceCliphist.updateSearch("");
+        if (!GlobalStates.barEditMode)
+            searchInput.forceActiveFocus();
     }
 
     component SmallButton: Rectangle {
@@ -179,7 +217,11 @@ Rectangle {
         implicitHeight: 30
         radius: smbArea.pressed ? 9 : 15
         color: smb.lit ? Colors.primary : smbArea.containsMouse ? Colors.surfaceContainerHighest : Colors.surfaceContainer
-        Behavior on radius { SpatialAnim { speed: "fast" } }
+        Behavior on radius {
+            SpatialAnim {
+                speed: "fast"
+            }
+        }
         MaterialIconSymbol {
             anchors.centerIn: parent
             content: smb.icon
@@ -247,34 +289,36 @@ Rectangle {
                             selectionColor: Qt.alpha(Colors.primary, 0.35)
 
                             onTextChanged: {
-                                ServiceCliphist.updateSearch(text)
-                                container.activeIndex = 0
+                                ServiceCliphist.updateSearch(text);
+                                container.activeIndex = 0;
                             }
                             onAccepted: container.copy(container.activeEntry)
 
                             Keys.onPressed: event => {
                                 if (event.key === Qt.Key_Down || event.key === Qt.Key_Right) {
-                                    container.select(container.activeIndex + 1)
-                                    event.accepted = true
+                                    container.select(container.activeIndex + 1);
+                                    event.accepted = true;
                                 } else if (event.key === Qt.Key_Up || event.key === Qt.Key_Left) {
-                                    container.select(container.activeIndex - 1)
-                                    event.accepted = true
+                                    container.select(container.activeIndex - 1);
+                                    event.accepted = true;
                                 } else if (event.key === Qt.Key_Delete) {
-                                    container.remove(container.activeEntry)
-                                    event.accepted = true
+                                    container.remove(container.activeEntry);
+                                    event.accepted = true;
                                 } else if (event.key === Qt.Key_P && (event.modifiers & Qt.ControlModifier)) {
-                                    container.togglePin(container.activeEntry)
-                                    event.accepted = true
+                                    container.togglePin(container.activeEntry);
+                                    event.accepted = true;
                                 } else if (event.key === Qt.Key_Tab) {
-                                    container.cycleFilter(1)
-                                    event.accepted = true
+                                    container.cycleFilter(1);
+                                    event.accepted = true;
                                 } else if (event.key === Qt.Key_Backtab) {
-                                    container.cycleFilter(-1)
-                                    event.accepted = true
+                                    container.cycleFilter(-1);
+                                    event.accepted = true;
                                 } else if (event.key === Qt.Key_Escape) {
-                                    if (searchInput.text !== "") searchInput.text = ""
-                                    else container.closed()
-                                    event.accepted = true
+                                    if (searchInput.text !== "")
+                                        searchInput.text = "";
+                                    else
+                                        container.closed();
+                                    event.accepted = true;
                                 }
                             }
                         }
@@ -285,15 +329,27 @@ Rectangle {
             M3ButtonGroup {
                 Layout.preferredHeight: 44
                 model: [
-                    { value: "all", label: "All " + container.counts.all },
-                    { value: "text", label: "Text " + container.counts.text },
-                    { value: "image", label: "Images " + container.counts.image },
-                    { value: "link", label: "Links " + container.counts.link }
+                    {
+                        value: "all",
+                        label: "All " + container.counts.all
+                    },
+                    {
+                        value: "text",
+                        label: "Text " + container.counts.text
+                    },
+                    {
+                        value: "image",
+                        label: "Images " + container.counts.image
+                    },
+                    {
+                        value: "link",
+                        label: "Links " + container.counts.link
+                    }
                 ]
                 activeCheck: v => container.filter === v
                 onSegmentClicked: v => {
-                    container.filter = v
-                    container.activeIndex = 0
+                    container.filter = v;
+                    container.activeIndex = 0;
                 }
                 textSize: 12
             }
@@ -314,12 +370,14 @@ Rectangle {
                 tint: container.confirmWipe ? Colors.error : Colors.surfaceText
                 onClicked: {
                     if (container.confirmWipe) {
-                        container.confirmWipe = false
-                        SettingsConfig.general = Object.assign({}, SettingsConfig.general, { clipboardPins: [] })
-                        ServiceCliphist.wipe()
+                        container.confirmWipe = false;
+                        SettingsConfig.general = Object.assign({}, SettingsConfig.general, {
+                            clipboardPins: []
+                        });
+                        ServiceCliphist.wipe();
                     } else {
-                        container.confirmWipe = true
-                        wipeTimer.restart()
+                        container.confirmWipe = true;
+                        wipeTimer.restart();
                     }
                 }
             }
@@ -352,7 +410,11 @@ Rectangle {
                     height: 40
                     radius: pinArea.pressed ? 12 : 20
                     color: pinArea.containsMouse ? Colors.secondaryContainer : Qt.alpha(Colors.secondaryContainer, 0.75)
-                    Behavior on radius { SpatialAnim { speed: "fast" } }
+                    Behavior on radius {
+                        SpatialAnim {
+                            speed: "fast"
+                        }
+                    }
 
                     RowLayout {
                         id: pinRow
@@ -377,8 +439,7 @@ Rectangle {
 
                         CustomText {
                             Layout.maximumWidth: 200
-                            content: pinPill.kind === "image" ? container.labelOf(pinPill.modelData)
-                                : ServiceCliphist.getEntryText(pinPill.modelData).trim().replace(/\s+/g, " ")
+                            content: pinPill.kind === "image" ? container.labelOf(pinPill.modelData) : ServiceCliphist.getEntryText(pinPill.modelData).trim().replace(/\s+/g, " ")
                             size: 13
                             weight: 500
                             elide: Text.ElideRight
@@ -393,8 +454,10 @@ Rectangle {
                         hoverEnabled: true
                         acceptedButtons: Qt.LeftButton | Qt.RightButton
                         onClicked: mouse => {
-                            if (mouse.button === Qt.RightButton) container.togglePin(pinPill.modelData)
-                            else container.copy(pinPill.modelData)
+                            if (mouse.button === Qt.RightButton)
+                                container.togglePin(pinPill.modelData);
+                            else
+                                container.copy(pinPill.modelData);
                         }
                     }
                 }
@@ -440,19 +503,23 @@ Rectangle {
                                     readonly property bool active: card.modelData.index === container.activeIndex
                                     readonly property bool placed: card.index === 0 || card.y > 0
                                     readonly property real guess: card.modelData.guess
-                                    readonly property bool near: card.placed
-                                        && card.y + 280 > flick.contentY - container.reach
-                                        && card.y < flick.contentY + flick.height + container.reach
+                                    readonly property bool near: card.placed && card.y + 280 > flick.contentY - container.reach && card.y < flick.contentY + flick.height + container.reach
                                     property bool live: false
-                                    onNearChanged: if (card.near) card.live = true
-                                    Component.onCompleted: if (card.near) card.live = true
+                                    onNearChanged: if (card.near)
+                                        card.live = true
+                                    Component.onCompleted: if (card.near)
+                                        card.live = true
 
                                     width: lane.width
                                     height: bodyLoader.item ? bodyLoader.item.implicitHeight : card.guess
                                     radius: 20
                                     color: cardArea.containsMouse ? Colors.surfaceContainerHighest : Colors.surfaceContainerHigh
                                     clip: true
-                                    Behavior on color { EffectsColorAnim { speed: "fast" } }
+                                    Behavior on color {
+                                        EffectsColorAnim {
+                                            speed: "fast"
+                                        }
+                                    }
 
                                     Loader {
                                         id: bodyLoader
@@ -547,8 +614,10 @@ Rectangle {
                                         cursorShape: Qt.PointingHandCursor
                                         acceptedButtons: Qt.LeftButton | Qt.RightButton
                                         onClicked: mouse => {
-                                            if (mouse.button === Qt.RightButton) container.togglePin(card.entry)
-                                            else container.copy(card.entry)
+                                            if (mouse.button === Qt.RightButton)
+                                                container.togglePin(card.entry);
+                                            else
+                                                container.copy(card.entry);
                                         }
                                         onEntered: container.activeIndex = card.modelData.index
                                     }
@@ -617,6 +686,8 @@ Rectangle {
                     spacing: 6
 
                     Rectangle {
+                        required property var modelData
+                        modelData: parent.modelData
                         implicitWidth: keyText.implicitWidth + 12
                         implicitHeight: 20
                         radius: 6
@@ -624,7 +695,7 @@ Rectangle {
                         CustomText {
                             id: keyText
                             anchors.centerIn: parent
-                            content: parent.parent.modelData[0]
+                            content: parent.modelData[0]
                             size: 11
                             weight: 600
                             customColor: Colors.surfaceVariantText
@@ -639,7 +710,9 @@ Rectangle {
                 }
             }
 
-            Item { Layout.fillWidth: true }
+            Item {
+                Layout.fillWidth: true
+            }
 
             CustomText {
                 visible: ServiceCliphist.filteredEntries.length > container.limit

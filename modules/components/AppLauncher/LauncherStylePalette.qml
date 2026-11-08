@@ -24,228 +24,361 @@ Item {
     readonly property bool searching: root.q.length > 0
 
     readonly property var filters: [
-        { value: "all", label: "All" },
-        { value: "apps", label: "Apps" },
-        { value: "actions", label: "Actions" },
-        { value: "windows", label: "Windows" },
-        { value: "shell", label: "Shell" }
+        {
+            value: "all",
+            label: "All"
+        },
+        {
+            value: "apps",
+            label: "Apps"
+        },
+        {
+            value: "actions",
+            label: "Actions"
+        },
+        {
+            value: "windows",
+            label: "Windows"
+        },
+        {
+            value: "shell",
+            label: "Shell"
+        }
     ]
 
     readonly property var shellActions: [
-        { title: "New note", sub: "Pins a note to the screen edge", symbol: "sticky_note_2", words: "sticky memo add",
-          feature: "notes", run: () => ServiceNotes.requestOpen(ServiceNotes.add()) },
-        { title: "Take a screenshot", sub: "Select an area to capture", symbol: "screenshot_region", words: "capture snip screen",
-          run: () => { GlobalStates.areaSelectMode = "screenshot"; GlobalStates.areaSelectOpen = true } },
-        { title: "Clipboard history", sub: "Paste something you copied", symbol: "content_paste", words: "copy paste cliphist",
-          feature: "clipboard", run: () => { GlobalStates.clipboardOpen = true } },
-        { title: "Change wallpaper", sub: "Opens the wallpaper picker", symbol: "wallpaper", words: "background image theme",
-          run: () => { GlobalStates.wallpaperOpen = true } },
-        { title: ServiceNotification.dnd ? "Turn off Do not disturb" : "Turn on Do not disturb",
-          sub: "Silences notification popups", symbol: "do_not_disturb_on", words: "dnd quiet notifications mute",
-          run: () => ServiceNotification.setDnd(!ServiceNotification.dnd, 0) },
-        { title: "Reading filter", sub: "Warm, sepia or e-ink screen", symbol: "chrome_reader_mode", words: "eye night warm sepia eink",
-          feature: "reading", run: () => ServiceReading.toggle() },
-        { title: "Keep awake", sub: "Stops the screen from sleeping", symbol: "coffee", words: "caffeine idle inhibit",
-          run: () => ServiceIdleInhibit.toggle() },
-        { title: "Open settings", sub: "Shell settings", symbol: "settings", words: "preferences config",
-          run: () => { GlobalStates.settingsOpen = true } },
-        { title: "Power options", sub: "Shut down, restart or log out", symbol: "power_settings_new", words: "shutdown reboot logout suspend",
-          run: () => GlobalStates.openPanel("power") },
-        { title: "Lock screen", sub: "Locks this session", symbol: "lock", words: "lock away",
-          run: () => Quickshell.execDetached(["loginctl", "lock-session"]) }
+        {
+            title: "New note",
+            sub: "Pins a note to the screen edge",
+            symbol: "sticky_note_2",
+            words: "sticky memo add",
+            feature: "notes",
+            run: () => ServiceNotes.requestOpen(ServiceNotes.add())
+        },
+        {
+            title: "Take a screenshot",
+            sub: "Select an area to capture",
+            symbol: "screenshot_region",
+            words: "capture snip screen",
+            run: () => {
+                GlobalStates.areaSelectMode = "screenshot";
+                GlobalStates.areaSelectOpen = true;
+            }
+        },
+        {
+            title: "Clipboard history",
+            sub: "Paste something you copied",
+            symbol: "content_paste",
+            words: "copy paste cliphist",
+            feature: "clipboard",
+            run: () => {
+                GlobalStates.clipboardOpen = true;
+            }
+        },
+        {
+            title: "Change wallpaper",
+            sub: "Opens the wallpaper picker",
+            symbol: "wallpaper",
+            words: "background image theme",
+            run: () => {
+                GlobalStates.wallpaperOpen = true;
+            }
+        },
+        {
+            title: ServiceNotification.dnd ? "Turn off Do not disturb" : "Turn on Do not disturb",
+            sub: "Silences notification popups",
+            symbol: "do_not_disturb_on",
+            words: "dnd quiet notifications mute",
+            run: () => ServiceNotification.setDnd(!ServiceNotification.dnd, 0)
+        },
+        {
+            title: "Reading filter",
+            sub: "Warm, sepia or e-ink screen",
+            symbol: "chrome_reader_mode",
+            words: "eye night warm sepia eink",
+            feature: "reading",
+            run: () => ServiceReading.toggle()
+        },
+        {
+            title: "Keep awake",
+            sub: "Stops the screen from sleeping",
+            symbol: "coffee",
+            words: "caffeine idle inhibit",
+            run: () => ServiceIdleInhibit.toggle()
+        },
+        {
+            title: "Open settings",
+            sub: "Shell settings",
+            symbol: "settings",
+            words: "preferences config",
+            run: () => {
+                GlobalStates.settingsOpen = true;
+            }
+        },
+        {
+            title: "Power options",
+            sub: "Shut down, restart or log out",
+            symbol: "power_settings_new",
+            words: "shutdown reboot logout suspend",
+            run: () => GlobalStates.openPanel("power")
+        },
+        {
+            title: "Lock screen",
+            sub: "Locks this session",
+            symbol: "lock",
+            words: "lock away",
+            run: () => Quickshell.execDetached(["loginctl", "lock-session"])
+        }
     ]
 
     readonly property var recentApps: {
-        ServiceApps.usage
-        const r = ServiceApps.recent(5)
-        return r.length > 0 ? r : root.launcher.mostUsed(5)
+        ServiceApps.usage;
+        const r = ServiceApps.recent(5);
+        return r.length > 0 ? r : root.launcher.mostUsed(5);
     }
 
     function matches(text) {
-        const t = (text ?? "").toLowerCase()
-        return root.q.split(/\s+/).every(w => t.indexOf(w) >= 0)
+        const t = (text ?? "").toLowerCase();
+        return root.q.split(/\s+/).every(w => t.indexOf(w) >= 0);
     }
 
     function rank(title) {
-        const t = (title ?? "").toLowerCase()
-        if (t.startsWith(root.q)) return 0
-        if (t.split(/\s+/).some(w => w.startsWith(root.q))) return 1
-        return 2
+        const t = (title ?? "").toLowerCase();
+        if (t.startsWith(root.q))
+            return 0;
+        if (t.split(/\s+/).some(w => w.startsWith(root.q)))
+            return 1;
+        return 2;
     }
 
     function opened(app) {
-        const n = root.launcher.usageCount(app)
-        return n === 1 ? "Opened once" : n > 1 ? "Opened " + n + " times" : ""
+        const n = root.launcher.usageCount(app);
+        return n === 1 ? "Opened once" : n > 1 ? "Opened " + n + " times" : "";
     }
 
     function appItem(a) {
-        return { kind: "app", title: a.name, sub: root.opened(a) || a.genericName || a.comment || "", label: "App",
-                 app: a, iconPath: root.launcher.iconFor(a), rank: root.searching ? root.rank(a.name) : 0 }
+        return {
+            kind: "app",
+            title: a.name,
+            sub: root.opened(a) || a.genericName || a.comment || "",
+            label: "App",
+            app: a,
+            iconPath: root.launcher.iconFor(a),
+            rank: root.searching ? root.rank(a.name) : 0
+        };
     }
 
     function actionsOf(a) {
-        const out = []
-        const acts = a?.actions ?? []
+        const out = [];
+        const acts = a?.actions ?? [];
         for (let i = 0; i < acts.length; i++)
-            if (acts[i] && acts[i].name) out.push(acts[i])
-        return out
+            if (acts[i] && acts[i].name)
+                out.push(acts[i]);
+        return out;
     }
 
     function actionItems(cap) {
-        const out = []
+        const out = [];
         for (const a of ServiceApps.byUsage(ServiceApps.list)) {
             for (const act of root.actionsOf(a)) {
-                if (root.searching && !root.matches(act.name + " " + a.name)) continue
-                out.push({ kind: "action", title: act.name, sub: a.name, label: "App action", app: a, action: act,
-                           iconPath: IconUtil.getDesktopIconPath(act.icon || a.icon || ""),
-                           rank: root.searching ? Math.min(root.rank(act.name), root.rank(a.name) + 1) : 0 })
-                if (out.length >= cap) return out
+                if (root.searching && !root.matches(act.name + " " + a.name))
+                    continue;
+                out.push({
+                    kind: "action",
+                    title: act.name,
+                    sub: a.name,
+                    label: "App action",
+                    app: a,
+                    action: act,
+                    iconPath: IconUtil.getDesktopIconPath(act.icon || a.icon || ""),
+                    rank: root.searching ? Math.min(root.rank(act.name), root.rank(a.name) + 1) : 0
+                });
+                if (out.length >= cap)
+                    return out;
             }
         }
-        return out
+        return out;
     }
 
     function windowItems() {
-        const out = []
+        const out = [];
         for (const t of Array.from(ToplevelManager.toplevels.values)) {
-            if (!t || (t.appId ?? "").length === 0) continue
-            const entry = DesktopEntries.heuristicLookup(t.appId)
-            const title = (t.title ?? "").length > 0 ? t.title : t.appId
-            if (root.searching && !root.matches(title + " " + t.appId + " " + (entry?.name ?? ""))) continue
-            out.push({ kind: "window", title: title, sub: (entry?.name ?? t.appId) + ", open window", label: "Window",
-                       win: t, iconPath: IconUtil.getDesktopIconPath(entry?.icon ?? t.appId),
-                       rank: root.searching ? Math.min(root.rank(title), root.rank(entry?.name ?? t.appId)) : 0 })
+            if (!t || (t.appId ?? "").length === 0)
+                continue;
+            const entry = DesktopEntries.heuristicLookup(t.appId);
+            const title = (t.title ?? "").length > 0 ? t.title : t.appId;
+            if (root.searching && !root.matches(title + " " + t.appId + " " + (entry?.name ?? "")))
+                continue;
+            out.push({
+                kind: "window",
+                title: title,
+                sub: (entry?.name ?? t.appId) + ", open window",
+                label: "Window",
+                win: t,
+                iconPath: IconUtil.getDesktopIconPath(entry?.icon ?? t.appId),
+                rank: root.searching ? Math.min(root.rank(title), root.rank(entry?.name ?? t.appId)) : 0
+            });
         }
-        return out
+        return out;
     }
 
     function shellItems() {
-        const out = []
+        const out = [];
         for (const s of root.shellActions) {
-            if (s.feature && !Features.on(s.feature)) continue
-            if (root.searching && !root.matches(s.title + " " + s.words)) continue
-            out.push({ kind: "shell", title: s.title, sub: s.sub, label: "Shell", symbol: s.symbol, run: s.run,
-                       rank: root.searching ? root.rank(s.title) : 0 })
+            if (s.feature && !Features.on(s.feature))
+                continue;
+            if (root.searching && !root.matches(s.title + " " + s.words))
+                continue;
+            out.push({
+                kind: "shell",
+                title: s.title,
+                sub: s.sub,
+                label: "Shell",
+                symbol: s.symbol,
+                run: s.run,
+                rank: root.searching ? root.rank(s.title) : 0
+            });
         }
-        return out
+        return out;
     }
 
     function group(items, header) {
         return items.map((it, i) => Object.assign({}, it, {
-            header: i === 0 ? header : "",
-            first: i === 0,
-            last: i === items.length - 1
-        }))
+                header: i === 0 ? header : "",
+                first: i === 0,
+                last: i === items.length - 1
+            }));
     }
 
     readonly property var rows: {
-        ServiceApps.usage
-        ToplevelManager.toplevels.values
-        const f = root.filter
-        const apps = root.launcher.filteredApps
+        ServiceApps.usage;
+        ToplevelManager.toplevels.values;
+        const f = root.filter;
+        const apps = root.launcher.filteredApps;
 
         if (f === "apps")
-            return root.group(Array.prototype.map.call(apps, a => root.appItem(a)), "Apps")
+            return root.group(Array.prototype.map.call(apps, a => root.appItem(a)), "Apps");
         if (f === "actions")
-            return root.group(root.actionItems(200), "App actions")
+            return root.group(root.actionItems(200), "App actions");
         if (f === "windows")
-            return root.group(root.windowItems(), "Open windows")
+            return root.group(root.windowItems(), "Open windows");
         if (f === "shell")
-            return root.group(root.shellItems(), "Shell")
+            return root.group(root.shellItems(), "Shell");
 
         if (!root.searching) {
-            const recent = root.group(root.recentApps.map(a => root.appItem(a)), "Recent")
-            return recent.concat(root.group(root.shellItems().slice(0, 5), "Shell"))
+            const recent = root.group(root.recentApps.map(a => root.appItem(a)), "Recent");
+            return recent.concat(root.group(root.shellItems().slice(0, 5), "Shell"));
         }
 
-        const pool = Array.prototype.slice.call(apps, 0, 6).map(a => root.appItem(a))
-            .concat(root.actionItems(6), root.windowItems(), root.shellItems())
-        const order = { app: 0, action: 1, shell: 2, window: 3 }
-        const sorted = pool.map((it, i) => ({ it, i }))
-            .sort((x, y) => (x.it.rank - y.it.rank) || (order[x.it.kind] - order[y.it.kind]) || (x.i - y.i))
-            .map(x => x.it)
-        const web = { kind: "web", title: "Search the web for “" + root.launcher.query.trim() + "”",
-                      sub: "Opens in your browser", label: "Web", symbol: "travel_explore" }
+        const pool = Array.prototype.slice.call(apps, 0, 6).map(a => root.appItem(a)).concat(root.actionItems(6), root.windowItems(), root.shellItems());
+        const order = {
+            app: 0,
+            action: 1,
+            shell: 2,
+            window: 3
+        };
+        const sorted = pool.map((it, i) => ({
+                    it,
+                    i
+                })).sort((x, y) => (x.it.rank - y.it.rank) || (order[x.it.kind] - order[y.it.kind]) || (x.i - y.i)).map(x => x.it);
+        const web = {
+            kind: "web",
+            title: "Search the web for “" + root.launcher.query.trim() + "”",
+            sub: "Opens in your browser",
+            label: "Web",
+            symbol: "travel_explore"
+        };
         if (sorted.length === 0)
-            return root.group([web], "")
-        const top = Object.assign({}, sorted[0], { top: true, header: "", first: true, last: true })
-        return [top].concat(root.group(sorted.slice(1).concat([web]), "More matches"))
+            return root.group([web], "");
+        const top = Object.assign({}, sorted[0], {
+            top: true,
+            header: "",
+            first: true,
+            last: true
+        });
+        return [top].concat(root.group(sorted.slice(1).concat([web]), "More matches"));
     }
 
     readonly property var topChips: {
-        const t = root.rows.length > 0 && root.rows[0].top ? root.rows[0] : null
-        if (!t || !t.app) return []
-        return root.actionsOf(t.app).filter(a => !t.action || a.name !== t.action.name).slice(0, 3)
+        const t = root.rows.length > 0 && root.rows[0].top ? root.rows[0] : null;
+        if (!t || !t.app)
+            return [];
+        return root.actionsOf(t.app).filter(a => !t.action || a.name !== t.action.name).slice(0, 3);
     }
 
     function runAction(app, act) {
-        const l = root.launcher
-        ServiceApps.spawn(act.command, app?.workingDirectory ?? "")
-        l.closed()
+        const l = root.launcher;
+        ServiceApps.spawn(act.command, app?.workingDirectory ?? "");
+        l.closed();
     }
 
     function activate(it) {
-        if (!it) return
-        const l = root.launcher
+        if (!it)
+            return;
+        const l = root.launcher;
         switch (it.kind) {
         case "app":
-            l.launch(it.app)
-            return
+            l.launch(it.app);
+            return;
         case "action":
-            root.runAction(it.app, it.action)
-            return
-        case "window": {
-            const w = it.win
-            l.closed()
-            if (w) w.activate()
-            return
-        }
-        case "shell": {
-            const fn = it.run
-            l.closed()
-            fn()
-            return
-        }
-        case "web": {
-            const url = "https://duckduckgo.com/?q=" + encodeURIComponent(l.query.trim())
-            l.closed()
-            ServiceApps.spawn(["xdg-open", url], "")
-            return
-        }
+            root.runAction(it.app, it.action);
+            return;
+        case "window":
+            {
+                const w = it.win;
+                l.closed();
+                if (w)
+                    w.activate();
+                return;
+            }
+        case "shell":
+            {
+                const fn = it.run;
+                l.closed();
+                fn();
+                return;
+            }
+        case "web":
+            {
+                const url = "https://duckduckgo.com/?q=" + encodeURIComponent(l.query.trim());
+                l.closed();
+                ServiceApps.spawn(["xdg-open", url], "");
+                return;
+            }
         }
     }
 
     function reset() {
-        root.heroOpen = false
-        root.filter = "all"
-        root.chipIndex = -1
-        nav.activeIndex = 0
-        flick.contentY = 0
+        root.heroOpen = false;
+        root.filter = "all";
+        root.chipIndex = -1;
+        nav.activeIndex = 0;
+        flick.contentY = 0;
     }
 
     function handleEscape() {
         if (root.heroOpen) {
-            root.heroOpen = false
-            return true
+            root.heroOpen = false;
+            return true;
         }
         if (root.filter !== "all") {
-            root.filter = "all"
-            return true
+            root.filter = "all";
+            return true;
         }
-        return false
+        return false;
     }
 
     function cycleFilter(step) {
-        const i = root.filters.findIndex(x => x.value === root.filter)
-        const n = root.filters.length
-        root.filter = root.filters[(i + step + n) % n].value
+        const i = root.filters.findIndex(x => x.value === root.filter);
+        const n = root.filters.length;
+        root.filter = root.filters[(i + step + n) % n].value;
     }
 
     onRowsChanged: {
-        root.heroOpen = false
-        nav.activeIndex = 0
-        root.chipIndex = -1
-        flick.contentY = 0
+        root.heroOpen = false;
+        nav.activeIndex = 0;
+        root.chipIndex = -1;
+        flick.contentY = 0;
     }
 
     Item {
@@ -256,43 +389,47 @@ Item {
         readonly property int columns: 1
 
         onActiveIndexChanged: {
-            root.chipIndex = -1
-            nav.reveal(nav.activeIndex)
+            root.chipIndex = -1;
+            nav.reveal(nav.activeIndex);
         }
 
         function activateIndex(i) {
-            const it = root.rows[i]
+            const it = root.rows[i];
             if (it && it.top && root.chipIndex >= 0 && root.chipIndex < root.topChips.length) {
-                root.runAction(it.app, root.topChips[root.chipIndex])
-                return
+                root.runAction(it.app, root.topChips[root.chipIndex]);
+                return;
             }
-            root.activate(it)
+            root.activate(it);
         }
 
         function reveal(i) {
-            const item = rowRepeater.itemAt(i)
-            if (!item) return
-            const y = item.y
-            const h = item.height
-            if (y < flick.contentY) flick.contentY = y
-            else if (y + h > flick.contentY + flick.height) flick.contentY = y + h - flick.height
+            const item = rowRepeater.itemAt(i);
+            if (!item)
+                return;
+            const y = item.y;
+            const h = item.height;
+            if (y < flick.contentY)
+                flick.contentY = y;
+            else if (y + h > flick.contentY + flick.height)
+                flick.contentY = y + h - flick.height;
         }
 
         function navigate(key) {
             if (key === Qt.Key_Tab || key === Qt.Key_Backtab) {
-                if (root.launcher.isApps) root.cycleFilter(key === Qt.Key_Tab ? 1 : -1)
-                return true
+                if (root.launcher.isApps)
+                    root.cycleFilter(key === Qt.Key_Tab ? 1 : -1);
+                return true;
             }
-            const onTop = nav.activeIndex === 0 && root.rows.length > 0 && root.rows[0].top
+            const onTop = nav.activeIndex === 0 && root.rows.length > 0 && root.rows[0].top;
             if (onTop && key === Qt.Key_Right && root.topChips.length > 0) {
-                root.chipIndex = Math.min(root.topChips.length - 1, root.chipIndex + 1)
-                return true
+                root.chipIndex = Math.min(root.topChips.length - 1, root.chipIndex + 1);
+                return true;
             }
             if (onTop && key === Qt.Key_Left && root.chipIndex >= 0) {
-                root.chipIndex = root.chipIndex - 1
-                return true
+                root.chipIndex = root.chipIndex - 1;
+                return true;
             }
-            return false
+            return false;
         }
     }
 
@@ -319,8 +456,8 @@ Item {
             model: root.filters
             activeCheck: value => root.filter === value
             onSegmentClicked: value => {
-                root.filter = value
-                root.launcher.focusSearch()
+                root.filter = value;
+                root.launcher.focusSearch();
             }
         }
 
@@ -343,7 +480,9 @@ Item {
                 contentHeight: list.implicitHeight
                 boundsBehavior: Flickable.StopAtBounds
                 clip: true
-                ScrollBar.vertical: CustomScrollBar { id: scrollBar }
+                ScrollBar.vertical: CustomScrollBar {
+                    id: scrollBar
+                }
 
                 Column {
                     id: list
@@ -393,7 +532,7 @@ Item {
                                         rippleColor: Qt.alpha(Colors.primaryContainerText, 0.16)
                                         onClicked: root.activate(entry.modelData)
                                         onRightClicked: if (entry.modelData.app) {
-                                            root.launcher.openMenu(hero, 24, 40, entry.modelData.app)
+                                            root.launcher.openMenu(hero, 24, 40, entry.modelData.app);
                                         }
                                     }
 
@@ -447,9 +586,7 @@ Item {
                                                 CustomText {
                                                     Layout.fillWidth: true
                                                     visible: content !== ""
-                                                    content: entry.modelData.kind === "action"
-                                                        ? entry.modelData.sub + (root.opened(entry.modelData.app) !== "" ? ", " + root.opened(entry.modelData.app).toLowerCase() : "")
-                                                        : entry.modelData.sub
+                                                    content: entry.modelData.kind === "action" ? entry.modelData.sub + (root.opened(entry.modelData.app) !== "" ? ", " + root.opened(entry.modelData.app).toLowerCase() : "") : entry.modelData.sub
                                                     size: 13
                                                     weight: 400
                                                     elide: Text.ElideRight
@@ -470,8 +607,16 @@ Item {
                                                     topRightRadius: menuBtn.visible ? openBtn.inner : 22
                                                     bottomRightRadius: menuBtn.visible ? openBtn.inner : 22
                                                     color: Colors.primary
-                                                    Behavior on topRightRadius { SpatialAnim { speed: "fast" } }
-                                                    Behavior on bottomRightRadius { SpatialAnim { speed: "fast" } }
+                                                    Behavior on topRightRadius {
+                                                        SpatialAnim {
+                                                            speed: "fast"
+                                                        }
+                                                    }
+                                                    Behavior on bottomRightRadius {
+                                                        SpatialAnim {
+                                                            speed: "fast"
+                                                        }
+                                                    }
 
                                                     Row {
                                                         id: openRow
@@ -516,9 +661,21 @@ Item {
                                                     topRightRadius: 22
                                                     bottomRightRadius: 22
                                                     color: root.heroOpen ? Colors.primaryContainerText : Colors.primary
-                                                    Behavior on topLeftRadius { SpatialAnim { speed: "fast" } }
-                                                    Behavior on bottomLeftRadius { SpatialAnim { speed: "fast" } }
-                                                    Behavior on color { EffectsColorAnim { speed: "fast" } }
+                                                    Behavior on topLeftRadius {
+                                                        SpatialAnim {
+                                                            speed: "fast"
+                                                        }
+                                                    }
+                                                    Behavior on bottomLeftRadius {
+                                                        SpatialAnim {
+                                                            speed: "fast"
+                                                        }
+                                                    }
+                                                    Behavior on color {
+                                                        EffectsColorAnim {
+                                                            speed: "fast"
+                                                        }
+                                                    }
 
                                                     MaterialIconSymbol {
                                                         anchors.centerIn: parent
@@ -526,7 +683,9 @@ Item {
                                                         iconSize: 22
                                                         rotation: root.heroOpen ? 180 : 0
                                                         customColor: root.heroOpen ? Colors.primaryContainer : Colors.primaryText
-                                                        Behavior on rotation { SpatialAnim {} }
+                                                        Behavior on rotation {
+                                                            SpatialAnim {}
+                                                        }
                                                     }
 
                                                     RippleEffect {
@@ -539,8 +698,8 @@ Item {
                                                         hoverColor: Qt.alpha(Colors.primaryText, 0.08)
                                                         rippleColor: Qt.alpha(Colors.primaryText, 0.18)
                                                         onClicked: {
-                                                            root.heroOpen = !root.heroOpen
-                                                            root.launcher.focusSearch()
+                                                            root.heroOpen = !root.heroOpen;
+                                                            root.launcher.focusSearch();
                                                         }
                                                     }
 
@@ -549,7 +708,9 @@ Item {
                                                         visible: menuHover.hovered
                                                     }
 
-                                                    HoverHandler { id: menuHover }
+                                                    HoverHandler {
+                                                        id: menuHover
+                                                    }
                                                 }
                                             }
                                         }
@@ -572,7 +733,11 @@ Item {
                                                     height: 32
                                                     radius: 10
                                                     color: chip.on ? Colors.primary : Qt.alpha(Colors.primaryContainerText, 0.14)
-                                                    Behavior on color { EffectsColorAnim { speed: "fast" } }
+                                                    Behavior on color {
+                                                        EffectsColorAnim {
+                                                            speed: "fast"
+                                                        }
+                                                    }
 
                                                     Row {
                                                         id: chipRow
@@ -608,7 +773,9 @@ Item {
                                             id: detailsBox
                                             readonly property var app: entry.modelData.app ?? null
                                             property real openH: root.heroOpen ? details.implicitHeight : 0
-                                            Behavior on openH { SpatialAnim {} }
+                                            Behavior on openH {
+                                                SpatialAnim {}
+                                            }
                                             visible: entry.modelData.top === true && detailsBox.app !== null && detailsBox.openH > 0.5
                                             Layout.fillWidth: true
                                             Layout.preferredHeight: detailsBox.openH
@@ -619,7 +786,9 @@ Item {
                                                 width: parent.width
                                                 spacing: 0
                                                 opacity: root.heroOpen ? 1 : 0
-                                                Behavior on opacity { EffectsAnim {} }
+                                                Behavior on opacity {
+                                                    EffectsAnim {}
+                                                }
 
                                                 Rectangle {
                                                     Layout.fillWidth: true
@@ -631,9 +800,18 @@ Item {
 
                                                 Repeater {
                                                     model: detailsBox.app ? [
-                                                        { k: "Category", v: root.launcher.categoryOf(detailsBox.app) || "Other" },
-                                                        { k: "Last opened", v: root.launcher.timeAgo(detailsBox.app) || "Never" },
-                                                        { k: "Runs", v: detailsBox.app.execString || "" }
+                                                        {
+                                                            k: "Category",
+                                                            v: root.launcher.categoryOf(detailsBox.app) || "Other"
+                                                        },
+                                                        {
+                                                            k: "Last opened",
+                                                            v: root.launcher.timeAgo(detailsBox.app) || "Never"
+                                                        },
+                                                        {
+                                                            k: "Runs",
+                                                            v: detailsBox.app.execString || ""
+                                                        }
                                                     ].filter(d => d.v !== "") : []
 
                                                     delegate: RowLayout {
@@ -678,16 +856,18 @@ Item {
                                                         color: Qt.alpha(Colors.primaryContainerText, 0.14)
 
                                                         RowLayout {
+                                                            required property bool pinned
+                                                            pinned: parent.pinned
                                                             anchors.centerIn: parent
                                                             spacing: 6
                                                             MaterialIconSymbol {
                                                                 content: "push_pin"
                                                                 iconSize: 18
-                                                                fill: parent.parent.pinned ? 1 : 0
+                                                                fill: parent.pinned ? 1 : 0
                                                                 customColor: Colors.primaryContainerText
                                                             }
                                                             CustomText {
-                                                                content: parent.parent.pinned ? "Unpin from dock" : "Pin to dock"
+                                                                content: parent.pinned ? "Unpin from dock" : "Pin to dock"
                                                                 size: 13
                                                                 weight: 600
                                                                 customColor: Colors.primaryContainerText
@@ -764,7 +944,11 @@ Item {
                                 color: entry.active ? Colors.primaryContainer : Colors.surfaceContainerHigh
                                 border.width: entry.active ? 1.5 : 0
                                 border.color: Colors.primary
-                                Behavior on color { EffectsColorAnim { speed: "fast" } }
+                                Behavior on color {
+                                    EffectsColorAnim {
+                                        speed: "fast"
+                                    }
+                                }
 
                                 RippleEffect {
                                     anchors.fill: parent
@@ -774,7 +958,7 @@ Item {
                                     bottomRightRadius: row.bottomRightRadius
                                     onClicked: root.activate(entry.modelData)
                                     onRightClicked: if (entry.modelData.kind === "app") {
-                                        root.launcher.openMenu(row, 24, 40, entry.modelData.app)
+                                        root.launcher.openMenu(row, 24, 40, entry.modelData.app);
                                     }
                                 }
 
@@ -877,30 +1061,62 @@ Item {
 
             Row {
                 spacing: 6
-                LauncherKey { label: "↑↓" }
-                CustomText { anchors.verticalCenter: parent.verticalCenter; content: "Move"; size: 12; customColor: Colors.surfaceVariantText }
+                LauncherKey {
+                    label: "↑↓"
+                }
+                CustomText {
+                    anchors.verticalCenter: parent.verticalCenter
+                    content: "Move"
+                    size: 12
+                    customColor: Colors.surfaceVariantText
+                }
             }
             Row {
                 spacing: 6
-                LauncherKey { label: "Enter" }
-                CustomText { anchors.verticalCenter: parent.verticalCenter; content: "Open"; size: 12; customColor: Colors.surfaceVariantText }
+                LauncherKey {
+                    label: "Enter"
+                }
+                CustomText {
+                    anchors.verticalCenter: parent.verticalCenter
+                    content: "Open"
+                    size: 12
+                    customColor: Colors.surfaceVariantText
+                }
             }
             Row {
                 spacing: 6
                 visible: root.topChips.length > 0
-                LauncherKey { label: "→" }
-                CustomText { anchors.verticalCenter: parent.verticalCenter; content: "App actions"; size: 12; customColor: Colors.surfaceVariantText }
+                LauncherKey {
+                    label: "→"
+                }
+                CustomText {
+                    anchors.verticalCenter: parent.verticalCenter
+                    content: "App actions"
+                    size: 12
+                    customColor: Colors.surfaceVariantText
+                }
             }
             Row {
                 spacing: 6
                 visible: root.width >= 480
-                LauncherKey { label: "Tab" }
-                CustomText { anchors.verticalCenter: parent.verticalCenter; content: "Filter"; size: 12; customColor: Colors.surfaceVariantText }
+                LauncherKey {
+                    label: "Tab"
+                }
+                CustomText {
+                    anchors.verticalCenter: parent.verticalCenter
+                    content: "Filter"
+                    size: 12
+                    customColor: Colors.surfaceVariantText
+                }
             }
-            Item { Layout.fillWidth: true }
+            Item {
+                Layout.fillWidth: true
+            }
             Row {
                 spacing: 6
-                LauncherKey { label: "Esc" }
+                LauncherKey {
+                    label: "Esc"
+                }
                 CustomText {
                     anchors.verticalCenter: parent.verticalCenter
                     content: root.filter !== "all" ? "All results" : root.launcher.searching ? "Clear" : "Close"

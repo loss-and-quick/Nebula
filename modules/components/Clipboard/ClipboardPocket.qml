@@ -16,45 +16,48 @@ Scope {
     property point at: Qt.point(0, 0)
     property var targetScreen: null
 
-    readonly property var terminals: ["kitty", "alacritty", "foot", "footclient", "wezterm", "org.wezfurlong.wezterm",
-        "com.mitchellh.ghostty", "ghostty", "konsole", "org.kde.konsole", "xterm", "st", "tilix", "gnome-terminal-server"]
+    readonly property var terminals: ["kitty", "alacritty", "foot", "footclient", "wezterm", "org.wezfurlong.wezterm", "com.mitchellh.ghostty", "ghostty", "konsole", "org.kde.konsole", "xterm", "st", "tilix", "gnome-terminal-server"]
 
     function toggle() {
-        if (root.open) root.open = false
-        else if (!cursorProc.running) cursorProc.running = true
+        if (root.open)
+            root.open = false;
+        else if (!cursorProc.running)
+            cursorProc.running = true;
     }
 
     function shq(s) {
-        return "'" + String(s).replace(/'/g, "'\\''") + "'"
+        return "'" + String(s).replace(/'/g, "'\\''") + "'";
     }
 
     function paste(entry, typeIt) {
-        if (!entry) return
-        root.open = false
-        const e = root.shq(entry)
-        const typed = typeIt && !ServiceCliphist.entryIsImage(entry)
-        const script = typed
-            ? "sleep 0.18; printf '%s' " + e + " | cliphist decode | wtype -k Shift_L -"
-            : "sleep 0.15; printf '%s' " + e + " | cliphist decode | wl-copy; sleep 0.12; "
-              + "cls=$(hyprctl -j activewindow | jq -r '.class // \"\"' | tr 'A-Z' 'a-z'); "
-              + "case \" " + root.terminals.join(" ") + " \" in *\" $cls \"*) wtype -k Shift_L -M ctrl -M shift -k v -m shift -m ctrl ;; "
-              + "*) wtype -k Shift_L -M ctrl -k v -m ctrl ;; esac"
-        Quickshell.execDetached(["sh", "-c", script])
+        if (!entry)
+            return;
+        root.open = false;
+        const e = root.shq(entry);
+        const typed = typeIt && !ServiceCliphist.entryIsImage(entry);
+        const script = typed ? "sleep 0.18; printf '%s' " + e + " | cliphist decode | wtype -k Shift_L -" : "sleep 0.15; printf '%s' " + e + " | cliphist decode | wl-copy; sleep 0.12; " + "cls=$(hyprctl -j activewindow | jq -r '.class // \"\"' | tr 'A-Z' 'a-z'); " + "case \" " + root.terminals.join(" ") + " \" in *\" $cls \"*) wtype -k Shift_L -M ctrl -M shift -k v -m shift -m ctrl ;; " + "*) wtype -k Shift_L -M ctrl -k v -m ctrl ;; esac";
+        Quickshell.execDetached(["sh", "-c", script]);
     }
 
     Process {
         id: cursorProc
         command: ["hyprctl", "-j", "cursorpos"]
-        stdout: StdioCollector { id: cursorOut }
+        stdout: StdioCollector {
+            id: cursorOut
+        }
         onExited: {
-            let p = { x: 0, y: 0 }
-            try { p = JSON.parse(cursorOut.text) } catch (err) {}
-            const scr = Quickshell.screens.find(s => p.x >= s.x && p.x < s.x + s.width && p.y >= s.y && p.y < s.y + s.height)
-                ?? Quickshell.screens[0]
-            root.targetScreen = scr
-            root.at = Qt.point(p.x - scr.x, p.y - scr.y)
-            ServiceCliphist.updateSearch("")
-            root.open = true
+            let p = {
+                x: 0,
+                y: 0
+            };
+            try {
+                p = JSON.parse(cursorOut.text);
+            } catch (err) {}
+            const scr = Quickshell.screens.find(s => p.x >= s.x && p.x < s.x + s.width && p.y >= s.y && p.y < s.y + s.height) ?? Quickshell.screens[0];
+            root.targetScreen = scr;
+            root.at = Qt.point(p.x - scr.x, p.y - scr.y);
+            ServiceCliphist.updateSearch("");
+            root.open = true;
         }
     }
 
@@ -65,8 +68,12 @@ Scope {
 
     IpcHandler {
         target: "clipboardPocket"
-        function toggle(): void { root.toggle() }
-        function close(): void { root.open = false }
+        function toggle(): void {
+            root.toggle();
+        }
+        function close(): void {
+            root.open = false;
+        }
     }
 
     LazyLoader {
@@ -86,19 +93,19 @@ Scope {
             WlrLayershell.keyboardFocus: WlrKeyboardFocus.Exclusive
 
             property int activeIndex: 0
-            readonly property var shiftedDigits: [Qt.Key_Exclam, Qt.Key_At, Qt.Key_NumberSign, Qt.Key_Dollar, Qt.Key_Percent,
-                Qt.Key_AsciiCircum, Qt.Key_Ampersand, Qt.Key_Asterisk, Qt.Key_ParenLeft]
+            readonly property var shiftedDigits: [Qt.Key_Exclam, Qt.Key_At, Qt.Key_NumberSign, Qt.Key_Dollar, Qt.Key_Percent, Qt.Key_AsciiCircum, Qt.Key_Ampersand, Qt.Key_Asterisk, Qt.Key_ParenLeft]
             readonly property var rows: ServiceCliphist.filteredEntries.slice(0, 9)
             readonly property bool below: root.at.y + card.height + 12 < win.height
 
             function kindIcon(e) {
-                const k = ServiceCliphist.entryKind(e)
-                return k === "image" ? "image" : k === "link" ? "link" : "notes"
+                const k = ServiceCliphist.entryKind(e);
+                return k === "image" ? "image" : k === "link" ? "link" : "notes";
             }
 
             function move(d) {
-                if (win.rows.length === 0) return
-                win.activeIndex = (win.activeIndex + d + win.rows.length) % win.rows.length
+                if (win.rows.length === 0)
+                    return;
+                win.activeIndex = (win.activeIndex + d + win.rows.length) % win.rows.length;
             }
 
             MouseArea {
@@ -130,7 +137,9 @@ Scope {
                     easing.bezierCurve: [0.2, 0.0, 0.0, 1.0, 1, 1]
                 }
 
-                MouseArea { anchors.fill: parent }
+                MouseArea {
+                    anchors.fill: parent
+                }
 
                 ColumnLayout {
                     id: col
@@ -183,30 +192,37 @@ Scope {
                                     color: Colors.surfaceText
                                     Component.onCompleted: search.forceActiveFocus()
                                     onTextChanged: {
-                                        ServiceCliphist.updateSearch(text)
-                                        win.activeIndex = 0
+                                        ServiceCliphist.updateSearch(text);
+                                        win.activeIndex = 0;
                                     }
                                     Keys.onPressed: event => {
-                                        const k = event.key
-                                        const shift = (event.modifiers & Qt.ShiftModifier) !== 0
+                                        const k = event.key;
+                                        const shift = (event.modifiers & Qt.ShiftModifier) !== 0;
                                         if (k === Qt.Key_Escape) {
-                                            if (search.text !== "") search.text = ""
-                                            else root.open = false
-                                            event.accepted = true
+                                            if (search.text !== "")
+                                                search.text = "";
+                                            else
+                                                root.open = false;
+                                            event.accepted = true;
                                         } else if (k === Qt.Key_Down || k === Qt.Key_Tab) {
-                                            win.move(1); event.accepted = true
+                                            win.move(1);
+                                            event.accepted = true;
                                         } else if (k === Qt.Key_Up || k === Qt.Key_Backtab) {
-                                            win.move(-1); event.accepted = true
+                                            win.move(-1);
+                                            event.accepted = true;
                                         } else if (k === Qt.Key_Return || k === Qt.Key_Enter) {
-                                            root.paste(win.rows[win.activeIndex], shift); event.accepted = true
+                                            root.paste(win.rows[win.activeIndex], shift);
+                                            event.accepted = true;
                                         } else if (search.text === "" && k >= Qt.Key_1 && k <= Qt.Key_9) {
-                                            const i = k - Qt.Key_1
-                                            if (i < win.rows.length) root.paste(win.rows[i], shift)
-                                            event.accepted = true
+                                            const i = k - Qt.Key_1;
+                                            if (i < win.rows.length)
+                                                root.paste(win.rows[i], shift);
+                                            event.accepted = true;
                                         } else if (search.text === "" && win.shiftedDigits.indexOf(k) >= 0) {
-                                            const i = win.shiftedDigits.indexOf(k)
-                                            if (i < win.rows.length) root.paste(win.rows[i], true)
-                                            event.accepted = true
+                                            const i = win.shiftedDigits.indexOf(k);
+                                            if (i < win.rows.length)
+                                                root.paste(win.rows[i], true);
+                                            event.accepted = true;
                                         }
                                     }
                                 }
@@ -227,7 +243,11 @@ Scope {
                             Layout.preferredHeight: 38
                             radius: 12
                             color: prow.active ? Colors.primaryContainer : Qt.alpha(Colors.primaryContainer, 0)
-                            Behavior on color { EffectsColorAnim { speed: "fast" } }
+                            Behavior on color {
+                                EffectsColorAnim {
+                                    speed: "fast"
+                                }
+                            }
 
                             RowLayout {
                                 anchors.fill: parent
@@ -255,8 +275,7 @@ Scope {
                                 }
                                 CustomText {
                                     Layout.fillWidth: true
-                                    content: prow.info ? "Image  " + prow.info.width + " × " + prow.info.height
-                                        : ServiceCliphist.getEntryText(prow.modelData).replace(/\s+/g, " ")
+                                    content: prow.info ? "Image  " + prow.info.width + " × " + prow.info.height : ServiceCliphist.getEntryText(prow.modelData).replace(/\s+/g, " ")
                                     size: 13
                                     elide: Text.ElideRight
                                     customColor: prow.active ? Colors.primaryContainerText : Colors.surfaceText
@@ -291,9 +310,17 @@ Scope {
                         Layout.rightMargin: 6
                         spacing: 6
 
-                        LauncherKeyHint { keys: "1–9"; label: "paste here" }
-                        Item { Layout.fillWidth: true }
-                        LauncherKeyHint { keys: "⇧"; label: "type it out" }
+                        LauncherKeyHint {
+                            keys: "1–9"
+                            label: "paste here"
+                        }
+                        Item {
+                            Layout.fillWidth: true
+                        }
+                        LauncherKeyHint {
+                            keys: "⇧"
+                            label: "type it out"
+                        }
                     }
                 }
             }
@@ -305,6 +332,8 @@ Scope {
         property string label: ""
         spacing: 6
         Rectangle {
+            required property string keys
+            keys: parent.keys
             anchors.verticalCenter: parent.verticalCenter
             width: keyText.implicitWidth + 12
             height: 20
@@ -313,7 +342,7 @@ Scope {
             CustomText {
                 id: keyText
                 anchors.centerIn: parent
-                content: parent.parent.keys
+                content: parent.keys
                 size: 11
                 weight: 600
                 customColor: Colors.surfaceVariantText

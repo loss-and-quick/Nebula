@@ -1754,6 +1754,8 @@ Item {
     }
 
     function checkHoverLeave() {
+        if (barBlock.clickedKind !== "" || (barBlock.launchHost && GlobalStates.appLauncherOpen))
+            return
         if (!blockHover.hovered && !tabHover.hovered)
             barBlock.hoverKind = ""
     }

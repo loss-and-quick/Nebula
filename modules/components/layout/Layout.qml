@@ -209,6 +209,23 @@ PanelWindow{
                                                || (GlobalStates.appLauncherOpen && GlobalStates.launcherHosted)) ? WlrKeyboardFocus.OnDemand
                                                              : WlrKeyboardFocus.None
 
+    function recoverSurface() {
+        if (!layout.visible && Quickshell.screens.some(s => s && s.name && s.name !== "{ NULL SCREEN }")) {
+            layout.visible = true
+            if (layout.barEditing)
+                root.queueGapMarks()
+        }
+    }
+
+    onClosed: Qt.callLater(layout.recoverSurface)
+
+    Connections {
+        target: Quickshell
+        function onScreensChanged() {
+            Qt.callLater(layout.recoverSurface)
+        }
+    }
+
     onBarEditingChanged: {
         BarLayout.gapHover = null
         root.queueGapMarks()

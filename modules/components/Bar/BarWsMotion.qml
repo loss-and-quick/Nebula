@@ -59,16 +59,19 @@ Item {
             property real dropX: goo.target
             Behavior on headX {
                 SpatialAnim {
+                    role: "workspace.switch"
                     speed: "fast"
                 }
             }
             Behavior on tailX {
                 SpatialAnim {
+                    role: "workspace.switch"
                     speed: "default"
                 }
             }
             Behavior on dropX {
                 SpatialAnim {
+                    role: "workspace.switch"
                     speed: "slow"
                 }
             }
@@ -162,6 +165,7 @@ Item {
                 y: (bounce.height - bounce.ball) / 2
                 Behavior on x {
                     SpatialAnim {
+                        role: "workspace.switch"
                         speed: "move"
                     }
                 }

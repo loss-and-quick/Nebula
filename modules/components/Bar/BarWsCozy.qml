@@ -168,11 +168,13 @@ Item {
                             border.color: Colors.outlineVariant
                             Behavior on width {
                                 SpatialAnim {
+                                    role: "workspace.switch"
                                     speed: "fast"
                                 }
                             }
                             Behavior on height {
                                 SpatialAnim {
+                                    role: "workspace.switch"
                                     speed: "fast"
                                 }
                             }
@@ -577,11 +579,13 @@ Item {
                         height: st.active ? 20 * cozy.k : st.occupied ? 16 * cozy.k : 12 * cozy.k
                         Behavior on width {
                             SpatialAnim {
+                                role: "workspace.switch"
                                 speed: "fast"
                             }
                         }
                         Behavior on height {
                             SpatialAnim {
+                                role: "workspace.switch"
                                 speed: "fast"
                             }
                         }
@@ -699,7 +703,9 @@ Item {
                 y: 16 * cozy.k
                 rotation: df.ang(df.activeIndex)
                 Behavior on rotation {
-                    SpatialAnim {}
+                    SpatialAnim {
+                        role: "workspace.switch"
+                    }
                 }
 
                 Rectangle {

@@ -7,7 +7,7 @@ import qs.modules.settings
 Singleton {
     id: root
 
-    readonly property var roles: ["panel.open", "panel.close", "panel.slide", "dock.preview", "dock.hover", "bar.slide", "workspace.switch", "notification.card", "button.press", "fade", "color.fade", "launcher.open", "launcher.close", "notification.popup", "surface.reveal", "bar.block"]
+    readonly property var roles: ["panel.open", "panel.close", "panel.slide", "dock.preview", "dock.hover", "bar.slide", "workspace.switch", "workspace.pill", "notification.panel", "notification.card", "notification.group", "button.press", "fade", "color.fade", "launcher.open", "launcher.close", "notification.popup", "surface.reveal", "bar.block"]
     readonly property string scheme: SettingsConfig.general.motionScheme ?? "expressive"
     readonly property var roleOverrides: SettingsConfig.general.motionRoles ?? ({})
 

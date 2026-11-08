@@ -146,6 +146,7 @@ Item {
                         border.color: Qt.alpha(Colors.outline, 0.35)
                         Behavior on height {
                             SpatialAnim {
+                                role: "workspace.switch"
                                 speed: "fast"
                             }
                         }
@@ -257,9 +258,8 @@ Item {
                         border.color: onOtherMonitor ? Qt.alpha(Colors.outline, 0.35) : Qt.alpha(Colors.outline, 0.15)
 
                         Behavior on Layout.preferredWidth {
-                            NumberAnimation {
-                                duration: 220
-                                easing.type: Easing.OutCubic
+                            MotionAnim {
+                                role: "workspace.switch"
                             }
                         }
                         Behavior on color {
@@ -399,11 +399,13 @@ Item {
                         color: st.active ? Colors.primary : st.occupied ? Qt.alpha(Colors.surfaceText, 0.78) : st.onOther ? Qt.alpha(Colors.outlineVariant, 0.5) : Colors.outlineVariant
                         Behavior on width {
                             SpatialAnim {
+                                role: "workspace.switch"
                                 speed: "fast"
                             }
                         }
                         Behavior on height {
                             SpatialAnim {
+                                role: "workspace.switch"
                                 speed: "fast"
                             }
                         }
@@ -476,11 +478,13 @@ Item {
                     border.color: Colors.outlineVariant
                     Behavior on x {
                         SpatialAnim {
+                            role: "workspace.switch"
                             speed: "fast"
                         }
                     }
                     Behavior on width {
                         SpatialAnim {
+                            role: "workspace.switch"
                             speed: "fast"
                         }
                     }
@@ -551,6 +555,7 @@ Item {
                 color: Colors.primary
                 Behavior on x {
                     SpatialAnim {
+                        role: "workspace.switch"
                         speed: "fast"
                     }
                 }

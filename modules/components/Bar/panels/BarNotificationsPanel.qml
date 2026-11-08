@@ -77,12 +77,12 @@ Item {
         revealTimer.restart();
     }
 
-    NumberAnimation {
+    MotionAnim {
         id: flingAnim
+        role: "notification.card"
+        speed: "fast"
         target: root
         property: "dragDistance"
-        duration: Appearance.motion.spatialFast
-        easing.type: Easing.InCubic
         onFinished: {
             const target = root.dismissTarget;
             root.dismissTarget = null;
@@ -160,7 +160,7 @@ Item {
     function clearAll() {
         if (root.clearing || root.count === 0)
             return;
-        clearTimer.interval = 220 + Math.max(0, root.shownRows - 1) * 35 + 40;
+        clearTimer.interval = MotionRegistry.durationFor("notification.card", "fast") + Math.max(0, root.shownRows - 1) * 35 + 40;
         root.clearing = true;
         clearTimer.restart();
     }
@@ -181,20 +181,17 @@ Item {
             duration: 60
         }
         ParallelAnimation {
-            NumberAnimation {
+            MotionAnim {
+                role: "notification.panel"
                 target: root
                 property: "headFade"
                 to: 1
-                duration: 320
-                easing.type: Easing.OutCubic
             }
-            NumberAnimation {
+            MotionAnim {
+                role: "notification.panel"
                 target: root
                 property: "headLift"
                 to: 0
-                duration: 320
-                easing.type: Easing.BezierSpline
-                easing.bezierCurve: M3Motion.panel.openCurve
             }
         }
     }
@@ -353,6 +350,7 @@ Item {
         opacity: root.headFade
         Behavior on height {
             SpatialAnim {
+                role: "notification.panel"
                 speed: "fast"
             }
         }
@@ -369,6 +367,7 @@ Item {
             opacity: root.dndOpen || root.dnd ? 1 : 0
             Behavior on opacity {
                 EffectsAnim {
+                    role: "notification.panel"
                     speed: "fast"
                 }
             }
@@ -603,20 +602,17 @@ Item {
                 id: cascadePause
             }
             ParallelAnimation {
-                NumberAnimation {
+                MotionAnim {
+                    role: "notification.card"
                     target: gr
                     property: "fade"
                     to: 1
-                    duration: 320
-                    easing.type: Easing.OutCubic
                 }
-                NumberAnimation {
+                MotionAnim {
+                    role: "notification.card"
                     target: gr
                     property: "lift"
                     to: 0
-                    duration: 320
-                    easing.type: Easing.BezierSpline
-                    easing.bezierCurve: M3Motion.panel.openCurve
                 }
             }
         }
@@ -626,43 +622,37 @@ Item {
             PauseAnimation {
                 id: sweepPause
             }
-            NumberAnimation {
+            MotionAnim {
                 id: sweepTo
+                role: "notification.card"
+                speed: "fast"
                 target: mover
                 property: "x"
-                duration: 220
-                easing.type: Easing.BezierSpline
-                easing.bezierCurve: M3Motion.panel.closeCurve
             }
         }
 
         ParallelAnimation {
             id: enterAnim
-            NumberAnimation {
+            MotionAnim {
+                role: "notification.card"
                 target: gr
                 property: "keep"
                 from: 0
                 to: 1
-                duration: 420
-                easing.type: Easing.BezierSpline
-                easing.bezierCurve: M3Motion.panel.openCurve
             }
-            NumberAnimation {
+            MotionAnim {
+                role: "notification.card"
                 target: gr
                 property: "lift"
                 from: -14
                 to: 0
-                duration: 420
-                easing.type: Easing.BezierSpline
-                easing.bezierCurve: M3Motion.panel.openCurve
             }
-            NumberAnimation {
+            MotionAnim {
+                role: "notification.card"
                 target: gr
                 property: "fade"
                 from: 0
                 to: 1
-                duration: 260
-                easing.type: Easing.OutCubic
             }
         }
 

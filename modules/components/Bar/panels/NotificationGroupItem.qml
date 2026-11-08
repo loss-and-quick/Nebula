@@ -69,12 +69,12 @@ Item {
         childFling.restart();
     }
 
-    NumberAnimation {
+    MotionAnim {
         id: childFling
+        role: "notification.card"
+        speed: "fast"
         target: root
         property: "childDragDistance"
-        duration: Appearance.motion.spatialFast
-        easing.type: Easing.InCubic
         onFinished: {
             const target = root.childDismissTarget;
             root.childDismissTarget = null;
@@ -106,13 +106,11 @@ Item {
     onMultipleChanged: if (!root.multiple)
         root.expanded = false
 
-    NumberAnimation {
+    MotionAnim {
         id: expandAnim
+        role: "notification.group"
         target: root
         property: "unfoldRaw"
-        duration: M3Motion.effects.defaultDuration
-        easing.type: Easing.BezierSpline
-        easing.bezierCurve: M3Motion.effects.curve
     }
 
     Component.onCompleted: root.unfoldRaw = root.expanded ? 1 : 0
@@ -249,10 +247,8 @@ Item {
 
         Behavior on x {
             enabled: root.dragSettling
-            SpringAnimation {
-                spring: M3Motion.spring.responsive.spring
-                damping: M3Motion.spring.responsive.damping
-                epsilon: 0.4
+            MotionAnim {
+                role: "notification.group"
             }
         }
 
@@ -314,13 +310,15 @@ Item {
                 bottomLeftRadius: headerSeg.bottomR
                 bottomRightRadius: headerSeg.bottomR
                 Behavior on bottomLeftRadius {
-                    NumberAnimation {
-                        duration: M3Motion.effects.fastDuration
+                    MotionAnim {
+                        role: "notification.group"
+                        speed: "fast"
                     }
                 }
                 Behavior on bottomRightRadius {
-                    NumberAnimation {
-                        duration: M3Motion.effects.fastDuration
+                    MotionAnim {
+                        role: "notification.group"
+                        speed: "fast"
                     }
                 }
 
@@ -547,32 +545,34 @@ Item {
                         bottomLeftRadius: childSlot.cornerBottom
                         bottomRightRadius: childSlot.cornerBottom
                         Behavior on topLeftRadius {
-                            NumberAnimation {
-                                duration: M3Motion.effects.fastDuration
+                            MotionAnim {
+                                role: "notification.card"
+                                speed: "fast"
                             }
                         }
                         Behavior on topRightRadius {
-                            NumberAnimation {
-                                duration: M3Motion.effects.fastDuration
+                            MotionAnim {
+                                role: "notification.card"
+                                speed: "fast"
                             }
                         }
                         Behavior on bottomLeftRadius {
-                            NumberAnimation {
-                                duration: M3Motion.effects.fastDuration
+                            MotionAnim {
+                                role: "notification.card"
+                                speed: "fast"
                             }
                         }
                         Behavior on bottomRightRadius {
-                            NumberAnimation {
-                                duration: M3Motion.effects.fastDuration
+                            MotionAnim {
+                                role: "notification.card"
+                                speed: "fast"
                             }
                         }
 
                         Behavior on x {
                             enabled: !root.childDragActive
-                            SpringAnimation {
-                                spring: M3Motion.spring.responsive.spring
-                                damping: M3Motion.spring.responsive.damping
-                                epsilon: 0.4
+                            MotionAnim {
+                                role: "notification.card"
                             }
                         }
 

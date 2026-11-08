@@ -88,20 +88,17 @@ Item {
             duration: 60
         }
         ParallelAnimation {
-            NumberAnimation {
+            MotionAnim {
+                role: "notification.card"
                 target: extraCol
                 property: "opacity"
                 to: 1
-                duration: 320
-                easing.type: Easing.OutCubic
             }
-            NumberAnimation {
+            MotionAnim {
+                role: "notification.card"
                 target: extraLift
                 property: "y"
                 to: 0
-                duration: 400
-                easing.type: Easing.BezierSpline
-                easing.bezierCurve: M3Motion.panel.openCurve
             }
         }
     }
@@ -155,10 +152,8 @@ Item {
 
     implicitHeight: col.implicitHeight
     Behavior on implicitHeight {
-        NumberAnimation {
-            duration: M3Motion.container.duration
-            easing.type: Easing.BezierSpline
-            easing.bezierCurve: M3Motion.container.curve
+        MotionAnim {
+            role: "notification.card"
         }
     }
 
@@ -197,10 +192,8 @@ Item {
 
         Behavior on x {
             enabled: !swipeArea.drag.active
-            SpringAnimation {
-                spring: M3Motion.spring.responsive.spring
-                damping: M3Motion.spring.responsive.damping
-                epsilon: 0.4
+            MotionAnim {
+                role: "notification.card"
             }
         }
 
@@ -369,10 +362,8 @@ Item {
                         customColor: Colors.surfaceVariantText
                         rotation: row.isExtended ? 180 : 0
                         Behavior on rotation {
-                            NumberAnimation {
-                                duration: M3Motion.container.duration
-                                easing.type: Easing.BezierSpline
-                                easing.bezierCurve: M3Motion.container.curve
+                            MotionAnim {
+                                role: "notification.card"
                             }
                         }
                     }

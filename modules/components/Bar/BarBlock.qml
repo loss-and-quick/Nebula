@@ -3,6 +3,7 @@ import QtQuick
 import qs.modules.utils
 import qs.modules.settings
 import qs.modules.services
+import qs.modules.components.custom
 import "BarOps.js" as BarOps
 
 Item {

@@ -1,3 +1,4 @@
+import "../Bar/music"
 import QtQuick
 import qs.modules.utils
 import qs.modules.services
@@ -12,7 +13,10 @@ WidgetHost {
     tile: Qt.size(WidgetSizes.span(2), WidgetSizes.span(2))
     defaultPos: Qt.point(475, 165)
 
-    MusicNow { id: m; preview: root.preview }
+    MusicNow {
+        id: m
+        preview: root.preview
+    }
 
     WidgetCard {
         anchors.fill: parent

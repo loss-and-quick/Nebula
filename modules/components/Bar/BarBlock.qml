@@ -1,3 +1,6 @@
+import "./panels"
+import "./items"
+import "./editor"
 import Quickshell
 import QtQuick
 import qs.modules.utils

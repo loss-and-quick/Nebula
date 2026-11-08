@@ -1,3 +1,6 @@
+import "./panels"
+import "./music"
+import "./dashboard"
 import Quickshell
 import Quickshell.Hyprland
 import Quickshell.Widgets

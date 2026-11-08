@@ -13,31 +13,35 @@ Item {
     id: root
     readonly property bool atBottom: ServiceGaps.secondaryEdge === "bottom"
     y: root.atBottom ? parent.height - root.height : 0
-    anchors.left:  parent.left
+    anchors.left: parent.left
     anchors.right: parent.right
     height: Appearance.size.barHeight
 
-    readonly property int wsCount:    SettingsConfig.general.workspaceCount ?? 10
+    readonly property int wsCount: SettingsConfig.general.workspaceCount ?? 10
     readonly property bool wsNumbers: SettingsConfig.general.showWorkspaceNumbers ?? false
     readonly property bool perMonitorMode: SettingsConfig.general.perMonitorWorkspaces ?? false
 
     readonly property int otherOccupied: {
-        if (!perMonitorMode) return 0
-        var count = 0
-        var vals = Hyprland.workspaces.values
+        if (!perMonitorMode)
+            return 0;
+        var count = 0;
+        var vals = Hyprland.workspaces.values;
         for (var i = 0; i < vals.length; i++) {
-            if (vals[i].monitor?.name !== layout.screen.name) count++
+            if (vals[i].monitor?.name !== layout.screen.name)
+                count++;
         }
-        return count
+        return count;
     }
     readonly property int otherActive: {
-        if (!perMonitorMode) return 0
-        var count = 0
-        var vals = Hyprland.workspaces.values
+        if (!perMonitorMode)
+            return 0;
+        var count = 0;
+        var vals = Hyprland.workspaces.values;
         for (var i = 0; i < vals.length; i++) {
-            if (vals[i].monitor?.name !== layout.screen.name && vals[i].active) count++
+            if (vals[i].monitor?.name !== layout.screen.name && vals[i].active)
+                count++;
         }
-        return count
+        return count;
     }
 
     // Bar background — same surface color as the primary bar
@@ -47,7 +51,7 @@ Item {
     }
 
     RowLayout {
-        anchors.fill:       parent
+        anchors.fill: parent
         anchors.leftMargin: 12
         anchors.rightMargin: 12
         spacing: 0
@@ -66,41 +70,48 @@ Item {
 
                 Repeater {
                     model: ScriptModel {
-                        values: Array.from({ length: root.wsCount }, (_, i) => i + 1)
+                        values: Array.from({
+                            length: root.wsCount
+                        }, (_, i) => i + 1)
                     }
 
                     delegate: Rectangle {
                         id: wsItem
                         property int workspaceId: modelData
                         property var currentWorkspace: ServiceWorkspaces.getWorkspace(workspaceId)
-                        readonly property bool isActive:   !!currentWorkspace && currentWorkspace.active
+                        readonly property bool isActive: !!currentWorkspace && currentWorkspace.active
                         readonly property bool isOccupied: !!currentWorkspace
                         // Per-monitor mode: hide occupied workspaces that live on other monitors
-                        readonly property bool isForThisMonitor: !root.perMonitorMode
-                            || !currentWorkspace
-                            || currentWorkspace.monitor?.name === layout.screen.name
+                        readonly property bool isForThisMonitor: !root.perMonitorMode || !currentWorkspace || currentWorkspace.monitor?.name === layout.screen.name
 
                         visible: isForThisMonitor
                         Layout.alignment: Qt.AlignVCenter
                         Layout.preferredHeight: 25
-                        Layout.preferredWidth: isForThisMonitor
-                            ? (isOccupied ? Math.max(25, (appIcons.appList?.width ?? 0) + 12) : 25)
-                            : 0
+                        Layout.preferredWidth: isForThisMonitor ? (isOccupied ? Math.max(25, (appIcons.appList?.width ?? 0) + 12) : 25) : 0
                         radius: 15
-                        color: isActive   ? Colors.primary
-                             : isOccupied ? Colors.surfaceContainerHighest
-                             : "transparent"
+                        color: isActive ? Colors.primary : isOccupied ? Colors.surfaceContainerHighest : "transparent"
                         border.width: isOccupied && !isActive ? 1 : 0
                         border.color: Qt.alpha(Colors.outline, 0.15)
 
-                        Behavior on Layout.preferredWidth { NumberAnimation { duration: 220; easing.type: Easing.OutCubic } }
-                        Behavior on color                 { ColorAnimation  { duration: 200 } }
+                        Behavior on Layout.preferredWidth {
+                            NumberAnimation {
+                                duration: 220
+                                easing.type: Easing.OutCubic
+                            }
+                        }
+                        Behavior on color {
+                            ColorAnimation {
+                                duration: 200
+                            }
+                        }
 
                         // Dot for empty workspace
                         Rectangle {
                             visible: !wsItem.isOccupied
                             anchors.centerIn: parent
-                            width: 5; height: 5; radius: 3
+                            width: 5
+                            height: 5
+                            radius: 3
                             color: Colors.outline
                         }
 
@@ -108,7 +119,7 @@ Item {
                         Loader {
                             id: appIcons
                             anchors.fill: parent
-                            active:  wsItem.isOccupied && !root.wsNumbers
+                            active: wsItem.isOccupied && !root.wsNumbers
                             visible: active
                             sourceComponent: TopLevels {}
                             property var appList: item ? item.appList : null
@@ -119,17 +130,24 @@ Item {
                             anchors.centerIn: parent
                             visible: root.wsNumbers && wsItem.isOccupied
                             content: wsItem.workspaceId.toString()
-                            size: 10; weight: wsItem.isActive ? 800 : 600
+                            size: 10
+                            weight: wsItem.isActive ? 800 : 600
                             customColor: wsItem.isActive ? Colors.primaryText : Colors.surfaceText
-                            Behavior on customColor { ColorAnimation { duration: 200 } }
+                            Behavior on customColor {
+                                ColorAnimation {
+                                    duration: 200
+                                }
+                            }
                         }
 
                         MouseArea {
                             anchors.fill: parent
                             cursorShape: Qt.PointingHandCursor
                             onClicked: {
-                                if (wsItem.currentWorkspace) wsItem.currentWorkspace.activate()
-                                else Hyprland.dispatch(`workspace ${wsItem.workspaceId}`)
+                                if (wsItem.currentWorkspace)
+                                    wsItem.currentWorkspace.activate();
+                                else
+                                    Hyprland.dispatch(`workspace ${wsItem.workspaceId}`);
                             }
                         }
                     }
@@ -147,28 +165,51 @@ Item {
                     border.width: root.otherActive > 0 ? 0 : 1
                     border.color: Qt.alpha(Colors.outline, 0.35)
 
-                    Behavior on color                 { ColorAnimation  { duration: 200 } }
-                    Behavior on Layout.preferredWidth { NumberAnimation { duration: 220; easing.type: Easing.OutCubic } }
-                    Behavior on opacity               { NumberAnimation { duration: 180 } }
+                    Behavior on color {
+                        ColorAnimation {
+                            duration: 200
+                        }
+                    }
+                    Behavior on Layout.preferredWidth {
+                        NumberAnimation {
+                            duration: 220
+                            easing.type: Easing.OutCubic
+                        }
+                    }
+                    Behavior on opacity {
+                        NumberAnimation {
+                            duration: 180
+                        }
+                    }
 
                     MaterialIconSymbol {
                         anchors.centerIn: parent
                         content: "tv_displays"
                         iconSize: 12
                         customColor: root.otherActive > 0 ? Colors.primaryText : Colors.outline
-                        Behavior on customColor { ColorAnimation { duration: 200 } }
+                        Behavior on customColor {
+                            ColorAnimation {
+                                duration: 200
+                            }
+                        }
                     }
 
                     CustomToolTip {
                         content: root.otherOccupied + " workspace" + (root.otherOccupied !== 1 ? "s" : "") + " on other monitor" + (root.otherActive > 0 ? " (active)" : "")
                         visible: secOtherHov.containsMouse
                     }
-                    MouseArea { id: secOtherHov; anchors.fill: parent; hoverEnabled: true }
+                    MouseArea {
+                        id: secOtherHov
+                        anchors.fill: parent
+                        hoverEnabled: true
+                    }
                 }
             }
         }
 
-        Item { Layout.fillWidth: true }
+        Item {
+            Layout.fillWidth: true
+        }
 
         // ── Clock ────────────────────────────────────────────────────────────
         ColumnLayout {
@@ -177,18 +218,22 @@ Item {
             CustomText {
                 Layout.alignment: Qt.AlignHCenter
                 content: ServiceClock.time
-                size: 14; weight: 700
+                size: 14
+                weight: 700
                 customColor: Colors.surfaceText
             }
             CustomText {
                 Layout.alignment: Qt.AlignHCenter
                 content: ServiceClock.day + "  " + ServiceClock.date + " " + ServiceClock.month
-                size: 10; weight: 400
+                size: 10
+                weight: 400
                 customColor: Colors.outline
             }
         }
 
-        Item { Layout.fillWidth: true }
+        Item {
+            Layout.fillWidth: true
+        }
 
         // ── Status icons: network + battery ─────────────────────────────────
         Rectangle {
@@ -204,51 +249,72 @@ Item {
 
                 // Network
                 Rectangle {
-                    implicitWidth: 28; implicitHeight: 28; radius: 14
+                    implicitWidth: 28
+                    implicitHeight: 28
+                    radius: 14
                     color: "transparent"
                     MaterialIconSymbol {
                         anchors.centerIn: parent
-                        content:     ServiceNetwork.icon
-                        iconSize:    16
+                        content: ServiceNetwork.icon
+                        iconSize: 16
                         customColor: Colors.surfaceText
                     }
                     CustomToolTip {
-                        content: ServiceNetwork.connectionLabel.length > 0
-                               ? ServiceNetwork.connectionLabel : "No network"
+                        content: ServiceNetwork.connectionLabel.length > 0 ? ServiceNetwork.connectionLabel : "No network"
                         visible: netHov.containsMouse
                     }
-                    MouseArea { id: netHov; anchors.fill: parent; hoverEnabled: true }
+                    MouseArea {
+                        id: netHov
+                        anchors.fill: parent
+                        hoverEnabled: true
+                    }
                 }
 
                 // Battery
                 Rectangle {
-                    implicitWidth: 28; implicitHeight: 28; radius: 14
+                    implicitWidth: 28
+                    implicitHeight: 28
+                    radius: 14
                     color: "transparent"
                     MaterialIconSymbol {
                         anchors.centerIn: parent
                         content: {
-                            if (ServiceUPower.isCharging)  return "battery_android_bolt"
-                            const l = ServiceUPower.powerLevel
-                            if (l === 1)                   return "battery_android_full"
-                            if (l > 0.9)                   return "battery_android_6"
-                            if (l > 0.7)                   return "battery_android_5"
-                            if (l > 0.5)                   return "battery_android_4"
-                            if (l > 0.3)                   return "battery_android_3"
-                            if (l > 0.2)                   return "battery_android_2"
-                            if (l > 0.0)                   return "battery_android_1"
-                            return "battery_android_0"
+                            if (ServiceUPower.isCharging)
+                                return "battery_android_bolt";
+                            const l = ServiceUPower.powerLevel;
+                            if (l === 1)
+                                return "battery_android_full";
+                            if (l > 0.9)
+                                return "battery_android_6";
+                            if (l > 0.7)
+                                return "battery_android_5";
+                            if (l > 0.5)
+                                return "battery_android_4";
+                            if (l > 0.3)
+                                return "battery_android_3";
+                            if (l > 0.2)
+                                return "battery_android_2";
+                            if (l > 0.0)
+                                return "battery_android_1";
+                            return "battery_android_0";
                         }
                         iconSize: 16
-                        customColor: ServiceUPower.powerLevel < 0.2 && !ServiceUPower.isCharging
-                                     ? Colors.error : Colors.surfaceText
-                        Behavior on customColor { ColorAnimation { duration: 150 } }
+                        customColor: ServiceUPower.powerLevel < 0.2 && !ServiceUPower.isCharging ? Colors.error : Colors.surfaceText
+                        Behavior on customColor {
+                            ColorAnimation {
+                                duration: 150
+                            }
+                        }
                     }
                     CustomToolTip {
-                        content: (ServiceUPower.isCharging ? "Charging · " : "")
-                               + Math.round(ServiceUPower.powerLevel * 100) + "%"
+                        content: (ServiceUPower.isCharging ? "Charging · " : "") + Math.round(ServiceUPower.powerLevel * 100) + "%"
                         visible: battHov2.containsMouse
                     }
-                    MouseArea { id: battHov2; anchors.fill: parent; hoverEnabled: true }
+                    MouseArea {
+                        id: battHov2
+                        anchors.fill: parent
+                        hoverEnabled: true
+                    }
                 }
             }
         }

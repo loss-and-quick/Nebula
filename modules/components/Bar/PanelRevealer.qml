@@ -1370,6 +1370,7 @@ Item {
     height: Math.round(revealer.tabH) + revealer.floatGap
     visible: revealer.tabOpen || revealer.state === "open" || openTrans.running || closeTrans.running
     clip: true
+    containmentMask: clipItem
 
     Item {
         id: clipItem

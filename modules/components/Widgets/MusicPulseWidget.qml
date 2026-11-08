@@ -1,3 +1,4 @@
+import "../Bar/music"
 import QtQuick
 import QtQuick.Layouts
 import qs.modules.utils
@@ -14,7 +15,10 @@ WidgetHost {
     turnable: true
     backdropRadius: Math.min(root.width, root.height) / 2
 
-    MusicNow { id: m; preview: root.preview }
+    MusicNow {
+        id: m
+        preview: root.preview
+    }
 
     readonly property var frames: ["softBurst", "cookie9", "pentagon", "pill", "sunny", "cookie4", "oval"]
     property int frame: 0
@@ -82,8 +86,7 @@ WidgetHost {
                     Layout.fillWidth: true
                     visible: m.hasTrack
                     horizontalAlignment: root.turned ? Text.AlignHCenter : Text.AlignLeft
-                    content: root.turned ? m.elapsedText
-                        : m.playing ? m.elapsedText + " / " + m.lengthText : "Paused · " + m.elapsedText
+                    content: root.turned ? m.elapsedText : m.playing ? m.elapsedText + " / " + m.lengthText : "Paused · " + m.elapsedText
                     size: 11
                     weight: 600
                     customColor: m.playing ? Colors.primary : Colors.outline

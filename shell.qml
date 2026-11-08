@@ -31,71 +31,75 @@ import qs.modules.components.EdgeNotes
 import qs.modules.components.Tuck
 import qs.modules.components.Spotlight
 import qs.modules.components.Bar
+import qs.modules.components.Bar.editor
 import qs.modules.components.custom
 import qs.modules.services
 import qs.modules.settings
 
-ShellRoot{
+ShellRoot {
     readonly property bool soundFxOn: Features.soundFx && ServiceSoundFx.enabled
 
-    DockServices{}
+    DockServices {}
 
-    LockSelector{}
+    LockSelector {}
 
-    Variants{
+    Variants {
         model: Quickshell.screens
-        delegate: Item{
+        delegate: Item {
             required property var modelData
-            Layout{
+            Layout {
                 id: screenLayout
                 screen: modelData
                 visible: !ServiceGameMode.hideBar
                 isPrimary: {
-                    const pm = SettingsConfig.general.primaryMonitor ?? ""
-                    if (pm === "") return true
+                    const pm = SettingsConfig.general.primaryMonitor ?? "";
+                    if (pm === "")
+                        return true;
                     // Failover: if the configured primary is disconnected, first screen takes over
-                    const primaryExists = Quickshell.screens.some(s => s.name === pm)
-                    if (!primaryExists) return modelData === Quickshell.screens[0]
-                    return modelData.name === pm
+                    const primaryExists = Quickshell.screens.some(s => s.name === pm);
+                    if (!primaryExists)
+                        return modelData === Quickshell.screens[0];
+                    return modelData.name === pm;
                 }
             }
         }
     }
 
-    LazyLoader { active: Features.books; BooksPanel {} }
+    LazyLoader {
+        active: Features.books
+        BooksPanel {}
+    }
 
-    AppLauncher{}
-    LazyLoader { active: Features.clipboard; ClipboardPocket {} }
-    SettingsPanel{}
-    QuickSettings{}
-    ToolsWidget{}
+    AppLauncher {}
+    LazyLoader {
+        active: Features.clipboard
+        ClipboardPocket {}
+    }
+    SettingsPanel {}
+    QuickSettings {}
+    ToolsWidget {}
 
-    Shutdown{}
-    Loader{
+    Shutdown {}
+    Loader {
         active: Features.visualiser && !ServiceGameMode.hideWidgets
         sourceComponent: Vis {}
     }
-    
 
-
-    Loader{
+    Loader {
         active: SettingsConfig.widgets.showWidgets ?? true
         onActiveChanged: if (!active) {
-            if (GlobalStates.widgetEditMode) GlobalStates.closeEdit()
-            GlobalStates.widgetTextFocus = false
-            GlobalStates.desktopCursorActive = false
+            if (GlobalStates.widgetEditMode)
+                GlobalStates.closeEdit();
+            GlobalStates.widgetTextFocus = false;
+            GlobalStates.desktopCursorActive = false;
         }
-        sourceComponent: WidgetScreen{
+        sourceComponent: WidgetScreen {
             visible: !ServiceGameMode.hideWidgets
         }
     }
 
     // Game mode confirmation pill — must outlive everything else it hides
-    GameModeToast{}
-
-
-
-
+    GameModeToast {}
 
     // Fullscreen area selector (replaces slurp for screenshot/recording area mode)
     AreaSelectorOverlay {}
@@ -127,9 +131,15 @@ ShellRoot{
     WallpaperLayer {}
     SplashCue {}
 
-    LazyLoader { active: Features.notes; EdgeNotes {} }
+    LazyLoader {
+        active: Features.notes
+        EdgeNotes {}
+    }
 
-    LazyLoader { active: Features.tuck; TuckTabs {} }
+    LazyLoader {
+        active: Features.tuck
+        TuckTabs {}
+    }
 
     Spotlight {}
 
@@ -140,5 +150,4 @@ ShellRoot{
 
     // Lock screen - responds to `loginctl lock-session`
     LockScreen {}
-
 }

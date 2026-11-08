@@ -1,3 +1,4 @@
+import "./items"
 import Quickshell
 import QtQuick
 import QtQuick.Shapes
@@ -548,7 +549,7 @@ Item {
                     width: slot.rawW
                     height: slot.rawH
                     transform: slot.upright ? [uprightM] : slot.sideways ? [sidewaysM] : []
-                    source: Qt.resolvedUrl(BarLayout.fileFor(slot.itemId))
+                    source: BarLayout.urlFor(slot.itemId)
 
                     Matrix4x4 {
                         id: uprightM

@@ -1,5 +1,6 @@
 pragma ComponentBehavior: Bound
 
+import "./editor"
 import QtQuick
 import QtQuick.Layouts
 import qs.modules.utils
@@ -15,8 +16,7 @@ Item {
     anchors.fill: parent
 
     readonly property var empties: lanes.host.surfaces.filter(s => s && s.visible && !s.present)
-    readonly property bool active: lanes.host.editing && !lanes.host.stage && !lanes.host.shelfOpen
-                                   && !lanes.host.drawerShown
+    readonly property bool active: lanes.host.editing && !lanes.host.stage && !lanes.host.shelfOpen && !lanes.host.drawerShown
     readonly property real thick: 36
 
     property Item popSurf: null
@@ -26,73 +26,74 @@ Item {
 
     function anchorName(surf, anchor) {
         if (surf && surf.vertical)
-            return anchor === "left" ? "top" : anchor === "right" ? "bottom" : "middle"
-        return anchor === "left" ? "left" : anchor === "right" ? "right" : "centre"
+            return anchor === "left" ? "top" : anchor === "right" ? "bottom" : "middle";
+        return anchor === "left" ? "left" : anchor === "right" ? "right" : "centre";
     }
 
     function edgeName(side) {
-        return side.charAt(0).toUpperCase() + side.slice(1)
+        return side.charAt(0).toUpperCase() + side.slice(1);
     }
 
     function laneRect(surf) {
-        const b = ServiceGaps.borderFor(surf.side)
+        const b = ServiceGaps.borderFor(surf.side);
         if (surf.vertical) {
-            const laneAt = side => lanes.empties.some(e => e.edge === side) ? ServiceGaps.borderFor(side) + 4 + lanes.thick : 0
-            const y0 = Math.max(surf.crossStart, laneAt("top")) + 8
-            const y1 = lanes.height - Math.max(surf.crossEnd, laneAt("bottom")) - 8
-            const x = surf.far ? lanes.width - b - 4 - lanes.thick : b + 4
-            return Qt.rect(x, y0, lanes.thick, Math.max(0, y1 - y0))
+            const laneAt = side => lanes.empties.some(e => e.edge === side) ? ServiceGaps.borderFor(side) + 4 + lanes.thick : 0;
+            const y0 = Math.max(surf.crossStart, laneAt("top")) + 8;
+            const y1 = lanes.height - Math.max(surf.crossEnd, laneAt("bottom")) - 8;
+            const x = surf.far ? lanes.width - b - 4 - lanes.thick : b + 4;
+            return Qt.rect(x, y0, lanes.thick, Math.max(0, y1 - y0));
         }
-        const x0 = surf.sideStart + 8
-        const x1 = lanes.width - surf.sideEnd - 8
-        const y = surf.far ? lanes.height - b - 4 - lanes.thick : b + 4
-        return Qt.rect(x0, y, Math.max(0, x1 - x0), lanes.thick)
+        const x0 = surf.sideStart + 8;
+        const x1 = lanes.width - surf.sideEnd - 8;
+        const y = surf.far ? lanes.height - b - 4 - lanes.thick : b + 4;
+        return Qt.rect(x0, y, Math.max(0, x1 - x0), lanes.thick);
     }
 
     function emptyBlock(surf, anchor) {
-        return BarLayout.allBlocks.find(b => b.edge === surf.edge && b.anchor === anchor && b.items.length === 0) ?? null
+        return BarLayout.allBlocks.find(b => b.edge === surf.edge && b.anchor === anchor && b.items.length === 0) ?? null;
     }
 
     function openPop(surf, anchor, from) {
-        const existing = lanes.emptyBlock(surf, anchor)
+        const existing = lanes.emptyBlock(surf, anchor);
         if (existing) {
-            lanes.pickParts(existing.id)
-            return
+            lanes.pickParts(existing.id);
+            return;
         }
-        lanes.popSurf = surf
-        lanes.popAnchor = anchor
-        lanes.popFrom = from
-        lanes.popShape = BarLayout.gapPresetOf(surf.edge)
+        lanes.popSurf = surf;
+        lanes.popAnchor = anchor;
+        lanes.popFrom = from;
+        lanes.popShape = BarLayout.gapPresetOf(surf.edge);
     }
 
     function closePop() {
-        lanes.popSurf = null
-        lanes.popAnchor = ""
+        lanes.popSurf = null;
+        lanes.popAnchor = "";
     }
 
     function pickParts(blockId) {
-        const e = lanes.host.editor
+        const e = lanes.host.editor;
         if (!e)
-            return
-        e.selectedItem = ""
-        e.selectedBlock = blockId
-        lanes.host.shelfOpen = true
+            return;
+        e.selectedItem = "";
+        e.selectedBlock = blockId;
+        lanes.host.shelfOpen = true;
     }
 
     function confirmPop() {
-        const surf = lanes.popSurf
-        const anchor = lanes.popAnchor
-        const shape = lanes.popShape
-        lanes.closePop()
+        const surf = lanes.popSurf;
+        const anchor = lanes.popAnchor;
+        const shape = lanes.popShape;
+        lanes.closePop();
         if (!surf)
-            return
+            return;
         if (shape !== "")
-            BarLayout.applyGapPreset(surf.edge, shape)
-        const id = BarLayout.addBlock(anchor, surf.edge)
-        Qt.callLater(() => lanes.pickParts(id))
+            BarLayout.applyGapPreset(surf.edge, shape);
+        const id = BarLayout.addBlock(anchor, surf.edge);
+        Qt.callLater(() => lanes.pickParts(id));
     }
 
-    onActiveChanged: if (!lanes.active) lanes.closePop()
+    onActiveChanged: if (!lanes.active)
+        lanes.closePop()
 
     Repeater {
         model: lanes.host.editing ? lanes.empties : []
@@ -105,28 +106,32 @@ Item {
             readonly property rect r: lanes.laneRect(lane.surf)
             readonly property var ed: lanes.host.editor
             readonly property string dropEdge: {
-                const e = lane.ed
+                const e = lane.ed;
                 if (!e || e.mode !== "item" || e.dropBlock === "")
-                    return ""
+                    return "";
                 if (e.dropBlock.indexOf("+") === 0)
-                    return e.dropBlock.slice(1).split(":")[0]
-                const b = BarLayout.blockById(e.dropBlock)
-                return b ? b.edge : ""
+                    return e.dropBlock.slice(1).split(":")[0];
+                const b = BarLayout.blockById(e.dropBlock);
+                return b ? b.edge : "";
             }
             readonly property string dropAnchor: {
-                const e = lane.ed
+                const e = lane.ed;
                 if (lane.dropEdge !== lane.surf.edge)
-                    return ""
+                    return "";
                 if (e.dropBlock.indexOf("+") === 0)
-                    return e.dropBlock.slice(1).split(":")[1] ?? ""
-                const b = BarLayout.blockById(e.dropBlock)
-                return b ? b.anchor : ""
+                    return e.dropBlock.slice(1).split(":")[1] ?? "";
+                const b = BarLayout.blockById(e.dropBlock);
+                return b ? b.anchor : "";
             }
             readonly property bool hot: lane.dropAnchor !== ""
             readonly property bool dragging: !!lane.ed && lane.ed.mode === "item"
             readonly property bool open: lane.dragging || laneHover.hovered || lanes.popSurf === lane.surf
             property real openT: lane.open ? 1 : 0
-            Behavior on openT { EffectsAnim { speed: "fast" } }
+            Behavior on openT {
+                EffectsAnim {
+                    speed: "fast"
+                }
+            }
 
             x: lane.r.x
             y: lane.r.y
@@ -138,9 +143,15 @@ Item {
             border.color: Qt.alpha(Colors.primary, (lane.hot ? 1 : 0.55) * lane.openT)
             opacity: lanes.active || lane.dragging ? 1 : 0
             visible: opacity > 0.01
-            Behavior on opacity { EffectsAnim { speed: "fast" } }
+            Behavior on opacity {
+                EffectsAnim {
+                    speed: "fast"
+                }
+            }
 
-            HoverHandler { id: laneHover }
+            HoverHandler {
+                id: laneHover
+            }
 
             MouseArea {
                 anchors.fill: parent
@@ -166,8 +177,7 @@ Item {
                 anchors.verticalCenter: parent.verticalCenter
                 width: Math.max(0, lane.width / 2 - 120 - 80)
                 elide: Text.ElideRight
-                content: lane.dragging ? "Drop here to start the " + lane.surf.edge + " edge"
-                    : lanes.edgeName(lane.surf.edge) + " edge is empty · drag an item here or add a block"
+                content: lane.dragging ? "Drop here to start the " + lane.surf.edge + " edge" : lanes.edgeName(lane.surf.edge) + " edge is empty · drag an item here or add a block"
                 size: 12
                 weight: 500
                 customColor: Colors.primary
@@ -182,11 +192,8 @@ Item {
                     required property string modelData
                     readonly property string anchorKey: slotBtn.modelData
                     readonly property var waiting: lanes.emptyBlock(lane.surf, slotBtn.anchorKey)
-                    readonly property bool lit: lane.dropAnchor === slotBtn.anchorKey
-                        || (lanes.popSurf === lane.surf && lanes.popAnchor === slotBtn.anchorKey)
-                    readonly property real along: slotBtn.anchorKey === "left" ? 4
-                        : slotBtn.anchorKey === "right" ? (lane.surf.vertical ? lane.height : lane.width) - 4 - slotBtn.alongSize
-                        : ((lane.surf.vertical ? lane.height : lane.width) - slotBtn.alongSize) / 2
+                    readonly property bool lit: lane.dropAnchor === slotBtn.anchorKey || (lanes.popSurf === lane.surf && lanes.popAnchor === slotBtn.anchorKey)
+                    readonly property real along: slotBtn.anchorKey === "left" ? 4 : slotBtn.anchorKey === "right" ? (lane.surf.vertical ? lane.height : lane.width) - 4 - slotBtn.alongSize : ((lane.surf.vertical ? lane.height : lane.width) - slotBtn.alongSize) / 2
                     readonly property real alongSize: lane.surf.vertical ? 28 : btnRow.implicitWidth + 20
 
                     x: lane.surf.vertical ? 4 : slotBtn.along
@@ -196,14 +203,14 @@ Item {
                     width: lane.surf.vertical ? 28 : slotBtn.alongSize
                     height: 28
                     radius: 14
-                    color: slotBtn.lit ? Colors.primary
-                        : btnArea.containsMouse ? Colors.primaryContainer
-                        : slotBtn.waiting ? Colors.secondaryContainer : Colors.surfaceContainer
-                    Behavior on color { EffectsColorAnim { speed: "fast" } }
+                    color: slotBtn.lit ? Colors.primary : btnArea.containsMouse ? Colors.primaryContainer : slotBtn.waiting ? Colors.secondaryContainer : Colors.surfaceContainer
+                    Behavior on color {
+                        EffectsColorAnim {
+                            speed: "fast"
+                        }
+                    }
 
-                    readonly property color ink: slotBtn.lit ? Colors.primaryText
-                        : btnArea.containsMouse ? Colors.primaryContainerText
-                        : slotBtn.waiting ? Colors.secondaryContainerText : Colors.primary
+                    readonly property color ink: slotBtn.lit ? Colors.primaryText : btnArea.containsMouse ? Colors.primaryContainerText : slotBtn.waiting ? Colors.secondaryContainerText : Colors.primary
 
                     RowLayout {
                         id: btnRow
@@ -217,8 +224,7 @@ Item {
                         }
                         CustomText {
                             visible: !lane.surf.vertical
-                            content: slotBtn.waiting ? "Empty block · add parts" : lanes.anchorName(lane.surf, slotBtn.anchorKey).charAt(0).toUpperCase()
-                                + lanes.anchorName(lane.surf, slotBtn.anchorKey).slice(1)
+                            content: slotBtn.waiting ? "Empty block · add parts" : lanes.anchorName(lane.surf, slotBtn.anchorKey).charAt(0).toUpperCase() + lanes.anchorName(lane.surf, slotBtn.anchorKey).slice(1)
                             size: 12
                             weight: 600
                             customColor: slotBtn.ink
@@ -230,13 +236,11 @@ Item {
                         anchors.fill: parent
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
-                        onClicked: lanes.openPop(lane.surf, slotBtn.anchorKey,
-                                                 slotBtn.mapToItem(lanes, 0, 0, slotBtn.width, slotBtn.height))
+                        onClicked: lanes.openPop(lane.surf, slotBtn.anchorKey, slotBtn.mapToItem(lanes, 0, 0, slotBtn.width, slotBtn.height))
                     }
 
                     CustomToolTip {
-                        content: slotBtn.waiting ? "Empty block · add parts"
-                            : "Add a block at the " + lanes.anchorName(lane.surf, slotBtn.anchorKey) + " of the " + lane.surf.edge + " edge"
+                        content: slotBtn.waiting ? "Empty block · add parts" : "Add a block at the " + lanes.anchorName(lane.surf, slotBtn.anchorKey) + " of the " + lane.surf.edge + " edge"
                         visible: btnArea.containsMouse && lane.surf.vertical
                     }
                 }
@@ -269,14 +273,8 @@ Item {
         width: 360
         height: popCol.implicitHeight + 36
         radius: 28
-        x: Math.max(12, Math.min(lanes.width - pop.width - 12,
-            pop.side === "left" ? lanes.popFrom.x + lanes.popFrom.width + 18
-            : pop.side === "right" ? lanes.popFrom.x - pop.width - 18
-            : lanes.popFrom.x + lanes.popFrom.width / 2 - pop.width / 2))
-        y: Math.max(12, Math.min(lanes.height - pop.height - 12,
-            pop.side === "top" ? lanes.popFrom.y + lanes.popFrom.height + 18
-            : pop.side === "bottom" ? lanes.popFrom.y - pop.height - 18
-            : lanes.popFrom.y + lanes.popFrom.height / 2 - pop.height / 2))
+        x: Math.max(12, Math.min(lanes.width - pop.width - 12, pop.side === "left" ? lanes.popFrom.x + lanes.popFrom.width + 18 : pop.side === "right" ? lanes.popFrom.x - pop.width - 18 : lanes.popFrom.x + lanes.popFrom.width / 2 - pop.width / 2))
+        y: Math.max(12, Math.min(lanes.height - pop.height - 12, pop.side === "top" ? lanes.popFrom.y + lanes.popFrom.height + 18 : pop.side === "bottom" ? lanes.popFrom.y - pop.height - 18 : lanes.popFrom.y + lanes.popFrom.height / 2 - pop.height / 2))
         transform: Scale {
             origin.x: pop.width / 2
             origin.y: pop.side === "bottom" ? pop.height : 0
@@ -284,7 +282,9 @@ Item {
             yScale: 0.6 + 0.4 * pop.showT
         }
 
-        MouseArea { anchors.fill: parent }
+        MouseArea {
+            anchors.fill: parent
+        }
 
         ColumnLayout {
             id: popCol
@@ -323,12 +323,19 @@ Item {
                 }
             }
 
-            EditKit.SectionLabel { content: "Shape" }
+            EditKit.SectionLabel {
+                content: "Shape"
+            }
 
             EditTextChoice {
                 Layout.fillWidth: true
-                model: (lanes.popSurf && BarLayout.gapPresetOf(lanes.popSurf.edge) === ""
-                    ? [{ value: "", label: "As it is", desc: "Keep this edge's own gaps" }] : []).concat(BarLayout.gapPresetInfo)
+                model: (lanes.popSurf && BarLayout.gapPresetOf(lanes.popSurf.edge) === "" ? [
+                        {
+                            value: "",
+                            label: "As it is",
+                            desc: "Keep this edge's own gaps"
+                        }
+                    ] : []).concat(BarLayout.gapPresetInfo)
                 current: lanes.popShape
                 onPicked: v => lanes.popShape = v
             }

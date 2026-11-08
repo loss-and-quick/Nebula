@@ -1,3 +1,4 @@
+import "../Bar/music"
 import QtQuick
 import QtQuick.Layouts
 import qs.modules.utils
@@ -15,7 +16,10 @@ WidgetHost {
     turnable: true
     backdropRadius: Math.min(root.width, root.height) / 2
 
-    MusicNow { id: m; preview: root.preview }
+    MusicNow {
+        id: m
+        preview: root.preview
+    }
 
     WidgetCard {
         anchors.fill: parent
@@ -58,7 +62,10 @@ WidgetHost {
                 }
             }
 
-            Item { Layout.fillHeight: !root.turned; Layout.fillWidth: root.turned }
+            Item {
+                Layout.fillHeight: !root.turned
+                Layout.fillWidth: root.turned
+            }
 
             CustomText {
                 Layout.alignment: Qt.AlignCenter
@@ -68,7 +75,10 @@ WidgetHost {
                 customColor: m.playing ? Colors.primary : Colors.outline
             }
 
-            Item { Layout.fillHeight: !root.turned; Layout.fillWidth: root.turned }
+            Item {
+                Layout.fillHeight: !root.turned
+                Layout.fillWidth: root.turned
+            }
 
             MusicShapeButton {
                 Layout.alignment: Qt.AlignCenter
@@ -82,7 +92,10 @@ WidgetHost {
                 onTapped: m.previous()
             }
 
-            Item { Layout.fillHeight: !root.turned; Layout.fillWidth: root.turned }
+            Item {
+                Layout.fillHeight: !root.turned
+                Layout.fillWidth: root.turned
+            }
 
             MusicShapeButton {
                 Layout.alignment: Qt.AlignCenter
@@ -97,7 +110,10 @@ WidgetHost {
                 onTapped: m.toggle()
             }
 
-            Item { Layout.fillHeight: !root.turned; Layout.fillWidth: root.turned }
+            Item {
+                Layout.fillHeight: !root.turned
+                Layout.fillWidth: root.turned
+            }
 
             MusicShapeButton {
                 Layout.alignment: Qt.AlignCenter
@@ -111,7 +127,10 @@ WidgetHost {
                 onTapped: m.next()
             }
 
-            Item { Layout.fillHeight: !root.turned; Layout.fillWidth: root.turned }
+            Item {
+                Layout.fillHeight: !root.turned
+                Layout.fillWidth: root.turned
+            }
 
             MusicIconToggle {
                 Layout.alignment: Qt.AlignCenter

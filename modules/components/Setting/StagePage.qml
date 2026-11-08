@@ -15,8 +15,7 @@ Item {
     default property alias content: column.data
 
     readonly property bool lazy: !!(page.parent && page.parent.isStageLazy)
-    readonly property Item view: page.parent && page.parent.isStageView ? page.parent
-        : page.lazy && page.parent.view ? page.parent.view : null
+    readonly property Item view: page.parent && page.parent.isStageView ? page.parent : page.lazy && page.parent.view ? page.parent.view : null
     readonly property int depth: page.view ? page.view.depthOf(page.stageId) : 0
     readonly property bool active: page.depth === 0
     readonly property bool isFront: page.stageId === "front"
@@ -37,7 +36,9 @@ Item {
     Behavior on x {
         enabled: page.settled
         SequentialAnimation {
-            PauseAnimation { duration: page.active ? M3Motion.effects.fastDuration : 0 }
+            PauseAnimation {
+                duration: page.active ? M3Motion.effects.fastDuration : 0
+            }
             NumberAnimation {
                 duration: page.active ? 380 : M3Motion.effects.fastDuration
                 easing.type: Easing.BezierSpline
@@ -49,7 +50,9 @@ Item {
     Behavior on opacity {
         enabled: page.settled
         SequentialAnimation {
-            PauseAnimation { duration: page.active ? M3Motion.effects.fastDuration : 0 }
+            PauseAnimation {
+                duration: page.active ? M3Motion.effects.fastDuration : 0
+            }
             NumberAnimation {
                 duration: page.active ? M3Motion.effects.slowDuration : M3Motion.effects.fastDuration
                 easing.type: Easing.BezierSpline
@@ -60,14 +63,14 @@ Item {
 
     Component.onCompleted: {
         if (!page.lazy || !page.active) {
-            page.settled = true
-            return
+            page.settled = true;
+            return;
         }
-        page.x = 56
-        page.opacity = 0
-        page.settled = true
-        page.x = Qt.binding(() => page.depth < 0 ? -40 : page.depth > 0 ? 56 : 0)
-        page.opacity = Qt.binding(() => page.active ? 1 : 0)
+        page.x = 56;
+        page.opacity = 0;
+        page.settled = true;
+        page.x = Qt.binding(() => page.depth < 0 ? -40 : page.depth > 0 ? 56 : 0);
+        page.opacity = Qt.binding(() => page.active ? 1 : 0);
     }
 
     RowLayout {
@@ -84,7 +87,8 @@ Item {
             icon: "arrow_back"
             iconSize: 22
             tip: "Back"
-            onClicked: if (page.view) page.view.back()
+            onClicked: if (page.view)
+                page.view.back()
         }
 
         CustomText {
@@ -119,7 +123,7 @@ Item {
             id: column
             x: Math.round((flick.width - width) / 2)
             y: 6
-            width: Math.min(page.maxWidth, flick.width - 10)
+            width: Math.max(0, Math.min(page.maxWidth, flick.width - 16))
             spacing: 3
         }
     }

@@ -6,6 +6,7 @@ import qs.modules.components.custom
 CustomCard {
     id: row
 
+    readonly property bool isCompact: row.width > 0 && row.width < 440
     property string icon: ""
     property string title: ""
     property string subtitle: ""
@@ -23,22 +24,22 @@ CustomCard {
     default property alias trailing: trail.data
     property alias below: belowCol.data
 
-    signal clicked()
+    signal clicked
 
     function stageView() {
-        let p = row.parent
+        let p = row.parent;
         while (p && !p.isStageView)
-            p = p.parent
-        return p
+            p = p.parent;
+        return p;
     }
 
     function activate() {
         if (row.target !== "") {
-            const v = row.stageView()
+            const v = row.stageView();
             if (v)
-                v.push(row.target)
+                v.push(row.target);
         }
-        row.clicked()
+        row.clicked();
     }
 
     color: "transparent"
@@ -51,7 +52,7 @@ CustomCard {
         RowLayout {
             Layout.fillWidth: true
             Layout.minimumHeight: 40
-            spacing: 14
+            spacing: row.isCompact ? 8 : 14
 
             Rectangle {
                 visible: row.icon !== ""
@@ -65,8 +66,7 @@ CustomCard {
                     content: row.icon
                     iconSize: 21
                     fill: 1
-                    customColor: row.tonal ? Colors.primaryText
-                        : row.danger ? Colors.error : Colors.primary
+                    customColor: row.tonal ? Colors.primaryText : row.danger ? Colors.error : Colors.primary
                 }
 
                 Rectangle {
@@ -130,8 +130,7 @@ CustomCard {
                     content: row.title
                     size: 14
                     elide: Text.ElideRight
-                    customColor: row.danger ? Colors.error
-                        : row.tonal ? Colors.primaryContainerText : Colors.surfaceText
+                    customColor: row.danger ? Colors.error : row.tonal ? Colors.primaryContainerText : Colors.surfaceText
                 }
 
                 CustomText {
@@ -146,7 +145,7 @@ CustomCard {
 
             CustomText {
                 visible: row.value !== ""
-                Layout.maximumWidth: 260
+                Layout.maximumWidth: row.isCompact ? 120 : 260
                 content: row.value
                 size: 13
                 elide: Text.ElideRight

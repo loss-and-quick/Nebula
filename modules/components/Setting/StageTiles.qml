@@ -10,14 +10,14 @@ GridLayout {
     signal tileClicked(var tile)
 
     function stageView() {
-        let p = grid.parent
+        let p = grid.parent;
         while (p && !p.isStageView)
-            p = p.parent
-        return p
+            p = p.parent;
+        return p;
     }
 
     Layout.fillWidth: true
-    columns: 2
+    columns: grid.width > 0 && grid.width < 460 ? 1 : 2
     columnSpacing: 8
     rowSpacing: 8
 
@@ -48,7 +48,9 @@ GridLayout {
                     customColor: tile.tonal ? Colors.primaryContainerText : Colors.primary
                 }
 
-                Item { Layout.fillHeight: true }
+                Item {
+                    Layout.fillHeight: true
+                }
 
                 CustomText {
                     Layout.fillWidth: true
@@ -73,13 +75,13 @@ GridLayout {
                 anchors.fill: parent
                 radius: tile.radius
                 onClicked: {
-                    const target = tile.modelData.target ?? ""
+                    const target = tile.modelData.target ?? "";
                     if (target !== "") {
-                        const v = grid.stageView()
+                        const v = grid.stageView();
                         if (v)
-                            v.push(target)
+                            v.push(target);
                     }
-                    grid.tileClicked(tile.modelData)
+                    grid.tileClicked(tile.modelData);
                 }
             }
         }

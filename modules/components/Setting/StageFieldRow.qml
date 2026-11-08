@@ -15,18 +15,18 @@ StageRow {
     property bool allowEmpty: false
     readonly property alias typed: input.text
     signal submitted(string text)
-    signal accepted()
+    signal accepted
 
     function clear() {
-        input.text = ""
+        input.text = "";
     }
 
     function focusField() {
-        input.forceActiveFocus()
+        input.forceActiveFocus();
     }
 
     Rectangle {
-        Layout.preferredWidth: row.fieldWidth
+        Layout.preferredWidth: row.width > 0 && row.width < 440 ? Math.min(row.fieldWidth, Math.max(130, row.width * 0.45)) : row.fieldWidth
         Layout.preferredHeight: 36
         radius: 12
         color: Colors.surfaceContainerHighest
@@ -61,9 +61,9 @@ StageRow {
                 verticalAlignment: TextInput.AlignVCenter
                 onAccepted: row.accepted()
                 onEditingFinished: {
-                    const t = input.text.trim()
+                    const t = input.text.trim();
                     if ((t.length > 0 || row.allowEmpty) && t !== row.text)
-                        row.submitted(t)
+                        row.submitted(t);
                 }
 
                 CustomText {

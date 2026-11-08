@@ -12,25 +12,27 @@ StageRow {
     signal picked(var value)
 
     function labelOf(o) {
-        return o.label ?? String(o.value)
+        return o.label ?? String(o.value);
     }
 
-    readonly property var items: row.options.map(o => ({ name: row.labelOf(o) }))
+    readonly property var items: row.options.map(o => ({
+                name: row.labelOf(o)
+            }))
     readonly property string currentLabel: {
-        const o = row.options.find(o => String(o.value) === String(row.current))
-        return o ? row.labelOf(o) : ""
+        const o = row.options.find(o => String(o.value) === String(row.current));
+        return o ? row.labelOf(o) : "";
     }
 
     CustomDropdown {
-        Layout.preferredWidth: row.dropdownWidth
+        Layout.preferredWidth: row.width > 0 && row.width < 440 ? Math.min(row.dropdownWidth, Math.max(120, row.width * 0.42)) : row.dropdownWidth
         Layout.preferredHeight: 32
         color: Colors.surfaceContainerHighest
         currentVal: row.currentLabel
         list: row.items
         onListChildClicked: child => {
-            const o = row.options.find(o => row.labelOf(o) === child?.name)
+            const o = row.options.find(o => row.labelOf(o) === child?.name);
             if (o && String(o.value) !== String(row.current))
-                row.picked(o.value)
+                row.picked(o.value);
         }
     }
 }

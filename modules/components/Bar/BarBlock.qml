@@ -372,6 +372,16 @@ Item {
     property string hoverKind: ""
     property string lastKind: ""
     property string shownKind: ""
+    property bool opening: false
+    property string pendingRevealKind: ""
+    readonly property var pendingRevealSlot: barBlock.pendingRevealKind === "" ? null
+        : slotA.kind === barBlock.pendingRevealKind ? slotA : slotB
+    readonly property int pendingRevealStatus: barBlock.pendingRevealSlot ? barBlock.pendingRevealSlot.status : Loader.Null
+    onPendingRevealStatusChanged: {
+        if (barBlock.pendingRevealKind === "" || barBlock.pendingRevealStatus !== Loader.Ready)
+            return
+        barBlock.commitReveal(barBlock.pendingRevealKind)
+    }
     property int curSlot: 0
     readonly property Item curSlotItem: barBlock.curSlot === 0 ? slotA : slotB
     property string openerId: ""
@@ -1094,6 +1104,12 @@ Item {
         onTriggered: barBlock.gliding = false
     }
 
+    Timer {
+        id: revealFallback
+        interval: 150
+        onTriggered: barBlock.commitReveal(barBlock.pendingRevealKind)
+    }
+
     function handoffSource() {
         const f = barBlock.frame
         if (!f || !f.visibleBlocks)
@@ -1186,7 +1202,7 @@ Item {
     readonly property real tabH: Math.max(barBlock.barH, barBlock.tabHRaw)
     property real tabHRaw: 0
     Behavior on tabX {
-        enabled: !barBlock.resizing
+        enabled: !barBlock.resizing && barBlock.state === "open" && !openTrans.running && !closeTrans.running
         NumberAnimation {
             id: tabXAnim
             duration: barBlock.spanDuration
@@ -1196,7 +1212,7 @@ Item {
         }
     }
     Behavior on tabW {
-        enabled: !barBlock.resizing
+        enabled: !barBlock.resizing && barBlock.state === "open" && !openTrans.running && !closeTrans.running
         NumberAnimation {
             id: tabWAnim
             duration: barBlock.spanDuration
@@ -1206,7 +1222,7 @@ Item {
         }
     }
     Behavior on tabHRaw {
-        enabled: !barBlock.resizing && !barBlock.followLock
+        enabled: !barBlock.resizing && !barBlock.followLock && barBlock.state === "open" && !openTrans.running && !closeTrans.running
         NumberAnimation {
             id: tabHAnim
             duration: barBlock.dropDuration
@@ -1480,7 +1496,7 @@ Item {
         const k = barBlock.panelKind
         if (k === "" && barBlock.shownKind !== "")
             barBlock.closedAt = Date.now()
-        const opening = k !== "" && !barBlock.tabOpen
+        barBlock.opening = k !== "" && !barBlock.tabOpen
         barBlock.motionClosing = k === ""
         if (k === "launcher") {
             barBlock.resyncSource()
@@ -1508,22 +1524,22 @@ Item {
             barBlock.lastKind = k
         barBlock.stopFollow()
         barBlock.panelSwap = k !== "" && barBlock.shownKind !== ""
+        barBlock.pendingRevealKind = ""
         if (k !== "") {
-            if (opening) {
-                barBlock.handFor = k
-                barBlock.tryHandoff()
+            const targetSlot = barBlock.prepareContent(k)
+            if (targetSlot.status === Loader.Ready) {
+                barBlock.commitReveal(k)
+            } else {
+                barBlock.pendingRevealKind = k
+                revealFallback.restart()
             }
-            barBlock.prepareContent(k)
-            barBlock.openAlong = barBlock.alongOf(k)
-            barBlock.openAcross = barBlock.acrossOf(k)
-            barBlock.openLocked = true
         } else {
             barBlock.gliding = false
             barBlock.openLocked = false
+            barBlock.shownKind = ""
+            barBlock.gooSnap = false
+            barBlock.showContent("")
         }
-        barBlock.shownKind = k
-        barBlock.gooSnap = false
-        barBlock.showContent(k)
     }
 
     function itemOf(k) {
@@ -1575,10 +1591,30 @@ Item {
     function prepareContent(k) {
         const cur = barBlock.curSlot === 0 ? slotA : slotB
         const other = barBlock.curSlot === 0 ? slotB : slotA
-        if (cur.kind === k || other.kind === k)
-            return
+        if (cur.kind === k)
+            return cur
+        if (other.kind === k)
+            return other
         const target = cur.kind === "" || (!cur.shown && cur.opacity < 0.02) ? cur : other
         target.kind = k
+        return target
+    }
+
+    function commitReveal(k) {
+        barBlock.pendingRevealKind = ""
+        revealFallback.stop()
+        if (barBlock.panelKind !== k)
+            return
+        if (barBlock.opening) {
+            barBlock.handFor = k
+            barBlock.tryHandoff()
+        }
+        barBlock.openAlong = barBlock.alongOf(k)
+        barBlock.openAcross = barBlock.acrossOf(k)
+        barBlock.openLocked = true
+        barBlock.shownKind = k
+        barBlock.gooSnap = false
+        barBlock.showContent(k)
     }
 
     function showContent(k) {

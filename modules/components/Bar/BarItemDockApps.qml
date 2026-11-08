@@ -1,4 +1,5 @@
 import Quickshell
+import Quickshell.Wayland
 import QtQuick
 import qs.modules.utils
 import qs.modules.services
@@ -16,11 +17,14 @@ Item {
     readonly property bool dimmed: BarLayout.opt(root.itemId, "dim") === true
 
     readonly property var model: {
-        const all = ServiceApps.dockModel
-        if (root.showMode === "pinned")   return all.filter(e => !!e.pinned)
-        if (root.showMode === "unpinned") return all.filter(e => !e.pinned)
-        if (root.showMode === "idle")     return all.filter(e => !!e.pinned && (e.toplevels?.length ?? 0) === 0)
-        return all
+        const all = ServiceApps.dockModel;
+        if (root.showMode === "pinned")
+            return all.filter(e => !!e.pinned);
+        if (root.showMode === "unpinned")
+            return all.filter(e => !e.pinned);
+        if (root.showMode === "idle")
+            return all.filter(e => !!e.pinned && (e.toplevels?.length ?? 0) === 0);
+        return all;
     }
     readonly property int entriesVersion: ServiceApps.list.length
     readonly property real icon: root.host && root.host.appIconSize ? root.host.appIconSize : 32
@@ -35,43 +39,57 @@ Item {
     property real gripW: root.editing ? 22 : 0
 
     readonly property var appRects: root.model.map((e, i) => ({
-        appId: e.appId ?? "",
-        pinned: !!e.pinned,
-        x: root.gripW + i * root.stride,
-        w: root.cell
-    }))
+                appId: e.appId ?? "",
+                pinned: !!e.pinned,
+                x: root.gripW + i * root.stride,
+                w: root.cell
+            }))
 
     readonly property QtObject editor: root.host && root.host.editor ? root.host.editor : null
     readonly property bool appDrag: !!root.editor && root.editor.mode === "app"
     readonly property int dragFrom: {
         if (!root.appDrag)
-            return -1
-        const want = root.editor.appId.toLowerCase()
-        return root.model.findIndex(e => (e.appId ?? "").toLowerCase() === want)
+            return -1;
+        const want = root.editor.appId.toLowerCase();
+        return root.model.findIndex(e => (e.appId ?? "").toLowerCase() === want);
     }
     readonly property int dropAt: root.appDrag ? root.editor.appDropIndex : -1
 
     function shiftFor(i) {
         if (root.dropAt < 0 || root.dragFrom < 0 || i === root.dragFrom)
-            return 0
-        let s = 0
-        let j = i
+            return 0;
+        let s = 0;
+        let j = i;
         if (i > root.dragFrom) {
-            s -= root.stride
-            j = i - 1
+            s -= root.stride;
+            j = i - 1;
         }
         if (j >= root.dropAt)
-            s += root.stride
-        return s
+            s += root.stride;
+        return s;
     }
 
     implicitWidth: root.vertical ? root.across : root.along
     implicitHeight: root.vertical ? root.along : root.across
+
+    HoverHandler {
+        id: dockAreaHover
+        onHoveredChanged: {
+            if (root.host && "dockHovered" in root.host)
+                root.host.dockHovered = hovered;
+        }
+    }
     opacity: root.dimmed && !root.editing ? 0.55 : 1
-    Behavior on opacity { EffectsAnim { speed: "fast" } }
+    Behavior on opacity {
+        EffectsAnim {
+            speed: "fast"
+        }
+    }
 
     Behavior on gripW {
-        SpatialAnim { speed: "fast" }
+        SpatialAnim {
+            speed: "fast"
+        }
     }
 
     Rectangle {
@@ -101,7 +119,7 @@ Item {
             required property int index
 
             readonly property bool isRunning: dockItem.modelData.toplevels.length > 0
-            readonly property bool isActive: dockItem.modelData.toplevels.some(t => t.activated)
+            readonly property bool isActive: ServiceApps.isAppActive(dockItem.modelData.appId, dockItem.modelData.toplevels)
             readonly property int winCount: Math.min(dockItem.modelData.toplevels.length, 3)
             readonly property bool pinned: !!dockItem.modelData.pinned
             readonly property bool offer: root.editing && !dockItem.pinned
@@ -124,10 +142,14 @@ Item {
                 x: root.vertical ? dockItem.lift : root.shiftFor(dockItem.index)
                 y: root.vertical ? root.shiftFor(dockItem.index) : dockItem.lift
                 Behavior on x {
-                    SpatialAnim { speed: "fast" }
+                    SpatialAnim {
+                        speed: "fast"
+                    }
                 }
                 Behavior on y {
-                    SpatialAnim { speed: "default" }
+                    SpatialAnim {
+                        speed: "default"
+                    }
                 }
             }
 
@@ -136,29 +158,30 @@ Item {
                 width: root.icon + 8
                 height: width
                 radius: root.host && root.host.isPill ? Math.max(0, root.host.pillRadius - (root.host.barH - width) / 2) : 10
-                color: dockIconArea.containsMouse
-                    ? Colors.primaryContainer
-                    : dockItem.isActive
-                        ? Qt.alpha(Colors.primaryContainer, 0.45)
-                        : Qt.alpha(Colors.primaryContainer, 0)
-                Behavior on color { ColorAnimation { duration: 150 } }
+                color: dockIconArea.containsMouse ? Colors.primaryContainer : dockItem.isActive ? Qt.alpha(Colors.primaryContainer, 0.45) : Qt.alpha(Colors.primaryContainer, 0)
+                Behavior on color {
+                    ColorAnimation {
+                        duration: 150
+                    }
+                }
             }
 
             Image {
                 anchors.centerIn: parent
                 width: root.icon
                 height: width
-                source: root.entriesVersion >= 0
-                    ? IconUtil.themeIcon(DesktopEntries.heuristicLookup(dockItem.modelData.appId)?.icon, "image-missing")
-                    : ""
+                source: root.entriesVersion >= 0 ? IconUtil.themeIcon(ServiceApps.resolveApp(dockItem.modelData.appId)?.icon, "image-missing") : ""
                 sourceSize.width: 96
                 sourceSize.height: 96
                 smooth: true
                 mipmap: true
                 fillMode: Image.PreserveAspectFit
                 opacity: dockItem.offer ? 0.5 : 1
-                Behavior on opacity { EffectsAnim { speed: "fast" } }
-
+                Behavior on opacity {
+                    EffectsAnim {
+                        speed: "fast"
+                    }
+                }
             }
 
             Rectangle {
@@ -201,37 +224,56 @@ Item {
                 readonly property real len: dockItem.winCount === 1 ? 6 : dockItem.winCount === 2 ? 12 : 18
                 visible: dockItem.isRunning
                 x: !root.vertical ? (parent.width - width) / 2 : root.side === "left" ? 3 : parent.width - width - 3
-                y: root.vertical ? (parent.height - height) / 2
-                    : root.side === "top" ? 3 : parent.height - height - 3
+                y: root.vertical ? (parent.height - height) / 2 : root.side === "top" ? 3 : parent.height - height - 3
                 width: root.vertical ? 4 : len
                 height: root.vertical ? len : 4
                 radius: 2
                 color: dockItem.isActive ? Colors.primary : Qt.alpha(Colors.primary, 0.45)
 
-                Behavior on width { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
-                Behavior on height { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
-                Behavior on color { ColorAnimation { duration: 150 } }
+                Behavior on width {
+                    NumberAnimation {
+                        duration: 200
+                        easing.type: Easing.OutCubic
+                    }
+                }
+                Behavior on height {
+                    NumberAnimation {
+                        duration: 200
+                        easing.type: Easing.OutCubic
+                    }
+                }
+                Behavior on color {
+                    ColorAnimation {
+                        duration: 150
+                    }
+                }
             }
 
             MouseArea {
                 id: dockIconArea
                 anchors.fill: parent
+                anchors.rightMargin: (dockItem.index === root.model.length - 1 || root.vertical) ? 0 : -2
+                anchors.bottomMargin: (dockItem.index === root.model.length - 1 || !root.vertical) ? 0 : -2
                 acceptedButtons: Qt.LeftButton | Qt.RightButton
                 cursorShape: Qt.PointingHandCursor
                 hoverEnabled: true
 
-                onEntered: if (root.host && root.host.appEntered) root.host.appEntered(dockItem.modelData, dockItem)
-                onExited: if (root.host && root.host.appExited) root.host.appExited()
+                onEntered: if (root.host && root.host.appEntered)
+                    root.host.appEntered(dockItem.modelData, dockItem)
+                onExited: if (root.host && root.host.appExited)
+                    root.host.appExited()
                 Component.onDestruction: dockIconArea.hoverEnabled = false
 
                 onClicked: mouse => {
                     if (mouse.button === Qt.LeftButton) {
+                        if (root.host && root.host.closePanel)
+                            root.host.closePanel();
                         if (dockItem.modelData.toplevels.length > 0)
-                            dockItem.modelData.toplevels[0].activate()
+                            dockItem.modelData.toplevels[0].activate();
                         else
-                            ServiceApps.launch(dockItem.modelData.appId)
+                            ServiceApps.launch(dockItem.modelData.appId);
                     } else if (root.host && root.host.appMenu) {
-                        root.host.appMenu(dockItem.modelData, dockItem)
+                        root.host.appMenu(dockItem.modelData, dockItem);
                     }
                 }
             }

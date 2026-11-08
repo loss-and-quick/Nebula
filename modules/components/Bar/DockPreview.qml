@@ -4,6 +4,7 @@ import QtQuick.Layouts
 import qs.modules.components.custom
 import qs.modules.utils
 import qs.modules.settings
+import qs.modules.services
 
 Item {
     id: root
@@ -14,7 +15,14 @@ Item {
     readonly property int maxRows: 8
 
     property var appEntry: null
-    property real maxWidth: 100000
+    readonly property string appId: root.appEntry?.appId ?? ""
+    readonly property var desktopApp: root.appId.length > 0 ? ServiceApps.resolveApp(root.appId) : null
+    readonly property string appName: root.desktopApp?.name ?? root.appId
+    readonly property string appIcon: root.desktopApp?.icon ?? ""
+    readonly property bool ready: root.appEntry !== null && root.appId.length > 0
+    property var anchorItem: null
+    property real maxWidth: 300
+    readonly property real shownHeight: root.ready ? root.implicitHeight : 0
 
     signal activated
 
@@ -32,6 +40,7 @@ Item {
         anchors.fill: parent
         anchors.margins: root.layoutMargins
         spacing: 6
+        visible: root.ready
 
         RowLayout {
             Layout.fillWidth: true
@@ -43,9 +52,7 @@ Item {
             Image {
                 Layout.preferredWidth: 18
                 Layout.preferredHeight: 18
-                source: IconUtil.themeIcon(
-                    DesktopEntries.heuristicLookup(root.appEntry?.appId ?? "")?.icon,
-                    "image-missing")
+                source: IconUtil.themeIcon(root.appIcon, "image-missing")
                 sourceSize.width: 18
                 sourceSize.height: 18
                 fillMode: Image.PreserveAspectFit
@@ -53,8 +60,7 @@ Item {
 
             CustomText {
                 Layout.fillWidth: true
-                content: DesktopEntries.heuristicLookup(root.appEntry?.appId ?? "")?.name
-                         ?? root.appEntry?.appId ?? ""
+                content: root.appName
                 size: 12
                 weight: 700
                 elide: Text.ElideRight
@@ -87,17 +93,20 @@ Item {
                 width: ListView.view.width
                 height: root.rowHeight
                 radius: 12
-                color: row.focused ? Colors.surfaceContainerHighest
-                     : rowRipple.containsMouse ? Colors.surfaceContainerHigh : "transparent"
-                Behavior on color { EffectsColorAnim { speed: "fast" } }
+                color: row.focused ? Colors.surfaceContainerHighest : rowRipple.containsMouse ? Colors.surfaceContainerHigh : "transparent"
+                Behavior on color {
+                    EffectsColorAnim {
+                        speed: "fast"
+                    }
+                }
 
                 RippleEffect {
                     id: rowRipple
                     anchors.fill: parent
                     radius: 12
                     onClicked: {
-                        row.modelData.activate()
-                        root.activated()
+                        row.modelData.activate();
+                        root.activated();
                     }
                 }
 
@@ -117,7 +126,7 @@ Item {
 
                     CustomText {
                         Layout.fillWidth: true
-                        content: row.modelData.title || (DesktopEntries.heuristicLookup(root.appEntry?.appId ?? "")?.name ?? "")
+                        content: row.modelData.title || root.appName || "Window"
                         size: 12
                         weight: row.focused ? 600 : 500
                         elide: Text.ElideRight
@@ -130,7 +139,11 @@ Item {
                         radius: 14
                         color: closeRipple.containsMouse ? Colors.surfaceContainerHighest : "transparent"
                         opacity: rowRipple.containsMouse || closeRipple.containsMouse || row.focused ? 1 : 0
-                        Behavior on opacity { EffectsAnim { speed: "fast" } }
+                        Behavior on opacity {
+                            EffectsAnim {
+                                speed: "fast"
+                            }
+                        }
 
                         MaterialIconSymbol {
                             anchors.centerIn: parent

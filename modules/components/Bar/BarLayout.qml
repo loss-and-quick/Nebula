@@ -1470,11 +1470,18 @@ Singleton {
             }
         }
         if (model.count > ids.length) {
-            const targetCount = ids.length
-            Qt.callLater(() => {
-                while (model.count > targetCount)
-                    model.remove(model.count - 1)
-            })
+            let removed = false
+            while (model.count > ids.length) {
+                const id = model.get(model.count - 1)[role]
+                if (leaving && leaving[id]) {
+                    break
+                }
+                model.remove(model.count - 1)
+                removed = true
+            }
+            if (model.count > ids.length && !removed) {
+                // Trailing items are still animating out; slotGone will drop them.
+            }
         }
         for (let i = 0; i < model.count; i++) {
             const lv = !!(leaving && leaving[model.get(i)[role]])

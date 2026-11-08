@@ -69,7 +69,11 @@ Singleton{
         root.list = root._dedupe(Array.from(DesktopEntries.applications.values))
             .sort((a, b) => a.name.localeCompare(b.name))
     }
-    Component.onCompleted: root.rebuildList()
+    Component.onCompleted: {
+        root.rebuildList()
+        // Warm the fuzzy index in the background so the first keystroke is instant
+        Qt.callLater(root._ensurePrepared)
+    }
     Connections {
         target: DesktopEntries.applications
         function onValuesChanged() { listRebuild.restart() }
@@ -113,7 +117,7 @@ Singleton{
     property int selectedIndex: 0
 
 
-    // Computed on first fuzzy search rather than at singleton creation (229 apps × Fuzzy.prepare)
+    // Warmed eagerly at startup (see Component.onCompleted); falls back to lazy prep
     property var _preppedNames: null
 
     function _ensurePrepared() {

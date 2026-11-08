@@ -12,7 +12,7 @@ import qs.modules.components.NotifKit
 Item {
     id: root
 
-    signal moreClicked()
+    signal moreClicked
 
     readonly property int maxCards: Math.max(1, Math.min(5, SettingsConfig.notifications?.maxVisible ?? 3))
     readonly property bool grouped: SettingsConfig.notifications?.groupPopups ?? true
@@ -26,91 +26,104 @@ Item {
     property bool showOsd: false
 
     readonly property int hiddenCount: {
-        root.version
-        return Math.max(0, root.liveCount - root.cards.filter(c => !c.leaving).reduce((s, c) => s + c.items.length, 0))
+        root.version;
+        return Math.max(0, root.liveCount - root.cards.filter(c => !c.leaving).reduce((s, c) => s + c.items.length, 0));
     }
     readonly property int liveCount: ServiceNotification.popups.length
 
     implicitHeight: col.implicitHeight + 24
 
     function keyOf(n) {
-        return (n?.appName ?? "") + "|" + (n?.appIcon ?? "")
+        return (n?.appName ?? "") + "|" + (n?.appIcon ?? "");
     }
 
     function groupsNow() {
-        const live = [...ServiceNotification.popups].reverse()
-        const order = []
-        const map = {}
+        const live = [...ServiceNotification.popups].reverse();
+        const order = [];
+        const map = {};
         for (const n of live) {
-            const k = root.grouped ? root.keyOf(n) : (n.id + "@" + n.arrivalTimestamp)
+            const k = root.grouped ? root.keyOf(n) : (n.id + "@" + n.arrivalTimestamp);
             if (!map[k]) {
-                map[k] = { key: k, items: [], critical: false, latest: n.arrivalTimestamp }
-                order.push(k)
+                map[k] = {
+                    key: k,
+                    items: [],
+                    critical: false,
+                    latest: n.arrivalTimestamp
+                };
+                order.push(k);
             }
-            map[k].items.push(n)
+            map[k].items.push(n);
             if (n.isCritical)
-                map[k].critical = true
+                map[k].critical = true;
         }
-        const groups = order.map(k => map[k])
-        const pinned = groups.filter(g => g.critical).concat(groups.filter(g => !g.critical))
-        return pinned.slice(0, root.maxCards)
+        const groups = order.map(k => map[k]);
+        const pinned = groups.filter(g => g.critical).concat(groups.filter(g => !g.critical));
+        return pinned.slice(0, root.maxCards);
     }
 
     function sync() {
-        const want = root.groupsNow()
-        const old = {}
-        root.cards.forEach((c, i) => old[c.key] = { card: c, index: i })
-        const next = []
+        const want = root.groupsNow();
+        const old = {};
+        root.cards.forEach((c, i) => old[c.key] = {
+                card: c,
+                index: i
+            });
+        const next = [];
         for (const g of want) {
-            const prev = old[g.key]
-            const card = prev ? prev.card : { key: g.key, born: Date.now() }
-            card.items = g.items
-            card.critical = g.critical
-            card.leaving = false
-            next.push(card)
-            delete old[g.key]
+            const prev = old[g.key];
+            const card = prev ? prev.card : {
+                key: g.key,
+                born: Date.now()
+            };
+            card.items = g.items;
+            card.critical = g.critical;
+            card.leaving = false;
+            next.push(card);
+            delete old[g.key];
         }
         for (const k of Object.keys(old)) {
-            const o = old[k]
+            const o = old[k];
             if (o.card.items.length === 0)
-                continue
-            o.card.leaving = true
-            next.splice(Math.min(o.index, next.length), 0, o.card)
+                continue;
+            o.card.leaving = true;
+            next.splice(Math.min(o.index, next.length), 0, o.card);
         }
-        root.cards = next
-        root.version++
+        root.cards = next;
+        root.version++;
     }
 
     function finishLeave(card) {
         if (!card.leaving)
-            return
-        root.cards = root.cards.filter(c => c !== card)
-        root.version++
+            return;
+        root.cards = root.cards.filter(c => c !== card);
+        root.version++;
     }
 
     function dismissCard(card) {
         for (const n of card.items)
-            n.popup = false
+            n.popup = false;
     }
 
     function openCard(card) {
-        const n = card.items[0]
+        const n = card.items[0];
         if (!n)
-            return
-        const d = (n.notification?.actions ?? []).find(a => a.identifier === "default")
+            return;
+        const d = (n.notification?.actions ?? []).find(a => a.identifier === "default");
         if (d)
-            d.invoke()
-        root.dismissCard(card)
+            d.invoke();
+        root.dismissCard(card);
     }
 
     Connections {
         target: ServiceNotification
-        function onPopupsChanged() { root.sync() }
+        function onPopupsChanged() {
+            root.sync();
+        }
     }
 
     Component.onCompleted: {
-        root.sync()
-        readyTimer.start()
+        root.sync();
+        readyTimer.start();
     }
 
     Timer {
@@ -119,7 +132,9 @@ Item {
         onTriggered: root.ready = true
     }
 
-    HoverHandler { id: hov }
+    HoverHandler {
+        id: hov
+    }
 
     Binding {
         target: ServiceNotification
@@ -130,7 +145,12 @@ Item {
 
     ColumnLayout {
         id: col
-        anchors { left: parent.left; right: parent.right; top: parent.top; margins: 12 }
+        anchors {
+            left: parent.left
+            right: parent.right
+            top: parent.top
+            margins: 12
+        }
         spacing: 0
 
         Loader {
@@ -139,11 +159,15 @@ Item {
             Layout.fillWidth: true
             Layout.preferredHeight: active ? 48 : 0
             Layout.bottomMargin: active ? 8 : 0
-            sourceComponent: OsdContent { pad: 0 }
+            sourceComponent: OsdContent {
+                pad: 0
+            }
         }
 
         Repeater {
-            model: ScriptModel { values: root.cards }
+            model: ScriptModel {
+                values: root.cards
+            }
             delegate: PopupCard {}
         }
 
@@ -154,7 +178,11 @@ Item {
             Layout.preferredHeight: 32
             radius: 16
             color: moreMa.containsMouse ? Colors.surfaceContainer : Qt.alpha(Colors.surfaceContainer, 0)
-            Behavior on color { EffectsColorAnim { speed: "fast" } }
+            Behavior on color {
+                EffectsColorAnim {
+                    speed: "fast"
+                }
+            }
 
             CustomText {
                 anchors.centerIn: parent
@@ -181,13 +209,25 @@ Item {
         required property int index
 
         readonly property var card: pc.modelData
-        readonly property var items: { root.version; return pc.card.items ?? [] }
+        readonly property var items: {
+            root.version;
+            return pc.card.items ?? [];
+        }
         readonly property var lead: pc.items.length > 0 ? pc.items[0] : null
         readonly property bool multi: pc.items.length > 1
-        readonly property bool critical: { root.version; return pc.card.critical === true }
+        readonly property bool critical: {
+            root.version;
+            return pc.card.critical === true;
+        }
         readonly property bool sticky: pc.critical && root.urgentSticky
-        readonly property bool leavingNow: { root.version; return pc.card.leaving === true }
-        readonly property bool isTop: { root.version; return root.cards.find(c => !c.leaving) === pc.card }
+        readonly property bool leavingNow: {
+            root.version;
+            return pc.card.leaving === true;
+        }
+        readonly property bool isTop: {
+            root.version;
+            return root.cards.find(c => !c.leaving) === pc.card;
+        }
         readonly property string imageSrc: IconUtil.imageSource(pc.lead?.image)
         readonly property bool hasImage: pc.imageSrc !== "" && !pc.imageSrc.startsWith("image://icon/")
         readonly property var acts: (pc.lead?.actions ?? []).slice(0, 3)
@@ -206,27 +246,70 @@ Item {
         Layout.preferredHeight: cardRect.height * pc.keep
         clip: pc.keep < 0.999
 
-        Component.onCompleted: if (root.ready && root.cards.some(c => c !== pc.card && !c.leaving)) enterFx.start()
-        onLeavingNowChanged: if (pc.leavingNow) exitFx.start()
+        Component.onCompleted: if (root.ready && root.cards.some(c => c !== pc.card && !c.leaving))
+            enterFx.start()
+        onLeavingNowChanged: if (pc.leavingNow)
+            exitFx.start()
 
         ParallelAnimation {
             id: enterFx
-            NumberAnimation { target: pc; property: "keep"; from: 0; to: 1; duration: 420; easing.type: Easing.BezierSpline; easing.bezierCurve: M3Motion.panel.openCurve }
-            NumberAnimation { target: pc; property: "lift"; from: -14; to: 0; duration: 420; easing.type: Easing.BezierSpline; easing.bezierCurve: M3Motion.panel.openCurve }
-            NumberAnimation { target: pc; property: "fade"; from: 0; to: 1; duration: 260; easing.type: Easing.OutCubic }
+            NumberAnimation {
+                target: pc
+                property: "keep"
+                from: 0
+                to: 1
+                duration: M3Motion.spatialDuration("move")
+                easing.type: Easing.BezierSpline
+                easing.bezierCurve: M3Motion.panel.openCurve
+            }
+            NumberAnimation {
+                target: pc
+                property: "lift"
+                from: -14
+                to: 0
+                duration: M3Motion.spatialDuration("move")
+                easing.type: Easing.BezierSpline
+                easing.bezierCurve: M3Motion.panel.openCurve
+            }
+            EffectsAnim {
+                target: pc
+                property: "fade"
+                from: 0
+                to: 1
+                speed: "default"
+            }
         }
 
         SequentialAnimation {
             id: exitFx
             ParallelAnimation {
-                NumberAnimation { target: pc; property: "fade"; to: 0; duration: 180; easing.type: Easing.InCubic }
-                NumberAnimation { target: pc; property: "slide"; to: pc.slide === 0 ? 24 : Math.sign(pc.slide) * (pc.width + 40); duration: 180; easing.type: Easing.InCubic }
+                EffectsAnim {
+                    target: pc
+                    property: "fade"
+                    to: 0
+                    speed: "fast"
+                }
+                NumberAnimation {
+                    target: pc
+                    property: "slide"
+                    to: pc.slide === 0 ? 24 : Math.sign(pc.slide) * (pc.width + 40)
+                    duration: M3Motion.effects.fastDuration
+                    easing.type: Easing.BezierSpline
+                    easing.bezierCurve: M3Motion.panel.closeCurve
+                }
             }
-            NumberAnimation { target: pc; property: "keep"; to: 0; duration: 240; easing.type: Easing.OutCubic }
+            NumberAnimation {
+                target: pc
+                property: "keep"
+                to: 0
+                duration: M3Motion.effects.defaultDuration
+                easing.type: Easing.BezierSpline
+                easing.bezierCurve: M3Motion.panel.closeCurve
+            }
             ScriptAction {
                 script: {
-                    const c = pc.card
-                    root.finishLeave(c)
+                    const c = pc.card;
+                    root.finishLeave(c);
                 }
             }
         }
@@ -240,16 +323,22 @@ Item {
             color: pc.bg
             opacity: pc.fade * (1 - Math.min(0.9, Math.abs(cardRect.dragX) / Math.max(1, pc.width)))
             clip: true
-            transform: Translate { y: pc.lift }
+            transform: Translate {
+                y: pc.lift
+            }
 
             property real dragX: 0
             Behavior on dragX {
                 enabled: !cardMa.dragging
-                SpatialAnim { speed: "fast" }
+                SpatialAnim {
+                    speed: "fast"
+                }
             }
             Behavior on height {
                 enabled: root.ready && !pc.leavingNow
-                SpatialAnim { speed: "fast" }
+                SpatialAnim {
+                    speed: "fast"
+                }
             }
 
             MouseArea {
@@ -264,40 +353,40 @@ Item {
 
                 onPressed: event => {
                     if (event.button === Qt.MiddleButton) {
-                        root.dismissCard(pc.card)
-                        return
+                        root.dismissCard(pc.card);
+                        return;
                     }
-                    cardMa.pressX = cardMa.mapToItem(pc, event.x, 0).x
-                    cardMa.dragging = false
+                    cardMa.pressX = cardMa.mapToItem(pc, event.x, 0).x;
+                    cardMa.dragging = false;
                 }
                 onPositionChanged: event => {
                     if (!cardMa.pressed)
-                        return
-                    const d = cardMa.mapToItem(pc, event.x, 0).x - cardMa.pressX
+                        return;
+                    const d = cardMa.mapToItem(pc, event.x, 0).x - cardMa.pressX;
                     if (!cardMa.dragging && Math.abs(d) < 6)
-                        return
-                    cardMa.dragging = true
-                    cardRect.dragX = d
+                        return;
+                    cardMa.dragging = true;
+                    cardRect.dragX = d;
                 }
                 onReleased: event => {
                     if (!cardMa.dragging) {
                         if (event.button === Qt.LeftButton)
-                            root.openCard(pc.card)
-                        return
+                            root.openCard(pc.card);
+                        return;
                     }
                     if (Math.abs(cardRect.dragX) > pc.width * 0.35) {
-                        pc.slide = cardRect.dragX
-                        cardRect.dragX = 0
-                        cardMa.dragging = false
-                        root.dismissCard(pc.card)
+                        pc.slide = cardRect.dragX;
+                        cardRect.dragX = 0;
+                        cardMa.dragging = false;
+                        root.dismissCard(pc.card);
                     } else {
-                        cardMa.dragging = false
-                        cardRect.dragX = 0
+                        cardMa.dragging = false;
+                        cardRect.dragX = 0;
                     }
                 }
                 onCanceled: {
-                    cardMa.dragging = false
-                    cardRect.dragX = 0
+                    cardMa.dragging = false;
+                    cardRect.dragX = 0;
                 }
             }
 
@@ -335,7 +424,11 @@ Item {
                     radius: width / 2
                     color: ringMa.containsMouse ? Qt.alpha(pc.ink, 0.18) : pc.sticky ? Qt.alpha(pc.ink, 0.10) : "transparent"
                     opacity: ringBox.showX ? 1 : 0
-                    Behavior on opacity { EffectsAnim { speed: "fast" } }
+                    Behavior on opacity {
+                        EffectsAnim {
+                            speed: "fast"
+                        }
+                    }
 
                     MaterialIconSymbol {
                         anchors.centerIn: parent
@@ -357,8 +450,14 @@ Item {
 
             ColumnLayout {
                 id: body
-                anchors { left: parent.left; right: parent.right; top: parent.top; margins: 12
-                          leftMargin: pc.kind === "plain" ? 14 : 12; rightMargin: pc.kind === "plain" ? 44 : 12 }
+                anchors {
+                    left: parent.left
+                    right: parent.right
+                    top: parent.top
+                    margins: 12
+                    leftMargin: pc.kind === "plain" ? 14 : 12
+                    rightMargin: pc.kind === "plain" ? 44 : 12
+                }
                 spacing: pc.kind === "plain" ? 8 : 12
 
                 NotifHero {
@@ -523,11 +622,14 @@ Item {
                             width: actText.implicitWidth + 28
                             height: 30
                             radius: 15
-                            color: actBtn.primary ? (actMa.containsMouse ? Qt.lighter(Colors.primary, 1.08) : Colors.primary)
-                                 : actMa.containsMouse ? Qt.alpha(pc.ink, 0.10) : Qt.alpha(pc.ink, 0)
+                            color: actBtn.primary ? (actMa.containsMouse ? Qt.lighter(Colors.primary, 1.08) : Colors.primary) : actMa.containsMouse ? Qt.alpha(pc.ink, 0.10) : Qt.alpha(pc.ink, 0)
                             border.width: actBtn.primary ? 0 : 1
                             border.color: pc.critical ? Qt.alpha(Colors.errorContainerText, 0.4) : Colors.outlineVariant
-                            Behavior on color { EffectsColorAnim { speed: "fast" } }
+                            Behavior on color {
+                                EffectsColorAnim {
+                                    speed: "fast"
+                                }
+                            }
 
                             CustomText {
                                 id: actText
@@ -544,18 +646,17 @@ Item {
                                 hoverEnabled: true
                                 cursorShape: Qt.PointingHandCursor
                                 onClicked: {
-                                    const a = actBtn.modelData
-                                    const c = pc.card
-                                    const popup = root
-                                    a.invoke()
-                                    popup.dismissCard(c)
+                                    const a = actBtn.modelData;
+                                    const c = pc.card;
+                                    const popup = root;
+                                    a.invoke();
+                                    popup.dismissCard(c);
                                 }
                             }
                         }
                     }
                 }
             }
-
         }
     }
 }

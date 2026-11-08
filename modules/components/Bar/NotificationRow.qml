@@ -23,32 +23,46 @@ Item {
     readonly property bool bigImage: row.hasImage && row.showIcon
     readonly property var defaultAction: (row.notifData?.notification?.actions ?? []).find(a => a.identifier === "default") ?? null
     readonly property var acts: {
-        const out = []
+        const out = [];
         if (row.defaultAction)
-            out.push({ label: "Open", act: row.defaultAction })
+            out.push({
+                label: "Open",
+                act: row.defaultAction
+            });
         for (const a of (row.notifData?.actions ?? []))
-            out.push({ label: a.text ?? "", act: a })
-        out.push({ label: "Copy", icon: "content_copy", kind: "copy" })
-        out.push({ label: "Dismiss", icon: "close", kind: "dismiss" })
-        return out
+            out.push({
+                label: a.text ?? "",
+                act: a
+            });
+        out.push({
+            label: "Copy",
+            icon: "content_copy",
+            kind: "copy"
+        });
+        out.push({
+            label: "Dismiss",
+            icon: "close",
+            kind: "dismiss"
+        });
+        return out;
     }
     readonly property bool hasActions: row.acts.length > 2
     readonly property string clock: {
-        const d = new Date(row.notifData?.arrivalTimestamp ?? Date.now())
-        return String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0")
+        const d = new Date(row.notifData?.arrivalTimestamp ?? Date.now());
+        return String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
     }
 
     function runAction(entry) {
-        const item = row.notifData
+        const item = row.notifData;
         if (entry.kind === "copy") {
-            Quickshell.clipboardText = [item?.summary ?? "", item?.body ?? ""].filter(t => t !== "").join("\n")
-            row.copied = true
-            copiedTimer.restart()
-            return
+            Quickshell.clipboardText = [item?.summary ?? "", item?.body ?? ""].filter(t => t !== "").join("\n");
+            row.copied = true;
+            copiedTimer.restart();
+            return;
         }
         if (entry.kind !== "dismiss")
-            entry.act.invoke()
-        ServiceNotification.removeNotification(item)
+            entry.act.invoke();
+        ServiceNotification.removeNotification(item);
     }
 
     property bool copied: false
@@ -58,28 +72,52 @@ Item {
         onTriggered: row.copied = false
     }
 
-    onIsExtendedChanged: if (row.isExtended) extraFx.restart()
+    onIsExtendedChanged: if (row.isExtended)
+        extraFx.restart()
 
     SequentialAnimation {
         id: extraFx
-        ScriptAction { script: { extraCol.opacity = 0; extraLift.y = 8 } }
-        PauseAnimation { duration: 60 }
+        ScriptAction {
+            script: {
+                extraCol.opacity = 0;
+                extraLift.y = 8;
+            }
+        }
+        PauseAnimation {
+            duration: 60
+        }
         ParallelAnimation {
-            NumberAnimation { target: extraCol; property: "opacity"; to: 1; duration: 320; easing.type: Easing.OutCubic }
-            NumberAnimation { target: extraLift; property: "y"; to: 0; duration: 400; easing.type: Easing.BezierSpline; easing.bezierCurve: M3Motion.panel.openCurve }
+            NumberAnimation {
+                target: extraCol
+                property: "opacity"
+                to: 1
+                duration: 320
+                easing.type: Easing.OutCubic
+            }
+            NumberAnimation {
+                target: extraLift
+                property: "y"
+                to: 0
+                duration: 400
+                easing.type: Easing.BezierSpline
+                easing.bezierCurve: M3Motion.panel.openCurve
+            }
         }
     }
 
     property string relativeTime: row.computeRelative(row.notifData?.arrivalTimestamp ?? Date.now())
 
     function computeRelative(ts) {
-        var diff = Date.now() - ts
-        var mins = Math.floor(diff / 60000)
-        if (mins < 1)  return "now"
-        if (mins < 60) return mins + "m"
-        var hrs = Math.floor(mins / 60)
-        if (hrs < 24)  return hrs + "h"
-        return Math.floor(hrs / 24) + "d"
+        var diff = Date.now() - ts;
+        var mins = Math.floor(diff / 60000);
+        if (mins < 1)
+            return "now";
+        if (mins < 60)
+            return mins + "m";
+        var hrs = Math.floor(mins / 60);
+        if (hrs < 24)
+            return hrs + "h";
+        return Math.floor(hrs / 24) + "d";
     }
 
     Timer {
@@ -90,16 +128,23 @@ Item {
     }
 
     function resolveSymbol(appIcon, appName) {
-        const ic = (appIcon || "").toLowerCase()
-        const ap = (appName || "").toLowerCase()
-        if (ic.includes("camera-photo") || ap.includes("screenshot")) return "photo_camera"
-        if (ic.includes("camera-video") || ap.includes("record"))     return "screen_record"
-        if (ic.includes("dialog-error") || ic.includes("error"))      return "error_outline"
-        if (ic.includes("bluetooth"))                                  return "bluetooth"
-        if (ic.includes("network") || ic.includes("wifi"))            return "wifi"
-        if (ic.includes("battery"))                                    return "battery_std"
-        if (ic.includes("volume") || ic.includes("audio"))            return "volume_up"
-        return ""
+        const ic = (appIcon || "").toLowerCase();
+        const ap = (appName || "").toLowerCase();
+        if (ic.includes("camera-photo") || ap.includes("screenshot"))
+            return "photo_camera";
+        if (ic.includes("camera-video") || ap.includes("record"))
+            return "screen_record";
+        if (ic.includes("dialog-error") || ic.includes("error"))
+            return "error_outline";
+        if (ic.includes("bluetooth"))
+            return "bluetooth";
+        if (ic.includes("network") || ic.includes("wifi"))
+            return "wifi";
+        if (ic.includes("battery"))
+            return "battery_std";
+        if (ic.includes("volume") || ic.includes("audio"))
+            return "volume_up";
+        return "";
     }
 
     readonly property string symbol: row.resolveSymbol(row.notifData?.appIcon, row.notifData?.appName)
@@ -135,26 +180,25 @@ Item {
 
             onPressed: event => {
                 if (event.button === Qt.MiddleButton)
-                    ServiceNotification.removeNotification(row.notifData)
+                    ServiceNotification.removeNotification(row.notifData);
             }
             onReleased: {
                 if (Math.abs(swipe.x) < row.width * 0.35)
-                    swipe.x = 0
+                    swipe.x = 0;
                 else
-                    ServiceNotification.removeNotification(row.notifData)
+                    ServiceNotification.removeNotification(row.notifData);
             }
             onClicked: event => {
                 if (event.button === Qt.LeftButton && Math.abs(swipe.x) < 4)
-                    row.isExtended = !row.isExtended
+                    row.isExtended = !row.isExtended;
             }
         }
 
         Behavior on x {
             enabled: !swipeArea.drag.active
             SpringAnimation {
-                spring: Appearance.motion.swipeSpring
-                damping: Appearance.motion.swipeDamping
-                mass: Appearance.motion.swipeMass
+                spring: M3Motion.spring.responsive.spring
+                damping: M3Motion.spring.responsive.damping
                 epsilon: 0.4
             }
         }
@@ -182,8 +226,7 @@ Item {
                         anchors.fill: parent
                         visible: row.showIcon
                         radius: 18
-                        color: row.usesSymbol ? Colors.primaryContainer
-                                              : Qt.alpha(Colors.primary, 0.12)
+                        color: row.usesSymbol ? Colors.primaryContainer : Qt.alpha(Colors.primary, 0.12)
 
                         MaterialIconSymbol {
                             anchors.centerIn: parent
@@ -243,9 +286,7 @@ Item {
 
                         CustomText {
                             Layout.fillWidth: !row.headerShowsAppName
-                            content: row.headerShowsAppName
-                                ? (row.notifData?.appName ?? "")
-                                : (row.notifData?.summary ?? "")
+                            content: row.headerShowsAppName ? (row.notifData?.appName ?? "") : (row.notifData?.summary ?? "")
                             size: row.headerShowsAppName ? 11 : 13
                             weight: row.headerShowsAppName ? 500 : 700
                             customColor: row.headerShowsAppName ? Colors.outline : Colors.surfaceText
@@ -266,7 +307,9 @@ Item {
                             customColor: Colors.outline
                         }
 
-                        Item { Layout.fillWidth: row.headerShowsAppName }
+                        Item {
+                            Layout.fillWidth: row.headerShowsAppName
+                        }
                     }
 
                     CustomText {
@@ -281,9 +324,7 @@ Item {
                     CustomText {
                         Layout.fillWidth: true
                         visible: row.hasBody
-                        content: row.isExtended
-                            ? (row.notifData?.body ?? "")
-                            : (row.notifData?.body ?? "").replace(/\s+/g, " ")
+                        content: row.isExtended ? (row.notifData?.body ?? "") : (row.notifData?.body ?? "").replace(/\s+/g, " ")
                         size: 12
                         customColor: Colors.outline
                         wrapMode: row.isExtended ? Text.WordWrap : Text.NoWrap
@@ -352,7 +393,9 @@ Item {
                 Layout.topMargin: 8
                 Layout.bottomMargin: 2
                 spacing: 10
-                transform: Translate { id: extraLift }
+                transform: Translate {
+                    id: extraLift
+                }
 
                 ClippingRectangle {
                     visible: row.bigImage
@@ -386,12 +429,12 @@ Item {
                             width: actionInner.implicitWidth + (actionBtn.builtIn ? 24 : 28)
                             height: 32
                             radius: 16
-                            color: actionBtn.primary
-                                ? (actionHover.containsMouse ? Qt.lighter(Colors.primary, 1.08) : Colors.primary)
-                                : actionHover.containsMouse ? Qt.alpha(Colors.primary, 0.10) : "transparent"
+                            color: actionBtn.primary ? (actionHover.containsMouse ? Qt.lighter(Colors.primary, 1.08) : Colors.primary) : actionHover.containsMouse ? Qt.alpha(Colors.primary, 0.10) : "transparent"
                             border.width: actionBtn.primary ? 0 : 1
                             border.color: Colors.outlineVariant
-                            Behavior on color { EffectsColorAnim {} }
+                            Behavior on color {
+                                EffectsColorAnim {}
+                            }
 
                             RowLayout {
                                 id: actionInner
@@ -409,8 +452,7 @@ Item {
                                     content: actionBtn.modelData.kind === "copy" && row.copied ? "Copied" : actionBtn.modelData.label
                                     size: 12
                                     weight: 600
-                                    customColor: actionBtn.primary ? Colors.primaryText
-                                               : actionBtn.builtIn ? Colors.surfaceVariantText : Colors.surfaceText
+                                    customColor: actionBtn.primary ? Colors.primaryText : actionBtn.builtIn ? Colors.surfaceVariantText : Colors.surfaceText
                                 }
                             }
 

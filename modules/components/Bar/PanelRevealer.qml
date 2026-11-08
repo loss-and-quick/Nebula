@@ -931,8 +931,8 @@ Item {
     Behavior on followAcross {
         enabled: revealer.heightFollow
         SpringAnimation {
-            spring: 3.5
-            damping: 0.35
+            spring: M3Motion.spring.responsive.spring
+            damping: M3Motion.spring.responsive.damping
             epsilon: 0.25
         }
     }

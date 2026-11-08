@@ -9,26 +9,25 @@ import qs.modules.services
 import qs.modules.settings
 import qs.modules.components.custom
 
-Scope{
+Scope {
     id: root
 
     readonly property bool preview: GlobalStates.launcherPreview && !GlobalStates.appLauncherOpen
-    readonly property bool want: !GlobalStates.launcherHosted
-        && (GlobalStates.appLauncherOpen || GlobalStates.launcherPreview)
+    readonly property bool want: !GlobalStates.launcherHosted && (GlobalStates.appLauncherOpen || GlobalStates.launcherPreview)
 
     onWantChanged: {
         if (root.want) {
-            animationTimer.stop()
-            loader.active = true
+            animationTimer.stop();
+            loader.active = true;
         } else if (loader.active) {
-            animationTimer.start()
+            animationTimer.start();
         }
     }
 
-    Loader{
+    Loader {
         id: loader
         active: false
-        sourceComponent: PanelWindow{
+        sourceComponent: PanelWindow {
             id: panelWindow
 
             property bool shown: false
@@ -36,11 +35,11 @@ Scope{
 
             onShownChanged: {
                 if (panelWindow.shown) {
-                    closeAnim.stop()
-                    openAnim.restart()
+                    closeAnim.stop();
+                    openAnim.restart();
                 } else {
-                    openAnim.stop()
-                    closeAnim.restart()
+                    openAnim.stop();
+                    closeAnim.restart();
                 }
             }
 
@@ -49,9 +48,9 @@ Scope{
                 target: panelWindow
                 property: "openT"
                 to: 1
-                duration: M3Motion.spatialDuration("default")
+                duration: M3Motion.panel.openDuration
                 easing.type: Easing.BezierSpline
-                easing.bezierCurve: [0.2, 0.0, 0.0, 1.0, 1, 1]
+                easing.bezierCurve: M3Motion.panel.openCurve
             }
 
             NumberAnimation {
@@ -59,9 +58,9 @@ Scope{
                 target: panelWindow
                 property: "openT"
                 to: 0
-                duration: Math.min(300, Appearance.duration.large - 60)
+                duration: M3Motion.panel.closeDuration
                 easing.type: Easing.BezierSpline
-                easing.bezierCurve: [0.3, 0.0, 0.8, 0.15, 1, 1]
+                easing.bezierCurve: M3Motion.panel.closeCurve
             }
 
             anchors.left: true
@@ -88,10 +87,18 @@ Scope{
             property Region noInput: Region {}
 
             property Region handleInput: Region {
-                Region { item: handleLeft }
-                Region { item: handleRight }
-                Region { item: handleTop }
-                Region { item: handleBottom }
+                Region {
+                    item: handleLeft
+                }
+                Region {
+                    item: handleRight
+                }
+                Region {
+                    item: handleTop
+                }
+                Region {
+                    item: handleBottom
+                }
             }
 
             mask: root.preview ? panelWindow.handleInput : panelWindow.inputRegion
@@ -105,33 +112,42 @@ Scope{
             readonly property real insetR: root.preview ? GlobalStates.previewInsetRight : 0
 
             function beginResize() {
-                panelWindow.resizing = true
-                panelWindow.anchorX = container.x + container.width / 2
-                panelWindow.anchorY = container.y + container.height / 2
-                ServiceLauncher.draft = { w: ServiceLauncher.panelWidth, h: child.height }
+                panelWindow.resizing = true;
+                panelWindow.anchorX = container.x + container.width / 2;
+                panelWindow.anchorY = container.y + container.height / 2;
+                ServiceLauncher.draft = {
+                    w: ServiceLauncher.panelWidth,
+                    h: child.height
+                };
             }
 
             function dragTo(side, p) {
-                const d = ServiceLauncher.draft
-                if (!d) return
-                const cx = panelWindow.anchorX
-                const cy = panelWindow.anchorY
-                let w = d.w
-                let h = d.h
-                if (side === "left") w = 2 * (cx - p.x)
-                else if (side === "right") w = 2 * (p.x - cx)
-                else if (side === "top") h = 2 * (cy - p.y)
-                else h = 2 * (p.y - cy)
+                const d = ServiceLauncher.draft;
+                if (!d)
+                    return;
+                const cx = panelWindow.anchorX;
+                const cy = panelWindow.anchorY;
+                let w = d.w;
+                let h = d.h;
+                if (side === "left")
+                    w = 2 * (cx - p.x);
+                else if (side === "right")
+                    w = 2 * (p.x - cx);
+                else if (side === "top")
+                    h = 2 * (cy - p.y);
+                else
+                    h = 2 * (p.y - cy);
                 ServiceLauncher.draft = {
                     w: ServiceLauncher.clampW(Math.min(w, panelWindow.screenW - panelWindow.insetL - panelWindow.insetR - 32)),
                     h: ServiceLauncher.clampH(Math.min(h, panelWindow.height - 32))
-                }
+                };
             }
 
             function endResize() {
-                const d = ServiceLauncher.draft
-                panelWindow.resizing = false
-                if (d) ServiceLauncher.setSize(d.w, d.h)
+                const d = ServiceLauncher.draft;
+                panelWindow.resizing = false;
+                if (d)
+                    ServiceLauncher.setSize(d.w, d.h);
             }
 
             Rectangle {
@@ -140,13 +156,13 @@ Scope{
                 color: "transparent"
             }
 
-            HyprlandFocusGrab{
+            HyprlandFocusGrab {
                 id: grab
                 windows: [panelWindow]
                 active: loader.active && GlobalStates.appLauncherOpen
                 onCleared: () => {
                     if (!active && !GlobalStates.toolsWidgetOpen && !ServiceTools.screenshotActive) {
-                        GlobalStates.appLauncherOpen = false
+                        GlobalStates.appLauncherOpen = false;
                     }
                 }
             }
@@ -156,8 +172,7 @@ Scope{
                 z: 10
                 width: Math.max(20, child.width)
                 height: Math.max(100, child.height)
-                x: Math.max(16, Math.min(panelWindow.width - container.width - 16,
-                    panelWindow.insetL + (panelWindow.width - panelWindow.insetL - panelWindow.insetR - container.width) / 2))
+                x: Math.max(16, Math.min(panelWindow.width - container.width - 16, panelWindow.insetL + (panelWindow.width - panelWindow.insetL - panelWindow.insetR - container.width) / 2))
                 y: (panelWindow.height - container.height) / 2
 
                 Item {
@@ -185,14 +200,14 @@ Scope{
                         height: Math.min(ServiceLauncher.panelHeight, panelWindow.height - 32)
                         clip: true
 
-                        AppLauncherContent{
+                        AppLauncherContent {
                             anchors.fill: parent
                             preview: root.preview
                             enabled: !root.preview
                             entranceDelay: 170
                             entranceRise: 14
-                            onClosed:{
-                                GlobalStates.appLauncherOpen = false
+                            onClosed: {
+                                GlobalStates.appLauncherOpen = false;
                             }
                         }
                     }
@@ -244,7 +259,9 @@ Scope{
                     size: 13
                     weight: 700
                     customColor: Colors.inverseSurfaceText
-                    font.features: { "tnum": 1 }
+                    font.features: {
+                        "tnum": 1
+                    }
                 }
             }
         }
@@ -265,7 +282,7 @@ Scope{
         onPressed: handle.win.beginResize()
         onPositionChanged: mouse => {
             if (handle.pressed)
-                handle.win.dragTo(handle.side, handle.mapToItem(null, mouse.x, mouse.y))
+                handle.win.dragTo(handle.side, handle.mapToItem(null, mouse.x, mouse.y));
         }
         onReleased: handle.win.endResize()
         onCanceled: handle.win.endResize()
@@ -275,26 +292,32 @@ Scope{
             width: handle.vertical ? 5 : (handle.containsMouse || handle.pressed ? 60 : 46)
             height: handle.vertical ? (handle.containsMouse || handle.pressed ? 60 : 46) : 5
             radius: 2.5
-            color: handle.pressed ? Colors.primary : handle.containsMouse ? Qt.alpha(Colors.primary, 0.85)
-                                                                          : Qt.alpha(Colors.outline, 0.9)
-            Behavior on width { SpatialAnim { speed: "fast" } }
-            Behavior on height { SpatialAnim { speed: "fast" } }
+            color: handle.pressed ? Colors.primary : handle.containsMouse ? Qt.alpha(Colors.primary, 0.85) : Qt.alpha(Colors.outline, 0.9)
+            Behavior on width {
+                SpatialAnim {
+                    speed: "fast"
+                }
+            }
+            Behavior on height {
+                SpatialAnim {
+                    speed: "fast"
+                }
+            }
         }
     }
 
-    Timer{
+    Timer {
         id: animationTimer
-        interval: Appearance.duration.large
-        onTriggered:{
-            loader.active = false
+        interval: M3Motion.panel.closeDuration + 20
+        onTriggered: {
+            loader.active = false;
         }
     }
 
-    GlobalShortcut{
+    GlobalShortcut {
         name: "appLauncher"
-        onPressed:{
-            GlobalStates.appLauncherOpen = !GlobalStates.appLauncherOpen
+        onPressed: {
+            GlobalStates.appLauncherOpen = !GlobalStates.appLauncherOpen;
         }
     }
-
 }

@@ -1,5 +1,6 @@
 import QtQuick
 import qs.modules.utils
+import qs.modules.settings
 import qs.modules.services
 import qs.modules.components.custom
 
@@ -15,23 +16,24 @@ Item {
     readonly property int activeIndex: motion.ids.indexOf(motion.activeId)
     readonly property real k: motion.owner ? motion.owner.k : 1
     property int lastIndex: 0
-    onActiveIndexChanged: if (motion.activeIndex >= 0) motion.lastIndex = motion.activeIndex
-    Component.onCompleted: if (motion.activeIndex >= 0) motion.lastIndex = motion.activeIndex
+    onActiveIndexChanged: if (motion.activeIndex >= 0)
+        motion.lastIndex = motion.activeIndex
+    Component.onCompleted: if (motion.activeIndex >= 0)
+        motion.lastIndex = motion.activeIndex
 
     implicitWidth: face.item ? face.item.implicitWidth : 0
     implicitHeight: 30 * motion.k
 
     function go(id, ws) {
         if (motion.owner)
-            motion.owner.focusWs(id, ws)
+            motion.owner.focusWs(id, ws);
     }
 
     component Slot: QtObject {
         required property int wsId
         property Item owner: null
         readonly property var ws: ServiceWorkspaces.getWorkspace(wsId)
-        readonly property bool onOther: !!owner && owner.perMonitorMode && !!ws && !!ws.monitor
-            && ws.monitor.name !== owner.screenName
+        readonly property bool onOther: !!owner && owner.perMonitorMode && !!ws && !!ws.monitor && ws.monitor.name !== owner.screenName
         readonly property bool occupied: !!ws && !onOther
     }
 
@@ -55,9 +57,21 @@ Item {
             property real headX: goo.target
             property real tailX: goo.target
             property real dropX: goo.target
-            Behavior on headX { NumberAnimation { duration: 300; easing.type: Easing.OutBack; easing.overshoot: 1.6 } }
-            Behavior on tailX { NumberAnimation { duration: 550; easing.type: Easing.InOutCubic } }
-            Behavior on dropX { NumberAnimation { duration: 780; easing.type: Easing.InOutQuart } }
+            Behavior on headX {
+                SpatialAnim {
+                    speed: "fast"
+                }
+            }
+            Behavior on tailX {
+                SpatialAnim {
+                    speed: "default"
+                }
+            }
+            Behavior on dropX {
+                SpatialAnim {
+                    speed: "slow"
+                }
+            }
 
             Repeater {
                 model: motion.ids
@@ -65,7 +79,11 @@ Item {
                     id: cell
                     required property int modelData
                     required property int index
-                    Slot { id: st; wsId: cell.modelData; owner: motion.owner }
+                    Slot {
+                        id: st
+                        wsId: cell.modelData
+                        owner: motion.owner
+                    }
                     x: goo.pad + cell.index * goo.pitch
                     width: goo.pitch
                     height: goo.height
@@ -76,7 +94,9 @@ Item {
                         height: 7 * motion.k
                         radius: 3.5 * motion.k
                         color: st.occupied ? Colors.outline : Colors.outlineVariant
-                        Behavior on color { EffectsColorAnim {} }
+                        Behavior on color {
+                            EffectsColorAnim {}
+                        }
                     }
 
                     MouseArea {
@@ -120,16 +140,16 @@ Item {
             Connections {
                 target: motion
                 function onActiveIndexChanged() {
-                    const from = bounce.lastIndex
-                    const to = motion.activeIndex
-                    bounce.lastIndex = to
+                    const from = bounce.lastIndex;
+                    const to = motion.activeIndex;
+                    bounce.lastIndex = to;
                     if (from < 0 || to < 0 || from === to) {
-                        bounce.landed = true
-                        return
+                        bounce.landed = true;
+                        return;
                     }
-                    bounce.hop = Math.min(9, 3 + Math.abs(to - from) * 2) * motion.k
-                    bounce.landed = false
-                    jump.restart()
+                    bounce.hop = Math.min(9, 3 + Math.abs(to - from) * 2) * motion.k;
+                    bounce.landed = false;
+                    jump.restart();
                 }
             }
 
@@ -140,7 +160,11 @@ Item {
                 height: bounce.ball
                 x: motion.lastIndex * bounce.pitch + (bounce.pitch - bounce.ball) / 2
                 y: (bounce.height - bounce.ball) / 2
-                Behavior on x { NumberAnimation { duration: 420; easing.type: Easing.BezierSpline; easing.bezierCurve: [0.45, 0.05, 0.3, 1, 1, 1] } }
+                Behavior on x {
+                    SpatialAnim {
+                        speed: "move"
+                    }
+                }
 
                 Rectangle {
                     id: ballShape
@@ -152,8 +176,15 @@ Item {
                     property real sx: 1
                     property real sy: 1
                     transform: [
-                        Scale { origin.x: bounce.ball / 2; origin.y: bounce.ball; xScale: ballShape.sx; yScale: ballShape.sy },
-                        Translate { y: -ballShape.lift }
+                        Scale {
+                            origin.x: bounce.ball / 2
+                            origin.y: bounce.ball
+                            xScale: ballShape.sx
+                            yScale: ballShape.sy
+                        },
+                        Translate {
+                            y: -ballShape.lift
+                        }
                     ]
                 }
             }
@@ -162,30 +193,96 @@ Item {
                 id: jump
                 onFinished: bounce.landed = true
                 SequentialAnimation {
-                    PauseAnimation { duration: 50 }
-                    NumberAnimation { target: ballShape; property: "lift"; to: bounce.hop; duration: 160; easing.type: Easing.OutQuad }
-                    NumberAnimation { target: ballShape; property: "lift"; to: 0; duration: 150; easing.type: Easing.InQuad }
+                    PauseAnimation {
+                        duration: 50
+                    }
+                    NumberAnimation {
+                        target: ballShape
+                        property: "lift"
+                        to: bounce.hop
+                        duration: M3Motion.effects.fastDuration
+                        easing.type: Easing.OutQuad
+                    }
+                    NumberAnimation {
+                        target: ballShape
+                        property: "lift"
+                        to: 0
+                        duration: M3Motion.effects.fastDuration
+                        easing.type: Easing.InQuad
+                    }
                 }
                 SequentialAnimation {
                     ParallelAnimation {
-                        NumberAnimation { target: ballShape; property: "sx"; to: 1.18; duration: 50 }
-                        NumberAnimation { target: ballShape; property: "sy"; to: 0.82; duration: 50 }
+                        NumberAnimation {
+                            target: ballShape
+                            property: "sx"
+                            to: 1.18
+                            duration: 50
+                        }
+                        NumberAnimation {
+                            target: ballShape
+                            property: "sy"
+                            to: 0.82
+                            duration: 50
+                        }
                     }
                     ParallelAnimation {
-                        NumberAnimation { target: ballShape; property: "sx"; to: 0.9; duration: 160 }
-                        NumberAnimation { target: ballShape; property: "sy"; to: 1.12; duration: 160 }
+                        NumberAnimation {
+                            target: ballShape
+                            property: "sx"
+                            to: 0.9
+                            duration: M3Motion.effects.fastDuration
+                        }
+                        NumberAnimation {
+                            target: ballShape
+                            property: "sy"
+                            to: 1.12
+                            duration: M3Motion.effects.fastDuration
+                        }
                     }
                     ParallelAnimation {
-                        NumberAnimation { target: ballShape; property: "sx"; to: 1; duration: 150 }
-                        NumberAnimation { target: ballShape; property: "sy"; to: 1; duration: 150 }
+                        NumberAnimation {
+                            target: ballShape
+                            property: "sx"
+                            to: 1
+                            duration: M3Motion.effects.fastDuration
+                        }
+                        NumberAnimation {
+                            target: ballShape
+                            property: "sy"
+                            to: 1
+                            duration: M3Motion.effects.fastDuration
+                        }
                     }
                     ParallelAnimation {
-                        NumberAnimation { target: ballShape; property: "sx"; to: 1.22; duration: 40 }
-                        NumberAnimation { target: ballShape; property: "sy"; to: 0.78; duration: 40 }
+                        NumberAnimation {
+                            target: ballShape
+                            property: "sx"
+                            to: 1.22
+                            duration: 40
+                        }
+                        NumberAnimation {
+                            target: ballShape
+                            property: "sy"
+                            to: 0.78
+                            duration: 40
+                        }
                     }
                     ParallelAnimation {
-                        NumberAnimation { target: ballShape; property: "sx"; to: 1; duration: 90; easing.type: Easing.OutBack }
-                        NumberAnimation { target: ballShape; property: "sy"; to: 1; duration: 90; easing.type: Easing.OutBack }
+                        NumberAnimation {
+                            target: ballShape
+                            property: "sx"
+                            to: 1
+                            duration: 90
+                            easing.type: Easing.OutBack
+                        }
+                        NumberAnimation {
+                            target: ballShape
+                            property: "sy"
+                            to: 1
+                            duration: 90
+                            easing.type: Easing.OutBack
+                        }
                     }
                 }
             }
@@ -196,7 +293,11 @@ Item {
                     id: num
                     required property int modelData
                     required property int index
-                    Slot { id: st; wsId: num.modelData; owner: motion.owner }
+                    Slot {
+                        id: st
+                        wsId: num.modelData
+                        owner: motion.owner
+                    }
                     readonly property bool on: num.index === motion.activeIndex && bounce.landed
                     x: num.index * bounce.pitch
                     width: bounce.pitch
@@ -207,9 +308,10 @@ Item {
                         content: num.modelData.toString()
                         size: Math.round(12 * motion.k)
                         weight: 700
-                        customColor: num.on ? Colors.primaryText
-                                   : st.occupied ? Colors.surfaceText : Colors.outlineVariant
-                        font.features: { "tnum": 1 }
+                        customColor: num.on ? Colors.primaryText : st.occupied ? Colors.surfaceText : Colors.outlineVariant
+                        font.features: {
+                            "tnum": 1
+                        }
                     }
 
                     MouseArea {

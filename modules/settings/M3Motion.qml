@@ -1,8 +1,7 @@
-import Quickshell
-import QtQuick
-
 pragma Singleton
 pragma ComponentBehavior: Bound
+import Quickshell
+import QtQuick
 
 Singleton {
     id: root
@@ -15,6 +14,21 @@ Singleton {
     property QtObject container
     property QtObject reveal
     property QtObject panel
+
+    readonly property var spring: ({
+            responsive: {
+                spring: 3.5,
+                damping: 0.35
+            },
+            gentle: {
+                spring: 2.0,
+                damping: 0.4
+            },
+            expressive: {
+                spring: 4.0,
+                damping: 0.3
+            }
+        })
 
     container: QtObject {
         readonly property int duration: 360
@@ -30,13 +44,11 @@ Singleton {
     panel: QtObject {
         readonly property int openDuration: root.expressive ? 600 : 450
         readonly property int closeDuration: 380
-        readonly property var openCurve: root.expressive ? [0.38, 1.21, 0.22, 1.00, 1, 1]
-                                                         : [0.2, 0.0, 0.0, 1.0, 1, 1]
+        readonly property var openCurve: root.expressive ? [0.38, 1.21, 0.22, 1.00, 1, 1] : [0.2, 0.0, 0.0, 1.0, 1, 1]
         readonly property var closeCurve: [0.3, 0.0, 0.8, 0.15, 1, 1]
     }
 
-    readonly property var emphasizedCurve: [0.05, 0, 0.133333, 0.06, 0.166666, 0.4,
-                                            0.208333, 0.82, 0.25, 1, 1, 1]
+    readonly property var emphasizedCurve: [0.05, 0, 0.133333, 0.06, 0.166666, 0.4, 0.208333, 0.82, 0.25, 1, 1, 1]
 
     reveal: QtObject {
         readonly property int duration: 760
@@ -46,43 +58,52 @@ Singleton {
     }
 
     spatial: QtObject {
-        readonly property int fastDuration:    root.expressive ? 350 : 220
+        readonly property int fastDuration: root.expressive ? 350 : 220
         readonly property int defaultDuration: root.expressive ? 500 : 315
-        readonly property int slowDuration:    root.expressive ? 650 : 480
-        readonly property int moveDuration:    450
+        readonly property int slowDuration: root.expressive ? 650 : 480
+        readonly property int moveDuration: 450
 
-        readonly property var fastCurve:    root.expressive ? [0.42, 1.67, 0.21, 0.90, 1, 1]
-                                                            : [0.25, 0.35, 0.11, 1.14, 1, 1]
-        readonly property var defaultCurve: root.expressive ? [0.38, 1.21, 0.22, 1.00, 1, 1]
-                                                            : [0.25, 0.35, 0.11, 1.14, 1, 1]
-        readonly property var slowCurve:    root.expressive ? [0.39, 1.29, 0.35, 0.98, 1, 1]
-                                                            : [0.25, 0.35, 0.11, 1.14, 1, 1]
+        readonly property var fastCurve: root.expressive ? [0.42, 1.67, 0.21, 0.90, 1, 1] : [0.25, 0.35, 0.11, 1.14, 1, 1]
+        readonly property var defaultCurve: root.expressive ? [0.38, 1.21, 0.22, 1.00, 1, 1] : [0.25, 0.35, 0.11, 1.14, 1, 1]
+        readonly property var slowCurve: root.expressive ? [0.39, 1.29, 0.35, 0.98, 1, 1] : [0.25, 0.35, 0.11, 1.14, 1, 1]
     }
 
     effects: QtObject {
-        readonly property int fastDuration:    150
+        readonly property int fastDuration: 150
         readonly property int defaultDuration: 230
-        readonly property int slowDuration:    325
+        readonly property int slowDuration: 325
         readonly property var curve: [0.24, 0.36, 0.10, 1.10, 1, 1]
     }
 
     function spatialDuration(speed) {
-        if (speed === "move") return root.spatial.moveDuration
-        if (speed === "fast") return root.spatial.fastDuration
-        if (speed === "slow") return root.spatial.slowDuration
-        return root.spatial.defaultDuration
+        if (speed === "move")
+            return root.spatial.moveDuration;
+        if (speed === "fast")
+            return root.spatial.fastDuration;
+        if (speed === "slow")
+            return root.spatial.slowDuration;
+        return root.spatial.defaultDuration;
     }
 
     function spatialCurve(speed) {
-        if (speed === "move") return root.emphasizedCurve
-        if (speed === "fast") return root.spatial.fastCurve
-        if (speed === "slow") return root.spatial.slowCurve
-        return root.spatial.defaultCurve
+        if (speed === "move")
+            return root.emphasizedCurve;
+        if (speed === "fast")
+            return root.spatial.fastCurve;
+        if (speed === "slow")
+            return root.spatial.slowCurve;
+        return root.spatial.defaultCurve;
     }
 
     function effectsDuration(speed) {
-        if (speed === "fast") return root.effects.fastDuration
-        if (speed === "slow") return root.effects.slowDuration
-        return root.effects.defaultDuration
+        if (speed === "fast")
+            return root.effects.fastDuration;
+        if (speed === "slow")
+            return root.effects.slowDuration;
+        return root.effects.defaultDuration;
+    }
+
+    function effectsCurve(speed) {
+        return root.effects.curve;
     }
 }

@@ -25,26 +25,26 @@ ColumnLayout {
     Component.onCompleted: root.linked = root.sides.every(s => root.valueOf(s) === root.valueOf(root.sides[0]))
 
     function has(side) {
-        return root.sides.indexOf(side) >= 0
+        return root.sides.indexOf(side) >= 0;
     }
 
     function valueOf(side) {
-        return root.values[side] ?? 0
+        return root.values[side] ?? 0;
     }
 
     function limit(side) {
-        return root.maxFor[side] ?? root.maxValue
+        return root.maxFor[side] ?? root.maxValue;
     }
 
     function set(side, v) {
-        const patch = {}
+        const patch = {};
         if (root.linked) {
             for (const s of root.sides)
-                patch[s] = Math.max(0, Math.min(root.limit(s), v))
+                patch[s] = Math.max(0, Math.min(root.limit(s), v));
         } else {
-            patch[side] = Math.max(0, Math.min(root.limit(side), v))
+            patch[side] = Math.max(0, Math.min(root.limit(side), v));
         }
-        root.changed(patch)
+        root.changed(patch);
     }
 
     Rectangle {
@@ -64,11 +64,25 @@ ColumnLayout {
             rowSpacing: 10
             columnSpacing: 12
 
-            Item { Layout.preferredWidth: 150; Layout.preferredHeight: 1 }
-            Stepper { side: "top"; label: "Top"; Layout.alignment: Qt.AlignHCenter }
-            Item { Layout.preferredWidth: 150; Layout.preferredHeight: 1 }
+            Item {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 1
+            }
+            Stepper {
+                side: "top"
+                label: "Top"
+                Layout.alignment: Qt.AlignHCenter
+            }
+            Item {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 1
+            }
 
-            Stepper { side: "left"; label: "Left"; Layout.alignment: Qt.AlignCenter }
+            Stepper {
+                side: "left"
+                label: "Left"
+                Layout.alignment: Qt.AlignCenter
+            }
 
             Rectangle {
                 id: preview
@@ -110,10 +124,26 @@ ColumnLayout {
                     border.width: root.mode === "pill" ? 0 : 2
                     border.color: Colors.primary
 
-                    Behavior on x { SpatialAnim { speed: "fast" } }
-                    Behavior on y { SpatialAnim { speed: "fast" } }
-                    Behavior on width { SpatialAnim { speed: "fast" } }
-                    Behavior on height { SpatialAnim { speed: "fast" } }
+                    Behavior on x {
+                        SpatialAnim {
+                            speed: "fast"
+                        }
+                    }
+                    Behavior on y {
+                        SpatialAnim {
+                            speed: "fast"
+                        }
+                    }
+                    Behavior on width {
+                        SpatialAnim {
+                            speed: "fast"
+                        }
+                    }
+                    Behavior on height {
+                        SpatialAnim {
+                            speed: "fast"
+                        }
+                    }
                 }
 
                 Rectangle {
@@ -124,7 +154,11 @@ ColumnLayout {
                     height: parent.height - y - 8
                     radius: 10
                     color: Colors.surfaceContainerHighest
-                    Behavior on y { SpatialAnim { speed: "fast" } }
+                    Behavior on y {
+                        SpatialAnim {
+                            speed: "fast"
+                        }
+                    }
                 }
 
                 CustomText {
@@ -137,11 +171,25 @@ ColumnLayout {
                 }
             }
 
-            Stepper { side: "right"; label: "Right"; Layout.alignment: Qt.AlignCenter }
+            Stepper {
+                side: "right"
+                label: "Right"
+                Layout.alignment: Qt.AlignCenter
+            }
 
-            Item { Layout.preferredWidth: 150; Layout.preferredHeight: 1 }
-            Stepper { side: "bottom"; label: "Bottom"; Layout.alignment: Qt.AlignHCenter }
-            Item { Layout.preferredWidth: 150; Layout.preferredHeight: 1 }
+            Item {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 1
+            }
+            Stepper {
+                side: "bottom"
+                label: "Bottom"
+                Layout.alignment: Qt.AlignHCenter
+            }
+            Item {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 1
+            }
         }
     }
 
@@ -162,18 +210,27 @@ ColumnLayout {
 
             ColumnLayout {
                 spacing: 2
-                CustomText { content: root.linkLabel; size: 14 }
-                CustomText { content: "One value for every edge"; size: 12; customColor: Colors.outline }
+                CustomText {
+                    content: root.linkLabel
+                    size: 14
+                }
+                CustomText {
+                    content: "One value for every edge"
+                    size: 12
+                    customColor: Colors.outline
+                }
             }
 
-            Item { Layout.fillWidth: true }
+            Item {
+                Layout.fillWidth: true
+            }
 
             CustomToogle {
                 isToggleOn: root.linked
                 onToggled: state => {
-                    root.linked = state
+                    root.linked = state;
                     if (state)
-                        root.set(root.sides[0], root.valueOf(root.sides[0]))
+                        root.set(root.sides[0], root.valueOf(root.sides[0]));
                 }
             }
         }
@@ -223,7 +280,9 @@ ColumnLayout {
                     content: stepper.value + " px"
                     size: 14
                     weight: 700
-                    font.features: { "tnum": 1 }
+                    font.features: {
+                        "tnum": 1
+                    }
                 }
 
                 M3IconButton {
@@ -238,9 +297,9 @@ ColumnLayout {
 
             WheelHandler {
                 onWheel: event => {
-                    const d = event.angleDelta.y !== 0 ? event.angleDelta.y : event.angleDelta.x
+                    const d = event.angleDelta.y !== 0 ? event.angleDelta.y : event.angleDelta.x;
                     if (d !== 0)
-                        root.set(stepper.side, stepper.value + (d > 0 ? 1 : -1))
+                        root.set(stepper.side, stepper.value + (d > 0 ? 1 : -1));
                 }
             }
         }

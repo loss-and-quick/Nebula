@@ -23,55 +23,71 @@ Item {
     readonly property bool focusing: ServiceFocus.phase === "focus" || ServiceFocus.phase === "break"
     readonly property string mode: root.focusing ? "focus" : ServiceNotification.dnd ? "quiet" : "available"
     readonly property var modes: [
-        { value: "available", label: "Available", icon: "check_circle", hint: "Everything works as usual", tone: Colors.primary },
-        { value: "focus", label: "Focus", icon: "timer", hint: "Starts a focus session", tone: Colors.tertiary },
-        { value: "quiet", label: "Quiet", icon: "do_not_disturb_on", hint: "Turns on Do not disturb", tone: Colors.error }
+        {
+            value: "available",
+            label: "Available",
+            icon: "check_circle",
+            hint: "Everything works as usual",
+            tone: Colors.primary
+        },
+        {
+            value: "focus",
+            label: "Focus",
+            icon: "timer",
+            hint: "Starts a focus session",
+            tone: Colors.tertiary
+        },
+        {
+            value: "quiet",
+            label: "Quiet",
+            icon: "do_not_disturb_on",
+            hint: "Turns on Do not disturb",
+            tone: Colors.error
+        }
     ]
     readonly property var currentMode: root.modes.find(m => m.value === root.mode) ?? root.modes[0]
     readonly property var logoIds: {
-        const out = []
+        const out = [];
         for (const b of BarLayout.allBlocks)
             for (const id of b.items)
                 if (BarLayout.baseId(id) === "logo")
-                    out.push(id)
-        return out
+                    out.push(id);
+        return out;
     }
-    readonly property bool barAvatar: root.logoIds.length > 0
-        && root.logoIds.every(id => (BarLayout.opt(id, "look") ?? "chip") === "avatar")
+    readonly property bool barAvatar: root.logoIds.length > 0 && root.logoIds.every(id => (BarLayout.opt(id, "look") ?? "chip") === "avatar")
     readonly property int profileWidgets: {
-        const w = SettingsConfig.widgets ?? ({})
-        return ["showProfileBadge", "showProfileDay", "showProfileStatus", "showProfileMachine",
-                "showProfileShape", "showProfileRings"].filter(k => w[k] === true).length
+        const w = SettingsConfig.widgets ?? ({});
+        return ["showProfileBadge", "showProfileDay", "showProfileStatus", "showProfileMachine", "showProfileShape", "showProfileRings"].filter(k => w[k] === true).length;
     }
     readonly property int photoPlaces: [root.lockAvatar, root.greeterAvatar, root.barAvatar, root.profileWidgets > 0].filter(x => x).length
 
     function setGeneral(patch) {
-        SettingsConfig.general = Object.assign({}, SettingsConfig.general, patch)
+        SettingsConfig.general = Object.assign({}, SettingsConfig.general, patch);
     }
 
     function setLock(patch) {
-        SettingsConfig.lockscreen = Object.assign({}, SettingsConfig.lockscreen ?? ({}), patch)
+        SettingsConfig.lockscreen = Object.assign({}, SettingsConfig.lockscreen ?? ({}), patch);
     }
 
     function setMode(m) {
         if (m === "focus") {
             if (!root.focusing)
-                ServiceFocus.startFocus()
-            return
+                ServiceFocus.startFocus();
+            return;
         }
         if (root.focusing)
-            ServiceFocus.stop()
-        ServiceNotification.setDnd(m === "quiet")
+            ServiceFocus.stop();
+        ServiceNotification.setDnd(m === "quiet");
     }
 
     function setBarAvatar(on) {
         for (const id of root.logoIds)
-            BarLayout.setOption(id, "look", on ? "avatar" : "chip")
+            BarLayout.setOption(id, "look", on ? "avatar" : "chip");
     }
 
     function pickPhoto() {
-        GlobalStates.fileDialogOpen = true
-        imagePicker.open()
+        GlobalStates.fileDialogOpen = true;
+        imagePicker.open();
     }
 
     FileDialog {
@@ -79,8 +95,10 @@ Item {
         title: "Select a profile image"
         nameFilters: ["Image files (*.png *.jpg *.jpeg *.webp *.gif)"]
         onAccepted: {
-            root.setGeneral({ profile: imagePicker.file.toString().replace(/^file:\/\//, "") })
-            GlobalStates.fileDialogOpen = false
+            root.setGeneral({
+                profile: imagePicker.file.toString().replace(/^file:\/\//, "")
+            });
+            GlobalStates.fileDialogOpen = false;
         }
         onRejected: GlobalStates.fileDialogOpen = false
     }
@@ -108,9 +126,18 @@ Item {
                     radius: 28
                     gradient: Gradient {
                         orientation: Gradient.Horizontal
-                        GradientStop { position: 0; color: Qt.alpha(Colors.surface, 0.92) }
-                        GradientStop { position: 0.55; color: Qt.alpha(Colors.surface, 0.72) }
-                        GradientStop { position: 1; color: Qt.alpha(Colors.surface, 0.15) }
+                        GradientStop {
+                            position: 0
+                            color: Qt.alpha(Colors.surface, 0.92)
+                        }
+                        GradientStop {
+                            position: 0.55
+                            color: Qt.alpha(Colors.surface, 0.72)
+                        }
+                        GradientStop {
+                            position: 1
+                            color: Qt.alpha(Colors.surface, 0.15)
+                        }
                     }
                 }
 
@@ -133,24 +160,30 @@ Item {
                             Layout.preferredHeight: 8
                             radius: 4
                             color: root.currentMode.tone
-                            Behavior on color { EffectsColorAnim {} }
+                            Behavior on color {
+                                EffectsColorAnim {}
+                            }
                         }
 
-                        CustomText { content: root.currentMode.label; size: 12; weight: 500 }
+                        CustomText {
+                            content: root.currentMode.label
+                            size: 12
+                            weight: 500
+                        }
                     }
                 }
 
                 RowLayout {
                     anchors.left: parent.left
                     anchors.right: parent.right
-                    anchors.leftMargin: 26
-                    anchors.rightMargin: 26
+                    anchors.leftMargin: hero.width < 460 ? 14 : 26
+                    anchors.rightMargin: hero.width < 460 ? 14 : 26
                     anchors.verticalCenter: parent.verticalCenter
                     spacing: 24
 
                     Item {
-                        Layout.preferredWidth: 128
-                        Layout.preferredHeight: 128
+                        Layout.preferredWidth: hero.width < 460 ? 80 : 128
+                        Layout.preferredHeight: hero.width < 460 ? 80 : 128
 
                         Rectangle {
                             anchors.fill: parent
@@ -185,7 +218,7 @@ Item {
                             content: LockSession.greeting + ", " + root.shownName
                             family: root.displayFamily
                             renderType: Text.QtRendering
-                            size: 30
+                            size: hero.width < 460 ? 22 : 30
                             elide: Text.ElideRight
                         }
 
@@ -224,7 +257,11 @@ Item {
                 icon: "waving_hand"
                 title: "Greeting"
                 subtitle: "How the lock and login screens say hello"
-                value: ({ time: "Time of day", hello: "Hello", custom: "Custom" })[root.greetingStyle] ?? ""
+                value: ({
+                        time: "Time of day",
+                        hello: "Hello",
+                        custom: "Custom"
+                    })[root.greetingStyle] ?? ""
                 target: "greeting"
             }
 
@@ -260,7 +297,9 @@ Item {
                     allowEmpty: true
                     text: SettingsConfig.general.displayName ?? ""
                     placeholder: root.loginName
-                    onSubmitted: t => root.setGeneral({ displayName: t })
+                    onSubmitted: t => root.setGeneral({
+                            displayName: t
+                        })
                 }
             }
         }
@@ -274,9 +313,27 @@ Item {
 
                 StageChoiceRow {
                     title: "Say"
-                    options: [{ value: "time", label: "Time of day", icon: "schedule" }, { value: "hello", label: "Hello", icon: "waving_hand" }, { value: "custom", label: "Custom", icon: "edit" }]
+                    options: [
+                        {
+                            value: "time",
+                            label: "Time of day",
+                            icon: "schedule"
+                        },
+                        {
+                            value: "hello",
+                            label: "Hello",
+                            icon: "waving_hand"
+                        },
+                        {
+                            value: "custom",
+                            label: "Custom",
+                            icon: "edit"
+                        }
+                    ]
                     current: root.greetingStyle
-                    onPicked: v => root.setGeneral({ greetingStyle: v })
+                    onPicked: v => root.setGeneral({
+                            greetingStyle: v
+                        })
                 }
 
                 StageFieldRow {
@@ -285,7 +342,9 @@ Item {
                     subtitle: "Followed by your name"
                     text: SettingsConfig.general.greetingText ?? ""
                     placeholder: "Welcome back"
-                    onSubmitted: t => root.setGeneral({ greetingText: t })
+                    onSubmitted: t => root.setGeneral({
+                            greetingText: t
+                        })
                 }
             }
         }
@@ -332,7 +391,9 @@ Item {
                         icon: "delete"
                         label: "Remove"
                         visible: root.avatar !== ""
-                        onClicked: root.setGeneral({ profile: "" })
+                        onClicked: root.setGeneral({
+                            profile: ""
+                        })
                     }
 
                     M3Button {
@@ -342,14 +403,18 @@ Item {
                     }
                 }
 
-                StageHeading { text: "Show my photo on" }
+                StageHeading {
+                    text: "Show my photo on"
+                }
 
                 StageSwitchRow {
                     icon: "lock"
                     title: "Lock screen"
                     subtitle: "Next to the clock, in the layouts that have one"
                     checked: root.lockAvatar
-                    onToggled: on => root.setLock({ showAvatar: on })
+                    onToggled: on => root.setLock({
+                            showAvatar: on
+                        })
                 }
 
                 StageSwitchRow {
@@ -357,7 +422,9 @@ Item {
                     title: "Login screen"
                     subtitle: "Above the password field before you sign in"
                     checked: root.greeterAvatar
-                    onToggled: on => root.setLock({ greeterAvatar: on })
+                    onToggled: on => root.setLock({
+                            greeterAvatar: on
+                        })
                 }
 
                 StageSwitchRow {
@@ -372,9 +439,7 @@ Item {
                 StageNavRow {
                     icon: "widgets"
                     title: "Desktop widgets"
-                    subtitle: root.profileWidgets === 0 ? "No profile widgets on your desktop yet"
-                        : root.profileWidgets === 1 ? "1 profile widget on your desktop"
-                        : root.profileWidgets + " profile widgets on your desktop"
+                    subtitle: root.profileWidgets === 0 ? "No profile widgets on your desktop yet" : root.profileWidgets === 1 ? "1 profile widget on your desktop" : root.profileWidgets + " profile widgets on your desktop"
                     value: root.profileWidgets === 0 ? "Add" : "Manage"
                     onClicked: GlobalStates.settingsPage = 3
                 }

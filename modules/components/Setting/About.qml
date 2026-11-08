@@ -17,18 +17,32 @@ Item {
 
     readonly property string home: Quickshell.env("HOME") ?? ""
     readonly property string shellDir: Quickshell.shellDir ?? ""
-    readonly property string prettyDir: root.home !== "" && root.shellDir.startsWith(root.home)
-        ? "~" + root.shellDir.slice(root.home.length) : root.shellDir
+    readonly property string prettyDir: root.home !== "" && root.shellDir.startsWith(root.home) ? "~" + root.shellDir.slice(root.home.length) : root.shellDir
     readonly property string revision: root.info.revision ?? ""
     readonly property bool dirty: root.revision.endsWith("*")
     readonly property var links: [
-        { icon: "code", title: "GitHub", subtitle: "Source and releases", url: "https://github.com/iamSt3el/Nebula" },
-        { icon: "bug_report", title: "Report an issue", subtitle: "Opens a new issue on GitHub", url: "https://github.com/iamSt3el/Nebula/issues/new" },
-        { icon: "star", title: "Star the project", subtitle: "", url: "https://github.com/iamSt3el/Nebula" }
+        {
+            icon: "code",
+            title: "GitHub",
+            subtitle: "Source and releases",
+            url: "https://github.com/iamSt3el/Nebula"
+        },
+        {
+            icon: "bug_report",
+            title: "Report an issue",
+            subtitle: "Opens a new issue on GitHub",
+            url: "https://github.com/iamSt3el/Nebula/issues/new"
+        },
+        {
+            icon: "star",
+            title: "Star the project",
+            subtitle: "",
+            url: "https://github.com/iamSt3el/Nebula"
+        }
     ]
 
     function shown(v) {
-        return (v === undefined || v === null || v === "") ? "—" : String(v)
+        return (v === undefined || v === null || v === "") ? "—" : String(v);
     }
 
     Process {
@@ -37,9 +51,9 @@ Item {
         stdout: StdioCollector {
             onStreamFinished: {
                 try {
-                    root.info = JSON.parse(text)
+                    root.info = JSON.parse(text);
                 } catch (e) {
-                    root.info = ({})
+                    root.info = ({});
                 }
             }
         }
@@ -52,9 +66,9 @@ Item {
     }
 
     Component.onCompleted: {
-        infoProcess.running = true
-        ServiceSystemInfo.getUptime()
-        ServiceSystemInfo.retain()
+        infoProcess.running = true;
+        ServiceSystemInfo.getUptime();
+        ServiceSystemInfo.retain();
     }
 
     Component.onDestruction: ServiceSystemInfo.release()
@@ -66,32 +80,56 @@ Item {
     property real usedPct: root.drive?.pct ?? 0
 
     Behavior on usedBytes {
-        NumberAnimation { duration: 850; easing.type: Easing.OutCubic }
+        NumberAnimation {
+            duration: 850
+            easing.type: Easing.OutCubic
+        }
     }
     Behavior on availBytes {
-        NumberAnimation { duration: 850; easing.type: Easing.OutCubic }
+        NumberAnimation {
+            duration: 850
+            easing.type: Easing.OutCubic
+        }
     }
     Behavior on usedPct {
-        NumberAnimation { duration: 850; easing.type: Easing.OutCubic }
+        NumberAnimation {
+            duration: 850
+            easing.type: Easing.OutCubic
+        }
     }
 
     property string hostname: ""
-    readonly property real homeBytes: ServiceStorage.childrenPath === root.home
-        ? ServiceStorage.entries.reduce((s, e) => s + (e.bytes ?? 0), 0) : 0
+    readonly property real homeBytes: ServiceStorage.childrenPath === root.home ? ServiceStorage.entries.reduce((s, e) => s + (e.bytes ?? 0), 0) : 0
     readonly property real driveSize: root.drive?.size ?? 0
     readonly property var segments: {
-        const used = root.drive?.used ?? 0
-        const free = root.drive?.avail ?? 0
-        const home = Math.min(root.homeBytes, used)
-        const out = []
+        const used = root.drive?.used ?? 0;
+        const free = root.drive?.avail ?? 0;
+        const home = Math.min(root.homeBytes, used);
+        const out = [];
         if (home > 0) {
-            out.push({ label: "Home", bytes: home, color: Colors.primary })
-            out.push({ label: "System and other", bytes: Math.max(0, used - home), color: Colors.secondary })
+            out.push({
+                label: "Home",
+                bytes: home,
+                color: Colors.primary
+            });
+            out.push({
+                label: "System and other",
+                bytes: Math.max(0, used - home),
+                color: Colors.secondary
+            });
         } else {
-            out.push({ label: "Used", bytes: used, color: Colors.primary })
+            out.push({
+                label: "Used",
+                bytes: used,
+                color: Colors.primary
+            });
         }
-        out.push({ label: "Free", bytes: free, color: Colors.surfaceContainerHighest })
-        return out.filter(s => s.bytes > 0)
+        out.push({
+            label: "Free",
+            bytes: free,
+            color: Colors.surfaceContainerHighest
+        });
+        return out.filter(s => s.bytes > 0);
     }
 
     Process {
@@ -138,7 +176,12 @@ Item {
                     anchors.fill: parent
                     spacing: 10
 
-                    MaterialIconSymbol { content: tile.icon; iconSize: 21; fill: 1; customColor: Colors.primary }
+                    MaterialIconSymbol {
+                        content: tile.icon
+                        iconSize: 21
+                        fill: 1
+                        customColor: Colors.primary
+                    }
 
                     CustomText {
                         Layout.fillWidth: true
@@ -171,7 +214,7 @@ Item {
         property string value: ""
         property string url: ""
         property bool first: false
-        signal clicked()
+        signal clicked
         Layout.fillWidth: true
         implicitHeight: 34
 
@@ -248,8 +291,8 @@ Item {
                     icon: "rocket_launch"
                     label: "Run setup again"
                     onClicked: {
-                        GlobalStates.settingsOpen = false
-                        Quickshell.execDetached([Quickshell.shellDir + "/bin/nebula", "setup"])
+                        GlobalStates.settingsOpen = false;
+                        Quickshell.execDetached([Quickshell.shellDir + "/bin/nebula", "setup"]);
                     }
                 }
             }
@@ -257,7 +300,7 @@ Item {
             GridLayout {
                 Layout.fillWidth: true
                 Layout.topMargin: 10
-                columns: 2
+                columns: width < 480 ? 1 : 2
                 columnSpacing: 10
                 rowSpacing: 10
 
@@ -266,10 +309,23 @@ Item {
                     title: "This computer"
                     target: "system"
 
-                    SpecRow { first: true; label: "Name"; value: root.shown(root.hostname) }
-                    SpecRow { label: "Processor"; value: root.shown(ServiceSystemInfo.cpuName) }
-                    SpecRow { label: "Memory"; value: ServiceSystemInfo.memTotalGb > 0 ? ServiceSystemInfo.memTotalGb.toFixed(1) + " GB" : "—" }
-                    SpecRow { label: "Up for"; value: root.shown(ServiceSystemInfo.uptime) }
+                    SpecRow {
+                        first: true
+                        label: "Name"
+                        value: root.shown(root.hostname)
+                    }
+                    SpecRow {
+                        label: "Processor"
+                        value: root.shown(ServiceSystemInfo.cpuName)
+                    }
+                    SpecRow {
+                        label: "Memory"
+                        value: ServiceSystemInfo.memTotalGb > 0 ? ServiceSystemInfo.memTotalGb.toFixed(1) + " GB" : "—"
+                    }
+                    SpecRow {
+                        label: "Up for"
+                        value: root.shown(ServiceSystemInfo.uptime)
+                    }
                 }
 
                 SpecTile {
@@ -277,14 +333,27 @@ Item {
                     title: "Software"
                     target: "system"
 
-                    SpecRow { first: true; label: "System"; value: root.shown(root.info.distro) }
-                    SpecRow { label: "Kernel"; value: root.shown(root.info.kernel) }
-                    SpecRow { label: "Compositor"; value: root.shown(root.info.compositor) }
-                    SpecRow { label: "Runtime"; value: root.info.quickshell ? "Quickshell " + root.info.quickshell : "—" }
+                    SpecRow {
+                        first: true
+                        label: "System"
+                        value: root.shown(root.info.distro)
+                    }
+                    SpecRow {
+                        label: "Kernel"
+                        value: root.shown(root.info.kernel)
+                    }
+                    SpecRow {
+                        label: "Compositor"
+                        value: root.shown(root.info.compositor)
+                    }
+                    SpecRow {
+                        label: "Runtime"
+                        value: root.info.quickshell ? "Quickshell " + root.info.quickshell : "—"
+                    }
                 }
 
                 Rectangle {
-                    Layout.columnSpan: 2
+                    Layout.columnSpan: parent.columns > 1 ? 2 : 1
                     Layout.fillWidth: true
                     implicitHeight: storageCol.implicitHeight + 32
                     radius: 20
@@ -301,7 +370,12 @@ Item {
                             Layout.fillWidth: true
                             spacing: 10
 
-                            MaterialIconSymbol { content: "hard_drive"; iconSize: 21; fill: 1; customColor: Colors.primary }
+                            MaterialIconSymbol {
+                                content: "hard_drive"
+                                iconSize: 21
+                                fill: 1
+                                customColor: Colors.primary
+                            }
 
                             CustomText {
                                 Layout.fillWidth: true
@@ -400,7 +474,9 @@ Item {
                                 }
                             }
 
-                            Item { Layout.fillWidth: true }
+                            Item {
+                                Layout.fillWidth: true
+                            }
                         }
 
                         RowLayout {
@@ -429,8 +505,16 @@ Item {
                     title: "Config"
                     target: "config"
 
-                    SpecRow { first: true; label: "Shell"; value: root.prettyDir }
-                    SpecRow { label: "Folder"; value: "Open in files"; url: "file://" + root.shellDir }
+                    SpecRow {
+                        first: true
+                        label: "Shell"
+                        value: root.prettyDir
+                    }
+                    SpecRow {
+                        label: "Folder"
+                        value: "Open in files"
+                        url: "file://" + root.shellDir
+                    }
                 }
 
                 SpecTile {
@@ -438,8 +522,17 @@ Item {
                     title: "Help"
                     target: "help"
 
-                    SpecRow { first: true; label: "GitHub"; value: "Source and releases"; url: root.links[0].url }
-                    SpecRow { label: "Issues"; value: "Report a problem"; url: root.links[1].url }
+                    SpecRow {
+                        first: true
+                        label: "GitHub"
+                        value: "Source and releases"
+                        url: root.links[0].url
+                    }
+                    SpecRow {
+                        label: "Issues"
+                        value: "Report a problem"
+                        url: root.links[1].url
+                    }
                 }
             }
         }
@@ -485,17 +578,45 @@ Item {
                 stageId: "system"
                 title: "This computer"
 
-                StageHeading { text: "Software" }
-                StageInfoRow { title: "Nebula"; value: "1.0.0" + (root.revision !== "" ? " (" + root.revision + ")" : "") }
-                StageInfoRow { title: "Quickshell"; value: root.shown(root.info.quickshell) }
-                StageInfoRow { title: "Compositor"; value: root.shown(root.info.compositor) }
-                StageInfoRow { title: "Kernel"; value: root.shown(root.info.kernel) }
-                StageInfoRow { title: "Distro"; value: root.shown(root.info.distro) }
+                StageHeading {
+                    text: "Software"
+                }
+                StageInfoRow {
+                    title: "Nebula"
+                    value: "1.0.0" + (root.revision !== "" ? " (" + root.revision + ")" : "")
+                }
+                StageInfoRow {
+                    title: "Quickshell"
+                    value: root.shown(root.info.quickshell)
+                }
+                StageInfoRow {
+                    title: "Compositor"
+                    value: root.shown(root.info.compositor)
+                }
+                StageInfoRow {
+                    title: "Kernel"
+                    value: root.shown(root.info.kernel)
+                }
+                StageInfoRow {
+                    title: "Distro"
+                    value: root.shown(root.info.distro)
+                }
 
-                StageHeading { text: "Hardware" }
-                StageInfoRow { title: "Processor"; value: root.shown(ServiceSystemInfo.cpuName) }
-                StageInfoRow { title: "Memory"; value: ServiceSystemInfo.memTotalGb > 0 ? ServiceSystemInfo.memTotalGb.toFixed(1) + " GB" : "—" }
-                StageInfoRow { title: "Up for"; value: root.shown(ServiceSystemInfo.uptime) }
+                StageHeading {
+                    text: "Hardware"
+                }
+                StageInfoRow {
+                    title: "Processor"
+                    value: root.shown(ServiceSystemInfo.cpuName)
+                }
+                StageInfoRow {
+                    title: "Memory"
+                    value: ServiceSystemInfo.memTotalGb > 0 ? ServiceSystemInfo.memTotalGb.toFixed(1) + " GB" : "—"
+                }
+                StageInfoRow {
+                    title: "Up for"
+                    value: root.shown(ServiceSystemInfo.uptime)
+                }
             }
         }
 
@@ -519,9 +640,9 @@ Item {
                         iconSize: 18
                         tip: "Copy the path"
                         onClicked: {
-                            Quickshell.clipboardText = root.shellDir
-                            root.copied = true
-                            copiedReset.restart()
+                            Quickshell.clipboardText = root.shellDir;
+                            root.copied = true;
+                            copiedReset.restart();
                         }
                     }
                 }
@@ -572,7 +693,9 @@ Item {
                 title: "Usage map"
 
                 CustomCard {
-                    autoRadius: false; topRadius: 20; bottomRadius: 20
+                    autoRadius: false
+                    topRadius: 20
+                    bottomRadius: 20
 
                     ColumnLayout {
                         Layout.fillWidth: true
@@ -583,12 +706,17 @@ Item {
                             spacing: 8
 
                             Rectangle {
-                                implicitWidth: 32; implicitHeight: 32
+                                implicitWidth: 32
+                                implicitHeight: 32
                                 radius: 16
                                 color: Colors.surfaceContainerHighest
                                 opacity: ServiceStorage.canGoUp ? 1 : 0.4
 
-                                Behavior on opacity { EffectsAnim { speed: "fast" } }
+                                Behavior on opacity {
+                                    EffectsAnim {
+                                        speed: "fast"
+                                    }
+                                }
 
                                 MaterialIconSymbol {
                                     anchors.centerIn: parent
@@ -627,8 +755,7 @@ Item {
                                             required property int index
                                             spacing: 2
 
-                                            readonly property bool last:
-                                                crumb.index === ServiceStorage.breadcrumb.length - 1
+                                            readonly property bool last: crumb.index === ServiceStorage.breadcrumb.length - 1
 
                                             opacity: 0
 
@@ -638,7 +765,9 @@ Item {
                                                     duration: Math.min(crumb.index, 8) * 26
                                                 }
                                                 EffectsAnim {
-                                                    target: crumb; property: "opacity"; to: 1
+                                                    target: crumb
+                                                    property: "opacity"
+                                                    to: 1
                                                 }
                                             }
 
@@ -654,12 +783,18 @@ Item {
                                                 implicitWidth: crumbText.implicitWidth + 16
                                                 implicitHeight: 26
                                                 radius: 13
-                                                color: crumb.last ? Qt.alpha(Colors.primary, 0.16)
-                                                     : crumbRipple.containsMouse ? Qt.alpha(Colors.primary, 0.07)
-                                                     : "transparent"
+                                                color: crumb.last ? Qt.alpha(Colors.primary, 0.16) : crumbRipple.containsMouse ? Qt.alpha(Colors.primary, 0.07) : "transparent"
 
-                                                Behavior on color { EffectsColorAnim { speed: "fast" } }
-                                                Behavior on implicitWidth { SpatialAnim { speed: "fast" } }
+                                                Behavior on color {
+                                                    EffectsColorAnim {
+                                                        speed: "fast"
+                                                    }
+                                                }
+                                                Behavior on implicitWidth {
+                                                    SpatialAnim {
+                                                        speed: "fast"
+                                                    }
+                                                }
 
                                                 CustomText {
                                                     id: crumbText
@@ -690,10 +825,13 @@ Item {
                                 radius: 16
                                 color: Colors.surfaceContainerHighest
 
-                                readonly property bool atHome:
-                                    ServiceStorage.currentPath === ServiceStorage.home
+                                readonly property bool atHome: ServiceStorage.currentPath === ServiceStorage.home
 
-                                Behavior on implicitWidth { SpatialAnim { speed: "fast" } }
+                                Behavior on implicitWidth {
+                                    SpatialAnim {
+                                        speed: "fast"
+                                    }
+                                }
 
                                 RowLayout {
                                     id: rootRow
@@ -714,8 +852,7 @@ Item {
                                 RippleEffect {
                                     anchors.fill: parent
                                     radius: 16
-                                    onClicked: ServiceStorage.openRoot(
-                                        rootSwitch.atHome ? "/" : ServiceStorage.home)
+                                    onClicked: ServiceStorage.openRoot(rootSwitch.atHome ? "/" : ServiceStorage.home)
                                 }
                             }
 
@@ -730,11 +867,13 @@ Item {
                                     anchors.centerIn: parent
                                     spacing: 6
                                     MaterialIconSymbol {
-                                        content: "folder_open"; iconSize: 15
+                                        content: "folder_open"
+                                        iconSize: 15
                                         customColor: Colors.primary
                                     }
                                     CustomText {
-                                        content: "Open"; size: 12
+                                        content: "Open"
+                                        size: 12
                                         customColor: Colors.primary
                                     }
                                 }
@@ -759,14 +898,14 @@ Item {
 
                         CustomText {
                             Layout.fillWidth: true
-                            content: ServiceStorage.entries.length > 0
-                                ? ServiceStorage.entries.length + " items  ·  click a tile to go deeper"
-                                : ""
+                            content: ServiceStorage.entries.length > 0 ? ServiceStorage.entries.length + " items  ·  click a tile to go deeper" : ""
                             size: 11
                             customColor: Colors.outline
 
                             opacity: content === "" ? 0 : 1
-                            Behavior on opacity { EffectsAnim {} }
+                            Behavior on opacity {
+                                EffectsAnim {}
+                            }
                         }
                     }
                 }

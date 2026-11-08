@@ -17,7 +17,7 @@ Item {
     readonly property int refresh: Math.max(5, root.weather.refreshInterval ?? 15)
 
     function patch(p) {
-        SettingsConfig.weather = Object.assign({}, SettingsConfig.weather, p)
+        SettingsConfig.weather = Object.assign({}, SettingsConfig.weather, p);
     }
 
     readonly property var rec: SettingsConfig.recording ?? ({})
@@ -26,16 +26,16 @@ Item {
     readonly property string shutterName: (root.shot.soundPath ?? "") === "" ? "" : root.shot.soundPath.split("/").pop()
 
     function patchRec(p) {
-        SettingsConfig.recording = Object.assign({}, SettingsConfig.recording, p)
+        SettingsConfig.recording = Object.assign({}, SettingsConfig.recording, p);
     }
 
     function patchShot(p) {
-        SettingsConfig.screenshot = Object.assign({}, SettingsConfig.screenshot, p)
+        SettingsConfig.screenshot = Object.assign({}, SettingsConfig.screenshot, p);
     }
 
     function pick(dialog) {
-        GlobalStates.fileDialogOpen = true
-        dialog.open()
+        GlobalStates.fileDialogOpen = true;
+        dialog.open();
     }
 
     FileDialog {
@@ -43,8 +43,10 @@ Item {
         title: "Select a shutter sound file"
         nameFilters: ["WAV files (*.wav)"]
         onAccepted: {
-            root.patchShot({ soundPath: soundFilePicker.file.toString().replace(/^file:\/\//, "") })
-            GlobalStates.fileDialogOpen = false
+            root.patchShot({
+                soundPath: soundFilePicker.file.toString().replace(/^file:\/\//, "")
+            });
+            GlobalStates.fileDialogOpen = false;
         }
         onRejected: GlobalStates.fileDialogOpen = false
     }
@@ -53,8 +55,10 @@ Item {
         id: recFolderPicker
         title: "Select recording output folder"
         onAccepted: {
-            root.patchRec({ outputPath: recFolderPicker.folder.toString().replace(/^file:\/\//, "") })
-            GlobalStates.fileDialogOpen = false
+            root.patchRec({
+                outputPath: recFolderPicker.folder.toString().replace(/^file:\/\//, "")
+            });
+            GlobalStates.fileDialogOpen = false;
         }
         onRejected: GlobalStates.fileDialogOpen = false
     }
@@ -63,8 +67,10 @@ Item {
         id: shotFolderPicker
         title: "Select screenshot output folder"
         onAccepted: {
-            root.patchShot({ outputPath: shotFolderPicker.folder.toString().replace(/^file:\/\//, "") })
-            GlobalStates.fileDialogOpen = false
+            root.patchShot({
+                outputPath: shotFolderPicker.folder.toString().replace(/^file:\/\//, "")
+            });
+            GlobalStates.fileDialogOpen = false;
         }
         onRejected: GlobalStates.fileDialogOpen = false
     }
@@ -80,10 +86,13 @@ Item {
             stageId: "front"
 
             CustomCard {
-                autoRadius: false; topRadius: 28; bottomRadius: 28
+                autoRadius: false
+                topRadius: 28
+                bottomRadius: 28
                 color: Colors.surfaceContainer
 
-                Component.onCompleted: if (root.captures.length === 0) ServiceCaptures.refresh()
+                Component.onCompleted: if (root.captures.length === 0)
+                    ServiceCaptures.refresh()
 
                 RowLayout {
                     Layout.fillWidth: true
@@ -150,7 +159,9 @@ Item {
                                 }
                             }
 
-                            Item { Layout.fillHeight: true }
+                            Item {
+                                Layout.fillHeight: true
+                            }
 
                             Row {
                                 id: hourRow
@@ -205,7 +216,7 @@ Item {
                             visible: root.shots.length > 0
                             anchors.fill: parent
                             anchors.margins: 10
-                            columns: 2
+                            columns: width < 480 ? 1 : 2
                             rowSpacing: 6
                             columnSpacing: 6
 
@@ -297,8 +308,7 @@ Item {
                             CustomText {
                                 Layout.fillWidth: true
                                 horizontalAlignment: Text.AlignHCenter
-                                content: root.clips.length === 0 ? "No clips yet"
-                                    : (root.clips.length === 1 ? "1 clip" : root.clips.length + " clips") + "\n" + ServiceCaptures.clock(root.clips[0].duration)
+                                content: root.clips.length === 0 ? "No clips yet" : (root.clips.length === 1 ? "1 clip" : root.clips.length + " clips") + "\n" + ServiceCaptures.clock(root.clips[0].duration)
                                 size: 11
                                 weight: 600
                                 wrapMode: Text.WordWrap
@@ -316,23 +326,30 @@ Item {
                 }
             }
 
-            StageHeading { text: "Where"; aside: "Places the apps read from and save to" }
+            StageHeading {
+                text: "Where"
+                aside: "Places the apps read from and save to"
+            }
 
             StageNavRow {
                 visible: Features.weather
-                tag: "Weather"; tagIcon: "sunny"; tagColor: Colors.tertiaryContainer; tagInk: Colors.tertiaryContainerText; tagWidth: 118
+                tag: "Weather"
+                tagIcon: "sunny"
+                tagColor: Colors.tertiaryContainer
+                tagInk: Colors.tertiaryContainerText
+                tagWidth: 118
                 title: "Location"
-                subtitle: (root.weather.useGeoFile || root.weather.location === "auto")
-                    ? "External coordinates file"
-                    : "City name or coordinates"
-                value: (root.weather.useGeoFile ?? false)
-                    ? "Auto" + ((root.weather.geoFile ?? "") !== "" ? " · " + root.weather.geoFile : "")
-                    : (root.weather.location ?? "")
+                subtitle: (root.weather.useGeoFile || root.weather.location === "auto") ? "External coordinates file" : "City name or coordinates"
+                value: (root.weather.useGeoFile ?? false) ? "Auto" + ((root.weather.geoFile ?? "") !== "" ? " · " + root.weather.geoFile : "") : (root.weather.location ?? "")
                 target: "location"
             }
 
             StageNavRow {
-                tag: "Screenshots"; tagIcon: "screenshot_region"; tagColor: Colors.primaryContainer; tagInk: Colors.primaryContainerText; tagWidth: 118
+                tag: "Screenshots"
+                tagIcon: "screenshot_region"
+                tagColor: Colors.primaryContainer
+                tagInk: Colors.primaryContainerText
+                tagWidth: 118
                 title: "Save to"
                 subtitle: "Area, window and full screen"
                 value: root.shot.outputPath ?? ""
@@ -340,75 +357,119 @@ Item {
             }
 
             StageNavRow {
-                tag: "Recording"; tagIcon: "screen_record"; tagColor: Colors.secondaryContainer; tagInk: Colors.secondaryContainerText; tagWidth: 118
+                tag: "Recording"
+                tagIcon: "screen_record"
+                tagColor: Colors.secondaryContainer
+                tagInk: Colors.secondaryContainerText
+                tagWidth: 118
                 title: "Save to"
                 subtitle: "Screen recordings"
                 value: root.rec.outputPath ?? ""
                 onClicked: root.pick(recFolderPicker)
             }
 
-            StageHeading { text: "How"; aside: "Formats and units" }
+            StageHeading {
+                text: "How"
+                aside: "Formats and units"
+            }
 
             StageDropdownRow {
                 visible: Features.weather
-                tag: "Weather"; tagIcon: "sunny"; tagColor: Colors.tertiaryContainer; tagInk: Colors.tertiaryContainerText; tagWidth: 118
+                tag: "Weather"
+                tagIcon: "sunny"
+                tagColor: Colors.tertiaryContainer
+                tagInk: Colors.tertiaryContainerText
+                tagWidth: 118
                 title: "Units"
                 subtitle: "Temperature, wind and distance"
                 options: ["Metric (°C)", "Imperial (°F)"]
                 current: root.metric ? "Metric (°C)" : "Imperial (°F)"
                 dropdownWidth: 160
-                onPicked: name => root.patch({ useMetric: name === "Metric (°C)" })
+                onPicked: name => root.patch({
+                        useMetric: name === "Metric (°C)"
+                    })
             }
 
             StageNavRow {
-                tag: "Recording"; tagIcon: "screen_record"; tagColor: Colors.secondaryContainer; tagInk: Colors.secondaryContainerText; tagWidth: 118
+                tag: "Recording"
+                tagIcon: "screen_record"
+                tagColor: Colors.secondaryContainer
+                tagInk: Colors.secondaryContainerText
+                tagWidth: 118
                 title: "Video"
                 subtitle: [root.rec.codec, (root.rec.muxer ?? "").toUpperCase(), (root.rec.framerate ?? "") + " fps", root.rec.pixelFormat].join(" · ")
                 target: "video"
             }
 
             StageRow {
-                tag: "Recording"; tagIcon: "screen_record"; tagColor: Colors.secondaryContainer; tagInk: Colors.secondaryContainerText; tagWidth: 118
+                tag: "Recording"
+                tagIcon: "screen_record"
+                tagColor: Colors.secondaryContainer
+                tagInk: Colors.secondaryContainerText
+                tagWidth: 118
                 title: "Record audio"
                 subtitle: root.audioOn ? [root.rec.audioSource, root.rec.audioCodec, root.rec.audioBitrate].join(" · ") : "Video only"
                 target: "audio"
 
                 CustomToogle {
                     isToggleOn: root.audioOn
-                    onToggled: state => root.patchRec({ audioEnabled: state })
+                    onToggled: state => root.patchRec({
+                            audioEnabled: state
+                        })
                 }
             }
 
-            StageHeading { text: "When"; aside: "Timing and feedback" }
+            StageHeading {
+                text: "When"
+                aside: "Timing and feedback"
+            }
 
             StageDropdownRow {
                 visible: Features.weather
-                tag: "Weather"; tagIcon: "sunny"; tagColor: Colors.tertiaryContainer; tagInk: Colors.tertiaryContainerText; tagWidth: 118
+                tag: "Weather"
+                tagIcon: "sunny"
+                tagColor: Colors.tertiaryContainer
+                tagInk: Colors.tertiaryContainerText
+                tagWidth: 118
                 title: "Update every"
                 subtitle: Features.weather && ServiceWeather.lastUpdated ? "Last updated " + Qt.formatTime(ServiceWeather.lastUpdated, "h:mm AP") : "At least 5 minutes"
                 options: [5, 15, 30, 60].map(m => m + " min")
                 current: root.refresh + " min"
                 dropdownWidth: 160
-                onPicked: name => root.patch({ refreshInterval: parseInt(name) })
+                onPicked: name => root.patch({
+                        refreshInterval: parseInt(name)
+                    })
             }
 
             StageSwitchRow {
-                tag: "Screenshots"; tagIcon: "screenshot_region"; tagColor: Colors.primaryContainer; tagInk: Colors.primaryContainerText; tagWidth: 118
+                tag: "Screenshots"
+                tagIcon: "screenshot_region"
+                tagColor: Colors.primaryContainer
+                tagInk: Colors.primaryContainerText
+                tagWidth: 118
                 title: "Freeze the screen while selecting"
                 subtitle: "Area, window and text work on a still frame"
                 checked: root.shot.freeze === true
-                onToggled: on => root.patchShot({ freeze: on })
+                onToggled: on => root.patchShot({
+                        freeze: on
+                    })
             }
 
             StageRow {
-                tag: "Screenshots"; tagIcon: "screenshot_region"; tagColor: Colors.primaryContainer; tagInk: Colors.primaryContainerText; tagWidth: 118
+                tag: "Screenshots"
+                tagIcon: "screenshot_region"
+                tagColor: Colors.primaryContainer
+                tagInk: Colors.primaryContainerText
+                tagWidth: 118
                 title: "Shutter sound"
                 subtitle: root.shutterName !== "" ? root.shutterName : "No sound file set"
                 target: "screenshots"
 
                 CustomToogle {
                     isToggleOn: root.shot.soundEnabled ?? false
-                    onToggled: state => root.patchShot({ soundEnabled: state })
+                    onToggled: state => root.patchShot({
+                            soundEnabled: state
+                        })
                 }
             }
         }
@@ -425,7 +486,9 @@ Item {
                     title: "External geolocation"
                     subtitle: "Read coordinates from an external file (e.g. Wi-Fi positioning or geoclue)"
                     checked: root.weather.useGeoFile ?? false
-                    onToggled: on => root.patch({ useGeoFile: on })
+                    onToggled: on => root.patch({
+                            useGeoFile: on
+                        })
                 }
 
                 StageFieldRow {
@@ -437,7 +500,9 @@ Item {
                     text: root.weather.geoFile ?? "~/.cache/quickshell/geo"
                     placeholder: "~/.cache/quickshell/geo"
                     allowEmpty: true
-                    onSubmitted: t => root.patch({ geoFile: t.trim() })
+                    onSubmitted: t => root.patch({
+                            geoFile: t.trim()
+                        })
                 }
 
                 StageFieldRow {
@@ -449,10 +514,14 @@ Item {
                     text: root.weather.location ?? ""
                     placeholder: "City"
                     allowEmpty: true
-                    onSubmitted: t => root.patch({ location: t })
+                    onSubmitted: t => root.patch({
+                            location: t
+                        })
                 }
 
-                StageNote { content: "A new location shows on the next refresh." }
+                StageNote {
+                    content: "A new location shows on the next refresh."
+                }
             }
         }
 
@@ -474,16 +543,22 @@ Item {
                     title: "Freeze the screen while selecting"
                     subtitle: "Area, window and text selection work on a still frame"
                     checked: root.shot.freeze === true
-                    onToggled: on => root.patchShot({ freeze: on })
+                    onToggled: on => root.patchShot({
+                            freeze: on
+                        })
                 }
 
-                StageHeading { text: "Shutter sound" }
+                StageHeading {
+                    text: "Shutter sound"
+                }
 
                 StageSwitchRow {
                     title: "Play a sound"
                     subtitle: "When a screenshot is taken"
                     checked: root.shot.soundEnabled ?? false
-                    onToggled: on => root.patchShot({ soundEnabled: on })
+                    onToggled: on => root.patchShot({
+                            soundEnabled: on
+                        })
                 }
 
                 StageNavRow {
@@ -509,15 +584,22 @@ Item {
                     subtitle: "Video encoding format"
                     options: ["libx264", "libx265", "libvpx-vp9", "h264_vaapi", "av1_vaapi"]
                     current: root.rec.codec ?? ""
-                    onPicked: name => root.patchRec({ codec: name })
+                    onPicked: name => root.patchRec({
+                            codec: name
+                        })
                 }
 
                 StageChoiceRow {
                     title: "Container"
                     subtitle: "Output file format"
-                    options: ["mp4", "mkv", "webm"].map(v => ({ value: v, label: v.toUpperCase() }))
+                    options: ["mp4", "mkv", "webm"].map(v => ({
+                                value: v,
+                                label: v.toUpperCase()
+                            }))
                     current: root.rec.muxer ?? ""
-                    onPicked: v => root.patchRec({ muxer: v })
+                    onPicked: v => root.patchRec({
+                            muxer: v
+                        })
                 }
 
                 StageSpinRow {
@@ -528,15 +610,22 @@ Item {
                     step: 5
                     suffix: " fps"
                     current: parseInt(root.rec.framerate ?? "30") || 30
-                    onStepped: v => root.patchRec({ framerate: String(v) })
+                    onStepped: v => root.patchRec({
+                            framerate: String(v)
+                        })
                 }
 
                 StageChoiceRow {
                     title: "Pixel format"
                     subtitle: "yuv420p plays everywhere"
-                    options: ["yuv420p", "yuv444p", "nv12"].map(v => ({ value: v, label: v }))
+                    options: ["yuv420p", "yuv444p", "nv12"].map(v => ({
+                                value: v,
+                                label: v
+                            }))
                     current: root.rec.pixelFormat ?? ""
-                    onPicked: v => root.patchRec({ pixelFormat: v })
+                    onPicked: v => root.patchRec({
+                            pixelFormat: v
+                        })
                 }
             }
         }
@@ -552,16 +641,36 @@ Item {
                     title: "Record audio"
                     subtitle: "Capture sound alongside the video"
                     checked: root.audioOn
-                    onToggled: on => root.patchRec({ audioEnabled: on })
+                    onToggled: on => root.patchRec({
+                            audioEnabled: on
+                        })
                 }
 
                 StageChoiceRow {
                     enabled: root.audioOn
                     title: "Source"
                     subtitle: "What audio to capture"
-                    options: [{ value: "mic", label: "Mic", icon: "mic" }, { value: "system", label: "System", icon: "speaker" }, { value: "both", label: "Both", icon: "merge" }]
+                    options: [
+                        {
+                            value: "mic",
+                            label: "Mic",
+                            icon: "mic"
+                        },
+                        {
+                            value: "system",
+                            label: "System",
+                            icon: "speaker"
+                        },
+                        {
+                            value: "both",
+                            label: "Both",
+                            icon: "merge"
+                        }
+                    ]
                     current: root.rec.audioSource ?? "mic"
-                    onPicked: v => root.patchRec({ audioSource: v })
+                    onPicked: v => root.patchRec({
+                            audioSource: v
+                        })
                 }
 
                 StageGap {}
@@ -572,7 +681,9 @@ Item {
                     subtitle: "Audio encoding format"
                     options: ["aac", "opus", "libmp3lame", "flac"]
                     current: root.rec.audioCodec ?? ""
-                    onPicked: name => root.patchRec({ audioCodec: name })
+                    onPicked: name => root.patchRec({
+                            audioCodec: name
+                        })
                 }
 
                 StageDropdownRow {
@@ -581,16 +692,23 @@ Item {
                     subtitle: "Quality against file size"
                     options: ["64k", "96k", "128k", "192k", "256k"]
                     current: root.rec.audioBitrate ?? ""
-                    onPicked: name => root.patchRec({ audioBitrate: name })
+                    onPicked: name => root.patchRec({
+                            audioBitrate: name
+                        })
                 }
 
                 StageChoiceRow {
                     enabled: root.audioOn
                     title: "Sample rate"
                     subtitle: "Audio samples per second"
-                    options: ["44100", "48000", "96000"].map(v => ({ value: v, label: (Number(v) / 1000) + " kHz" }))
+                    options: ["44100", "48000", "96000"].map(v => ({
+                                value: v,
+                                label: (Number(v) / 1000) + " kHz"
+                            }))
                     current: root.rec.audioSampleRate ?? ""
-                    onPicked: v => root.patchRec({ audioSampleRate: v })
+                    onPicked: v => root.patchRec({
+                            audioSampleRate: v
+                        })
                 }
             }
         }

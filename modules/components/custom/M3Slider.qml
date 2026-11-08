@@ -11,7 +11,12 @@ Item {
     property real progress: 0.0
     readonly property real value: from + _shown * _span
     property real _held: -1
-    readonly property real _shown: _held >= 0 ? _held : progress
+    property real displayProgress: progress
+    Behavior on displayProgress {
+        enabled: root._held < 0 && !root.pressed
+        NumberAnimation { duration: 160; easing.type: Easing.OutCubic }
+    }
+    readonly property real _shown: _held >= 0 ? _held : displayProgress
 
     property real peakLevel: 0.0
     property bool showPeak: false

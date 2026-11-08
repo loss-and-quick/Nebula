@@ -1469,8 +1469,13 @@ Singleton {
                 model.insert(i, o)
             }
         }
-        while (model.count > ids.length)
-            model.remove(model.count - 1)
+        if (model.count > ids.length) {
+            const targetCount = ids.length
+            Qt.callLater(() => {
+                while (model.count > targetCount)
+                    model.remove(model.count - 1)
+            })
+        }
         for (let i = 0; i < model.count; i++) {
             const lv = !!(leaving && leaving[model.get(i)[role]])
             if (model.get(i).leaving !== lv)

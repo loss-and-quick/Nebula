@@ -221,7 +221,8 @@ Item {
                 hoverEnabled: true
 
                 onEntered: if (root.host && root.host.appEntered) root.host.appEntered(dockItem.modelData, dockItem)
-                onExited: if (root.host && root.host.appExited) root.host.appExited()
+                onExited: if (root.host && root.host.appExited) Qt.callLater(root.host.appExited)
+                Component.onDestruction: dockIconArea.hoverEnabled = false
 
                 onClicked: mouse => {
                     if (mouse.button === Qt.LeftButton) {

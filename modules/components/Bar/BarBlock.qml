@@ -1678,7 +1678,10 @@ Item {
         if (barBlock.panelKind === "dockMenu" && !barBlock.dockAppEntry)
             barBlock.closePanel()
         else if (barBlock.panelKind === "dockPreview" && barBlock.dockWinCount === 0)
-            barBlock.hoverKind = ""
+            Qt.callLater(() => {
+                if (barBlock.panelKind === "dockPreview" && barBlock.dockWinCount === 0)
+                    barBlock.hoverKind = ""
+            })
     }
 
     function appEntered(entry, item) {
@@ -1688,8 +1691,12 @@ Item {
         if (barBlock.panelKind === "dockMenu" || barBlock.clickedKind !== "")
             return
         if (entry.toplevels.length === 0) {
-            if (barBlock.panelKind === "dockPreview")
-                barBlock.hoverKind = ""
+            if (barBlock.panelKind === "dockPreview") {
+                Qt.callLater(() => {
+                    if (barBlock.panelKind === "dockPreview")
+                        barBlock.hoverKind = ""
+                })
+            }
             return
         }
         barBlock.dockAppId = entry.appId ?? ""
@@ -2427,7 +2434,14 @@ Item {
         Timer {
             id: slotCache
             interval: 30000
-            onTriggered: if (!slot.shown && slot.kind !== barBlock.residentKind) slot.kind = ""
+            onTriggered: {
+                if (!slot.shown && slot.kind !== barBlock.residentKind) {
+                    Qt.callLater(() => {
+                        if (!slot.shown && slot.kind !== barBlock.residentKind)
+                            slot.kind = ""
+                    })
+                }
+            }
         }
 
         Behavior on opacity {

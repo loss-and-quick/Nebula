@@ -181,6 +181,9 @@ Singleton {
         adapter: JsonAdapter {
             id: settingsAdapter
 
+            // motionRoles maps roles to style strings or objects with optional style, duration (ms),
+            // overshoot, amplitude, period, curve, spring, damping and mass fields.
+            // Curve is four Bézier control coordinates or a Qt Bézier spline array.
             readonly property var _generalDefaults: ({
                     dock: true,
                     dockAutoHide: true,

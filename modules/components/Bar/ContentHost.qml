@@ -128,9 +128,6 @@ Item {
 
         property string kind: ""
         property bool shown: false
-        property real homeX: 0
-        readonly property real clipX: revealer.x
-        readonly property real clipY: revealer.y + (revealer.clipItem ? revealer.clipItem.y : 0)
         readonly property real fw: block.vertical ? slot.height : slot.width
         readonly property real fh: block.vertical ? slot.width : slot.height
         readonly property real slideY: block.far ? Math.max(0, contentHost.height - slot.fh) : Math.min(0, contentHost.height - slot.fh)
@@ -240,22 +237,20 @@ Item {
         onShownChanged: {
             if (slot.shown) {
                 slotCache.stop();
-                slot.quiet = contentHost.panelSwap || block.caeStyle;
-                slot.ride = block.caeStyle && !contentHost.panelSwap;
-                slot.homeX = Qt.binding(() => revealer.tabX + (revealer.tabW - slot.fw) / 2);
+                slot.quiet = contentHost.panelSwap || revealer.caeStyle;
+                slot.ride = revealer.caeStyle && !contentHost.panelSwap;
                 slot.enter();
             } else {
                 slotCache.restart();
-                slot.ride = block.caeStyle && contentHost.shownKind === "";
-                slot.homeX = slot.homeX;
+                slot.ride = revealer.caeStyle && contentHost.shownKind === "";
             }
         }
 
         width: block.vertical ? revealer.contentHeight(slot.kind) : revealer.kindWidth(slot.kind)
         height: block.vertical ? revealer.kindWidth(slot.kind) : revealer.contentHeight(slot.kind)
 
-        x: Math.round(block.absX + slot.homeX) - block.absX - slot.clipX
-        y: Math.round(slot.clipY + (slot.ride ? slot.rideY : slot.shown ? slot.pinY + (block.far ? slot.drift : -slot.drift) : slot.slideY)) - slot.clipY
+        x: Math.round((revealer.tabW - slot.fw) / 2)
+        y: Math.round(slot.ride ? slot.rideY : slot.shown ? slot.pinY + (block.far ? slot.drift : -slot.drift) : slot.slideY)
         active: slot.kind !== ""
         opacity: slot.shown ? 1 : 0
         visible: slot.opacity > 0.01
@@ -269,7 +264,7 @@ Item {
         }
 
         Behavior on opacity {
-            enabled: slot.opacity > 0.5 || block.caeStyle
+            enabled: slot.opacity > 0.5 || revealer.caeStyle
             EffectsAnim {
                 speed: "default"
             }

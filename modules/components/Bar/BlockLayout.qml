@@ -545,6 +545,8 @@ Item {
                     id: loader
                     x: slot.contentStart + (slot.contentWidth - slot.rawW) / 2
                     y: (block.barH - slot.rawH) / 2
+                    width: slot.rawW
+                    height: slot.rawH
                     transform: slot.upright ? [uprightM] : slot.sideways ? [sidewaysM] : []
                     source: Qt.resolvedUrl(BarLayout.fileFor(slot.itemId))
 

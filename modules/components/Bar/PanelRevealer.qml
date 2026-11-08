@@ -28,16 +28,16 @@ Item {
     property real tabW: 0
     property real tabHRaw: 0
     readonly property real tabH: Math.max(block.barH, revealer.tabHRaw)
-    readonly property real tabTargetX: revealer.snapInL(revealer.tabNaturalX) ? 0 : revealer.tabNaturalX
-    readonly property real tabTargetW: {
-        let l = revealer.tabNaturalX;
-        let r = l + revealer.tabNaturalW;
-        if (revealer.snapInL(l))
-            l = 0;
+    readonly property real tabTargetX: {
+        const l = revealer.tabNaturalX;
+        const r = l + revealer.tabNaturalW;
         if (revealer.snapInR(r))
-            r = block.width;
-        return r - l;
+            return block.width - revealer.tabNaturalW;
+        if (revealer.snapInL(l))
+            return 0;
+        return l;
     }
+    readonly property real tabTargetW: revealer.tabNaturalW
     readonly property real tabTargetH: block.barH + (revealer.heightFollow ? revealer.followAcross : (revealer.openLocked ? revealer.openAcross : revealer.acrossOf(revealer.shownKind)) + revealer.tuckShown)
     readonly property real tabPathH: revealer.tabH + (revealer.merged ? revealer.floatGap : 0)
     readonly property bool tabMoving: tabXAnim.running || tabWAnim.running || tabHAnim.running || openTrans.running || closeTrans.running

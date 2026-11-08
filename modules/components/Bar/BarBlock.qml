@@ -277,6 +277,7 @@ Item {
     readonly property alias isDropTarget: blockLayout.isDropTarget
     readonly property alias isDraggedBlock: blockLayout.isDraggedBlock
     readonly property alias spotlitItem: blockLayout.spotlitItem
+    readonly property alias caeStyle: revealer.caeStyle
 
     function hasItem(id) {
         return blockLayout.hasItem(id);

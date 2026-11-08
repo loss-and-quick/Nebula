@@ -18,6 +18,8 @@ Item {
 
     implicitWidth: row.implicitWidth
     implicitHeight: 26
+    width: implicitWidth
+    height: implicitHeight
 
     Row {
         id: row
@@ -58,9 +60,10 @@ Item {
             width: layoutRow.implicitWidth + 10
             height: 26
             radius: 13
-            color: root.plateless ? (hov.containsMouse ? BarLayout.tintHover(root.itemId) : Qt.alpha(BarLayout.tintHover(root.itemId), 0))
-                : hov.containsMouse ? Colors.primaryContainer : Colors.surfaceContainer
-            Behavior on color { EffectsColorAnim {} }
+            color: root.plateless ? (hov.containsMouse ? BarLayout.tintHover(root.itemId) : Qt.alpha(BarLayout.tintHover(root.itemId), 0)) : hov.containsMouse ? Colors.primaryContainer : Colors.surfaceContainer
+            Behavior on color {
+                EffectsColorAnim {}
+            }
 
             Row {
                 id: layoutRow
@@ -95,5 +98,4 @@ Item {
             }
         }
     }
-
 }

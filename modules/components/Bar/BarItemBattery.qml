@@ -14,10 +14,8 @@ Rectangle {
     readonly property real box: BarLayout.boxFor(root.itemId, root.host)
     readonly property real iconPx: BarLayout.iconPxFor(root.itemId, root.box, 18)
     readonly property real plate: BarLayout.platePxFor(root.box, root.iconPx, 18, 28)
-    readonly property color plateColor: hov.containsMouse ? Colors.primaryContainer
-         : root.low ? Qt.alpha(Colors.error, 0.15) : Qt.alpha(Colors.primaryContainer, 0)
-    readonly property bool plateless: BarLayout.chipHovers(root.itemId, root.implicitWidth,
-                                                           root.implicitHeight)
+    readonly property color plateColor: hov.containsMouse ? Colors.primaryContainer : root.low ? Qt.alpha(Colors.error, 0.15) : Qt.alpha(Colors.primaryContainer, 0)
+    readonly property bool plateless: BarLayout.chipHovers(root.itemId, root.implicitWidth, root.implicitHeight)
     readonly property bool plateOn: root.plateColor.a > 0.01
     readonly property real labelPx: BarLayout.scaleFor(root.iconPx, 18, 13, 8)
     readonly property real gapPx: BarLayout.scaleFor(root.iconPx, 18, 4, 2)
@@ -25,8 +23,7 @@ Rectangle {
     readonly property bool low: ServiceUPower.powerLevel < 0.2 && !ServiceUPower.isCharging
     readonly property string style: BarLayout.opt(root.itemId, "style") ?? "icon"
     readonly property bool shaped: root.style === "fill" || root.style === "shape" || root.style === "sweep"
-    readonly property bool showPercent: BarLayout.opt(root.itemId, "showPercent") === true
-        && root.style !== "pill" && !root.shaped
+    readonly property bool showPercent: BarLayout.opt(root.itemId, "showPercent") === true && root.style !== "pill" && !root.shaped
     readonly property bool glyph: ["cell", "pill", "ring", "tall", "bars"].indexOf(root.style) >= 0
     readonly property bool bigCookie: root.shaped && !!root.host && root.host.split === true
     readonly property string plateShape: root.bigCookie ? (BarLayout.opt(root.itemId, "shape") ?? "cookie9") : ""
@@ -34,22 +31,30 @@ Rectangle {
     readonly property real plateInset: root.bigCookie && root.style === "shape" ? battMeter.ring : 0
     readonly property color plateTone: root.bigCookie ? (root.host.plateFill ?? Colors.surface) : Colors.surface
     readonly property string iconName: {
-        if (ServiceUPower.isCharging) return "battery_android_bolt"
-        const l = ServiceUPower.powerLevel
-        if (l === 1)  return "battery_android_full"
-        if (l > 0.9)  return "battery_android_6"
-        if (l > 0.7)  return "battery_android_5"
-        if (l > 0.5)  return "battery_android_4"
-        if (l > 0.3)  return "battery_android_3"
-        if (l > 0.2)  return "battery_android_2"
-        if (l > 0.0)  return "battery_android_1"
-        return "battery_android_0"
+        if (ServiceUPower.isCharging)
+            return "battery_android_bolt";
+        const l = ServiceUPower.powerLevel;
+        if (l === 1)
+            return "battery_android_full";
+        if (l > 0.9)
+            return "battery_android_6";
+        if (l > 0.7)
+            return "battery_android_5";
+        if (l > 0.5)
+            return "battery_android_4";
+        if (l > 0.3)
+            return "battery_android_3";
+        if (l > 0.2)
+            return "battery_android_2";
+        if (l > 0.0)
+            return "battery_android_1";
+        return "battery_android_0";
     }
     readonly property real glyphSize: {
-        const s = root.style === "pill" ? Math.round(root.iconPx * 1.45) : Math.round(root.iconPx * 1.3)
+        const s = root.style === "pill" ? Math.round(root.iconPx * 1.45) : Math.round(root.iconPx * 1.3);
         if (root.style === "pill" && root.onSide && root.host)
-            return Math.min(s, Math.floor((root.host.barH - 6) / 1.5))
-        return s
+            return Math.min(s, Math.floor((root.host.barH - 6) / 1.5));
+        return s;
     }
     readonly property bool onSide: !!root.host && root.host.vertical === true
     readonly property bool sideCompact: root.onSide && (!root.host.compactFor || root.host.compactFor(root.itemId))
@@ -58,25 +63,36 @@ Rectangle {
     readonly property bool verticalReady: root.vertical
     readonly property bool critical: ServiceUPower.powerLevel > 0 && ServiceUPower.powerLevel <= 0.15 && !ServiceUPower.isCharging
 
-    onCriticalChanged: if (!root.critical) root.opacity = 1
+    onCriticalChanged: if (!root.critical)
+        root.opacity = 1
 
     SequentialAnimation on opacity {
         running: root.critical
         loops: Animation.Infinite
-        NumberAnimation { to: 0.4; duration: 700; easing.type: Easing.InOutSine }
-        NumberAnimation { to: 1; duration: 700; easing.type: Easing.InOutSine }
+        NumberAnimation {
+            to: 0.4
+            duration: 700
+            easing.type: Easing.InOutSine
+        }
+        NumberAnimation {
+            to: 1
+            duration: 700
+            easing.type: Easing.InOutSine
+        }
     }
-    readonly property color ink: hov.containsMouse ? Colors.primaryContainerText
-                               : root.low ? Colors.error : Colors.surfaceText
+    readonly property color ink: hov.containsMouse ? Colors.primaryContainerText : root.low ? Colors.error : Colors.surfaceText
 
-    implicitWidth: root.bigCookie ? root.host.barH
-        : root.vertical ? Math.max(root.plate, battRow.implicitWidth + 8)
-        : root.showPercent || (root.glyph && glyphItem.implicitWidth > root.plate - 4) ? battRow.implicitWidth + root.padPx : root.plate
-    implicitHeight: root.bigCookie ? root.host.barH
-        : root.sideNum ? battRow.implicitHeight + 8 : root.plate
+    implicitWidth: root.bigCookie ? root.host.barH : root.vertical ? Math.max(root.plate, battRow.implicitWidth + 8) : root.showPercent || (root.glyph && glyphItem.implicitWidth > root.plate - 4) ? battRow.implicitWidth + root.padPx : root.plate
+    implicitHeight: root.bigCookie ? root.host.barH : root.sideNum ? battRow.implicitHeight + 8 : root.plate
+    width: implicitWidth
+    height: implicitHeight
     radius: Math.min(width, height) / 2
     color: root.plateless || root.shaped ? Qt.alpha(root.plateColor, 0) : root.plateColor
-    Behavior on color { ColorAnimation { duration: 150 } }
+    Behavior on color {
+        ColorAnimation {
+            duration: 150
+        }
+    }
 
     Grid {
         id: battRow
@@ -152,12 +168,12 @@ Rectangle {
         anchors.fill: parent
         hoverEnabled: true
         cursorShape: Qt.PointingHandCursor
-        onClicked: if (root.host) root.host.openPanel("battery", root)
+        onClicked: if (root.host)
+            root.host.openPanel("battery", root)
     }
 
     CustomToolTip {
-        content: (ServiceUPower.isCharging ? "Charging · " : "")
-               + Math.round(ServiceUPower.powerLevel * 100) + "%"
+        content: (ServiceUPower.isCharging ? "Charging · " : "") + Math.round(ServiceUPower.powerLevel * 100) + "%"
         detail: ServiceUPower.isCharging && ServiceUPower.timeToFull !== "0m" ? "Full in " + ServiceUPower.timeToFull : ""
         visible: hov.containsMouse && !(root.host && root.host.panelKind === "battery")
     }

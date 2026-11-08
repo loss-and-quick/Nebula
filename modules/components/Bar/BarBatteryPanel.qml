@@ -23,127 +23,158 @@ Item {
     readonly property bool plugged: !UPower.onBattery
     readonly property bool low: root.level < 0.2 && !root.plugged
     readonly property bool saver: ServiceUPower.powerProfile === 0
-    readonly property color tint: root.low ? Colors.error : root.plugged ? Colors.primary
-        : root.saver ? Colors.tertiary : Colors.secondary
-    readonly property color onTint: root.low ? Colors.errorText : root.plugged ? Colors.primaryText
-        : root.saver ? Colors.tertiaryText : Colors.secondaryText
+    readonly property color tint: root.low ? Colors.error : root.plugged ? Colors.primary : root.saver ? Colors.tertiary : Colors.secondary
+    readonly property color onTint: root.low ? Colors.errorText : root.plugged ? Colors.primaryText : root.saver ? Colors.tertiaryText : Colors.secondaryText
 
-    readonly property real secondsLeft: root.cell.timeToEmpty > 0 ? root.cell.timeToEmpty
-        : root.rate > 0 ? root.cell.energy / root.rate * 3600 : 0
+    readonly property real secondsLeft: root.cell.timeToEmpty > 0 ? root.cell.timeToEmpty : root.rate > 0 ? root.cell.energy / root.rate * 3600 : 0
 
     readonly property string status: {
         if (root.charging)
-            return root.dev.timeToFull > 0 ? "Charging, full in " + root.duration(root.dev.timeToFull) : "Charging"
+            return root.dev.timeToFull > 0 ? "Charging, full in " + root.duration(root.dev.timeToFull) : "Charging";
         if (root.full)
-            return "Fully charged, on AC"
+            return "Fully charged, on AC";
         if (root.plugged)
-            return "Plugged in, not charging"
-        const left = root.secondsLeft > 0 ? ", " + root.duration(root.secondsLeft) + " left" : ""
-        return (root.low ? "Battery low" : "On battery") + left
+            return "Plugged in, not charging";
+        const left = root.secondsLeft > 0 ? ", " + root.duration(root.secondsLeft) + " left" : "";
+        return (root.low ? "Battery low" : "On battery") + left;
     }
 
     readonly property var chips: {
-        const out = []
+        const out = [];
         if (ServiceUPower.health > 0)
-            out.push({ k: "Health", v: Math.round(ServiceUPower.health * 100) + "%", accent: true })
+            out.push({
+                k: "Health",
+                v: Math.round(ServiceUPower.health * 100) + "%",
+                accent: true
+            });
         if (root.cell.energyCapacity > 0)
-            out.push({ k: "", v: root.cell.energyCapacity.toFixed(1) + " Wh", accent: false })
+            out.push({
+                k: "",
+                v: root.cell.energyCapacity.toFixed(1) + " Wh",
+                accent: false
+            });
         if (root.rate > 0.05)
-            out.push({ k: root.charging ? "In" : "Draw", v: root.rate.toFixed(1) + " W", accent: false })
-        return out
+            out.push({
+                k: root.charging ? "In" : "Draw",
+                v: root.rate.toFixed(1) + " W",
+                accent: false
+            });
+        return out;
     }
 
     function iconFor(d) {
         switch (d.type) {
-        case UPowerDeviceType.Keyboard: return "keyboard"
-        case UPowerDeviceType.Mouse: return "mouse"
+        case UPowerDeviceType.Keyboard:
+            return "keyboard";
+        case UPowerDeviceType.Mouse:
+            return "mouse";
         case UPowerDeviceType.Headset:
-        case UPowerDeviceType.Headphones: return "headphones"
-        case UPowerDeviceType.Phone: return "smartphone"
-        case UPowerDeviceType.Tablet: return "tablet"
-        case UPowerDeviceType.GamingInput: return "sports_esports"
-        case UPowerDeviceType.Speakers: return "speaker"
-        case UPowerDeviceType.Pen: return "stylus"
-        case UPowerDeviceType.Touchpad: return "touchpad_mouse"
+        case UPowerDeviceType.Headphones:
+            return "headphones";
+        case UPowerDeviceType.Phone:
+            return "smartphone";
+        case UPowerDeviceType.Tablet:
+            return "tablet";
+        case UPowerDeviceType.GamingInput:
+            return "sports_esports";
+        case UPowerDeviceType.Speakers:
+            return "speaker";
+        case UPowerDeviceType.Pen:
+            return "stylus";
+        case UPowerDeviceType.Touchpad:
+            return "touchpad_mouse";
         }
-        return "battery_full"
+        return "battery_full";
     }
 
     function shapeFor(d) {
         switch (d.type) {
-        case UPowerDeviceType.Keyboard: return "squircle"
-        case UPowerDeviceType.Mouse: return "pill"
+        case UPowerDeviceType.Keyboard:
+            return "squircle";
+        case UPowerDeviceType.Mouse:
+            return "pill";
         case UPowerDeviceType.Headset:
-        case UPowerDeviceType.Headphones: return "cookie6"
-        case UPowerDeviceType.Speakers: return "cookie9"
-        case UPowerDeviceType.Phone: return "gem"
-        case UPowerDeviceType.GamingInput: return "clover4"
-        case UPowerDeviceType.Tablet: return "arch"
+        case UPowerDeviceType.Headphones:
+            return "cookie6";
+        case UPowerDeviceType.Speakers:
+            return "cookie9";
+        case UPowerDeviceType.Phone:
+            return "gem";
+        case UPowerDeviceType.GamingInput:
+            return "clover4";
+        case UPowerDeviceType.Tablet:
+            return "arch";
         }
-        return "cookie4"
+        return "cookie4";
     }
 
-    readonly property var devices: UPower.devices.values.filter(d => d && !d.isLaptopBattery
-        && d.type !== UPowerDeviceType.LinePower && d.isPresent !== false && d.percentage > 0)
+    readonly property var devices: UPower.devices.values.filter(d => d && !d.isLaptopBattery && d.type !== UPowerDeviceType.LinePower && d.isPresent !== false && d.percentage > 0)
 
     readonly property var lowest: root.devices.find(d => root.lowDevice(d)) ?? null
 
     readonly property int columns: Math.max(1, Math.min(3, root.devices.length))
 
     function nameOf(d) {
-        return d.model || UPowerDeviceType.toString(d.type)
+        return d.model || UPowerDeviceType.toString(d.type);
     }
 
     function kindOf(d) {
         switch (d.type) {
-        case UPowerDeviceType.GamingInput: return "Controller"
-        case UPowerDeviceType.Headphones: return "Headphones"
-        case UPowerDeviceType.Touchpad: return "Touchpad"
+        case UPowerDeviceType.GamingInput:
+            return "Controller";
+        case UPowerDeviceType.Headphones:
+            return "Headphones";
+        case UPowerDeviceType.Touchpad:
+            return "Touchpad";
         }
-        return UPowerDeviceType.toString(d.type)
+        return UPowerDeviceType.toString(d.type);
     }
 
     function lowDevice(d) {
-        return d.percentage < 0.2 && d.state !== UPowerDeviceState.Charging
+        return d.percentage < 0.2 && d.state !== UPowerDeviceState.Charging;
     }
 
     function duration(seconds) {
-        const h = Math.floor(seconds / 3600)
-        const m = Math.round((seconds % 3600) / 60)
-        return h > 0 ? (m > 0 ? h + " h " + m + " min" : h + " h") : m + " min"
+        const h = Math.floor(seconds / 3600);
+        const m = Math.round((seconds % 3600) / 60);
+        return h > 0 ? (m > 0 ? h + " h " + m + " min" : h + " h") : m + " min";
     }
 
     function connectionOf(d) {
-        const p = (d.nativePath || "").toLowerCase()
+        const p = (d.nativePath || "").toLowerCase();
         if (p.indexOf("hidpp") >= 0)
-            return "USB receiver"
+            return "USB receiver";
         if (p.indexOf("bluez") >= 0 || /([0-9a-f]{2}:){5}[0-9a-f]{2}/.test(p))
-            return "Bluetooth"
+            return "Bluetooth";
         if (p.indexOf("usb") >= 0)
-            return "USB"
-        return ""
+            return "USB";
+        return "";
     }
 
     function statusOf(d) {
-        if (d.state === UPowerDeviceState.Charging) return "Charging"
-        if (d.state === UPowerDeviceState.FullyCharged) return "Full"
-        if (root.lowDevice(d)) return "Charge soon"
-        if (d.state === UPowerDeviceState.Discharging) return "On battery"
-        return root.kindOf(d)
+        if (d.state === UPowerDeviceState.Charging)
+            return "Charging";
+        if (d.state === UPowerDeviceState.FullyCharged)
+            return "Full";
+        if (root.lowDevice(d))
+            return "Charge soon";
+        if (d.state === UPowerDeviceState.Discharging)
+            return "On battery";
+        return root.kindOf(d);
     }
 
     function detailOf(d) {
-        const out = [root.kindOf(d)]
-        const link = root.connectionOf(d)
+        const out = [root.kindOf(d)];
+        const link = root.connectionOf(d);
         if (link !== "")
-            out.push(link)
+            out.push(link);
         if (d.state === UPowerDeviceState.Charging && d.timeToFull > 0)
-            out.push("full in " + root.duration(d.timeToFull))
+            out.push("full in " + root.duration(d.timeToFull));
         else if (d.timeToEmpty > 0)
-            out.push("about " + root.duration(d.timeToEmpty) + " left")
+            out.push("about " + root.duration(d.timeToEmpty) + " left");
         if (d.healthSupported && d.healthPercentage > 0)
-            out.push("health " + Math.round(d.healthPercentage > 1 ? d.healthPercentage : d.healthPercentage * 100) + "%")
-        return out.join(", ")
+            out.push("health " + Math.round(d.healthPercentage > 1 ? d.healthPercentage : d.healthPercentage * 100) + "%");
+        return out.join(", ");
     }
 
     readonly property real devicesMax: 332
@@ -153,7 +184,7 @@ Item {
 
     ColumnLayout {
         id: col
-        x: 20
+        anchors.horizontalCenter: parent.horizontalCenter
         y: 20
         width: root.width - 40
         spacing: 14
@@ -161,8 +192,14 @@ Item {
         ColumnLayout {
             Layout.fillWidth: true
             Layout.leftMargin: 4
+            Layout.rightMargin: 4
             spacing: 2
-            CustomText { Layout.fillWidth: true; content: "Battery"; size: 20; weight: 600 }
+            CustomText {
+                Layout.fillWidth: true
+                content: "Battery"
+                size: 20
+                weight: 600
+            }
             CustomText {
                 Layout.fillWidth: true
                 readonly property int count: root.devices.length + 1
@@ -202,7 +239,12 @@ Item {
                     Layout.alignment: Qt.AlignVCenter
                     spacing: 4
 
-                    CustomText { Layout.fillWidth: true; content: "This laptop"; size: 17; weight: 600 }
+                    CustomText {
+                        Layout.fillWidth: true
+                        content: "This laptop"
+                        size: 17
+                        weight: 600
+                    }
                     CustomText {
                         Layout.fillWidth: true
                         content: root.status
@@ -267,11 +309,14 @@ Item {
                 interactive: devFlick.contentHeight > devFlick.height + 1
                 boundsBehavior: Flickable.StopAtBounds
                 clip: true
-                ScrollBar.vertical: CustomScrollBar { id: scrollBar }
+                ScrollBar.vertical: CustomScrollBar {
+                    id: scrollBar
+                }
 
                 GridLayout {
                     id: grid
-                    width: devFlick.width - (scrollBar.size < 1.0 ? 14 : 0)
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    width: devFlick.width - (scrollBar.size < 1.0 ? 2 * scrollBar.width : 0)
                     columns: root.columns
                     columnSpacing: 8
                     rowSpacing: 8
@@ -345,7 +390,9 @@ Item {
                                 }
                             }
 
-                            HoverHandler { id: tileHover }
+                            HoverHandler {
+                                id: tileHover
+                            }
 
                             CustomToolTip {
                                 content: root.nameOf(tile.modelData)
@@ -370,12 +417,12 @@ Item {
                 acceptedButtons: Qt.NoButton
                 enabled: devFlick.interactive
                 onWheel: wheel => {
-                    const goal = devScroll.running ? devScroll.to : devFlick.contentY
-                    const max = Math.max(0, devFlick.contentHeight - devFlick.height)
-                    devScroll.stop()
-                    devScroll.from = devFlick.contentY
-                    devScroll.to = Math.max(0, Math.min(max, goal - wheel.angleDelta.y * 0.9))
-                    devScroll.start()
+                    const goal = devScroll.running ? devScroll.to : devFlick.contentY;
+                    const max = Math.max(0, devFlick.contentHeight - devFlick.height);
+                    devScroll.stop();
+                    devScroll.from = devFlick.contentY;
+                    devScroll.to = Math.max(0, Math.min(max, goal - wheel.angleDelta.y * 0.9));
+                    devScroll.start();
                 }
             }
 
@@ -441,7 +488,11 @@ Item {
                 iconSize: 20
                 textSize: 14
                 inactiveColor: Colors.surfaceContainerHigh
-                model: ServiceUPower.availableProfiles.map(p => ({ value: p.id, label: p.name, icon: p.icon }))
+                model: ServiceUPower.availableProfiles.map(p => ({
+                            value: p.id,
+                            label: p.name,
+                            icon: p.icon
+                        }))
                 activeCheck: value => ServiceUPower.powerProfile === value
                 onSegmentClicked: value => ServiceUPower.setPowerProfile(value)
             }

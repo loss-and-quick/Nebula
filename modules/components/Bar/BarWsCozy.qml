@@ -22,27 +22,25 @@ Item {
 
     function go(id, ws) {
         if (cozy.owner)
-            cozy.owner.focusWs(id, ws)
+            cozy.owner.focusWs(id, ws);
     }
 
     function isActive(id) {
         if (!cozy.owner)
-            return false
+            return false;
         if (cozy.owner.perMonitorMode)
-            return id === cozy.activeId
-        const w = ServiceWorkspaces.getWorkspace(id)
-        return !!w && w.active
+            return id === cozy.activeId;
+        const w = ServiceWorkspaces.getWorkspace(id);
+        return !!w && w.active;
     }
 
     component Slot: QtObject {
         required property int wsId
         property Item owner: null
         readonly property var ws: ServiceWorkspaces.getWorkspace(wsId)
-        readonly property bool onOther: !!owner && owner.perMonitorMode && !!ws && !!ws.monitor
-            && ws.monitor.name !== owner.screenName
+        readonly property bool onOther: !!owner && owner.perMonitorMode && !!ws && !!ws.monitor && ws.monitor.name !== owner.screenName
         readonly property bool occupied: !!ws && !onOther
-        readonly property bool active: !!owner && !onOther && (owner.perMonitorMode ? wsId === owner.activeWsId
-                                                                                     : (!!ws && ws.active))
+        readonly property bool active: !!owner && !onOther && (owner.perMonitorMode ? wsId === owner.activeWsId : (!!ws && ws.active))
         readonly property int windows: occupied && ws.toplevels ? ws.toplevels.values.length : 0
     }
 
@@ -51,12 +49,16 @@ Item {
         anchors.verticalCenter: parent.verticalCenter
         sourceComponent: {
             switch (cozy.style) {
-            case "house":   return houseComp
-            case "stars":   return starsComp
-            case "map":     return mapComp
-            case "dial":    return dialComp
+            case "house":
+                return houseComp;
+            case "stars":
+                return starsComp;
+            case "map":
+                return mapComp;
+            case "dial":
+                return dialComp;
             }
-            return lanternsComp
+            return lanternsComp;
         }
     }
 
@@ -78,7 +80,12 @@ Item {
                     fillColor: "transparent"
                     startX: 3 * cozy.k
                     startY: 5 * cozy.k
-                    PathQuad { x: lf.width - 3 * cozy.k; y: 5 * cozy.k; controlX: lf.width / 2; controlY: 15 * cozy.k }
+                    PathQuad {
+                        x: lf.width - 3 * cozy.k
+                        y: 5 * cozy.k
+                        controlX: lf.width / 2
+                        controlY: 15 * cozy.k
+                    }
                 }
             }
 
@@ -88,7 +95,11 @@ Item {
                     id: lan
                     required property int modelData
                     required property int index
-                    Slot { id: st; wsId: lan.modelData; owner: cozy.owner }
+                    Slot {
+                        id: st
+                        wsId: lan.modelData
+                        owner: cozy.owner
+                    }
 
                     readonly property real cx: 6 * cozy.k + (lan.index + 0.5) * lf.slot
                     readonly property real t: (lan.cx - 3 * cozy.k) / Math.max(1, lf.width - 6 * cozy.k)
@@ -106,7 +117,9 @@ Item {
                         radius: 12 * cozy.k
                         color: Colors.primaryContainer
                         opacity: st.active ? 0.3 : 0
-                        Behavior on opacity { EffectsAnim {} }
+                        Behavior on opacity {
+                            EffectsAnim {}
+                        }
                     }
 
                     Item {
@@ -120,9 +133,21 @@ Item {
                             running: st.active
                             loops: Animation.Infinite
                             alwaysRunToEnd: true
-                            NumberAnimation { to: 5; duration: 1300; easing.type: Easing.InOutSine }
-                            NumberAnimation { to: -5; duration: 2600; easing.type: Easing.InOutSine }
-                            NumberAnimation { to: 0; duration: 1300; easing.type: Easing.InOutSine }
+                            NumberAnimation {
+                                to: 5
+                                duration: 1300
+                                easing.type: Easing.InOutSine
+                            }
+                            NumberAnimation {
+                                to: -5
+                                duration: 2600
+                                easing.type: Easing.InOutSine
+                            }
+                            NumberAnimation {
+                                to: 0
+                                duration: 1300
+                                easing.type: Easing.InOutSine
+                            }
                         }
 
                         Rectangle {
@@ -138,13 +163,22 @@ Item {
                             x: 10 * cozy.k - width / 2
                             y: 4 * cozy.k
                             radius: st.active ? 5 * cozy.k : 4.5 * cozy.k
-                            color: st.active ? Colors.primaryContainer
-                                 : st.occupied ? Qt.darker(Colors.primaryContainer, 1.9) : "transparent"
+                            color: st.active ? Colors.primaryContainer : st.occupied ? Qt.darker(Colors.primaryContainer, 1.9) : "transparent"
                             border.width: st.active || st.occupied ? 0 : 1.2 * cozy.k
                             border.color: Colors.outlineVariant
-                            Behavior on width { SpatialAnim { speed: "fast" } }
-                            Behavior on height { SpatialAnim { speed: "fast" } }
-                            Behavior on color { EffectsColorAnim {} }
+                            Behavior on width {
+                                SpatialAnim {
+                                    speed: "fast"
+                                }
+                            }
+                            Behavior on height {
+                                SpatialAnim {
+                                    speed: "fast"
+                                }
+                            }
+                            Behavior on color {
+                                EffectsColorAnim {}
+                            }
 
                             Rectangle {
                                 anchors.centerIn: parent
@@ -208,8 +242,14 @@ Item {
                     capStyle: ShapePath.RoundCap
                     startX: 3 * cozy.k
                     startY: 13 * cozy.k
-                    PathLine { x: hf.width / 2; y: 3 * cozy.k }
-                    PathLine { x: hf.width - 3 * cozy.k; y: 13 * cozy.k }
+                    PathLine {
+                        x: hf.width / 2
+                        y: 3 * cozy.k
+                    }
+                    PathLine {
+                        x: hf.width - 3 * cozy.k
+                        y: 13 * cozy.k
+                    }
                 }
                 ShapePath {
                     strokeColor: Qt.alpha(Colors.outline, 0.6)
@@ -217,7 +257,10 @@ Item {
                     fillColor: "transparent"
                     startX: 2 * cozy.k
                     startY: 29.5 * cozy.k
-                    PathLine { x: hf.width - 2 * cozy.k; y: 29.5 * cozy.k }
+                    PathLine {
+                        x: hf.width - 2 * cozy.k
+                        y: 29.5 * cozy.k
+                    }
                 }
             }
 
@@ -247,17 +290,51 @@ Item {
                     SequentialAnimation {
                         running: hf.anyOpen
                         loops: Animation.Infinite
-                        PauseAnimation { duration: puff.index * 900 }
+                        PauseAnimation {
+                            duration: puff.index * 900
+                        }
                         ParallelAnimation {
-                            NumberAnimation { target: puff; property: "y"; from: 3 * cozy.k; to: -4 * cozy.k; duration: 2700; easing.type: Easing.OutSine }
-                            NumberAnimation { target: puff; property: "x"; from: chimney.x + 1 * cozy.k; to: chimney.x + 4 * cozy.k; duration: 2700 }
-                            NumberAnimation { target: puff; property: "scale"; from: 0.6; to: 1.4; duration: 2700 }
+                            NumberAnimation {
+                                target: puff
+                                property: "y"
+                                from: 3 * cozy.k
+                                to: -4 * cozy.k
+                                duration: 2700
+                                easing.type: Easing.OutSine
+                            }
+                            NumberAnimation {
+                                target: puff
+                                property: "x"
+                                from: chimney.x + 1 * cozy.k
+                                to: chimney.x + 4 * cozy.k
+                                duration: 2700
+                            }
+                            NumberAnimation {
+                                target: puff
+                                property: "scale"
+                                from: 0.6
+                                to: 1.4
+                                duration: 2700
+                            }
                             SequentialAnimation {
-                                NumberAnimation { target: puff; property: "opacity"; from: 0; to: 0.35; duration: 700 }
-                                NumberAnimation { target: puff; property: "opacity"; to: 0; duration: 2000 }
+                                NumberAnimation {
+                                    target: puff
+                                    property: "opacity"
+                                    from: 0
+                                    to: 0.35
+                                    duration: 700
+                                }
+                                NumberAnimation {
+                                    target: puff
+                                    property: "opacity"
+                                    to: 0
+                                    duration: 2000
+                                }
                             }
                         }
-                        PauseAnimation { duration: (2 - puff.index) * 900 }
+                        PauseAnimation {
+                            duration: (2 - puff.index) * 900
+                        }
                     }
                 }
             }
@@ -272,7 +349,11 @@ Item {
                     delegate: Item {
                         id: pane
                         required property int modelData
-                        Slot { id: st; wsId: pane.modelData; owner: cozy.owner }
+                        Slot {
+                            id: st
+                            wsId: pane.modelData
+                            owner: cozy.owner
+                        }
                         width: hf.win
                         height: hf.win
 
@@ -283,17 +364,20 @@ Item {
                             radius: 4 * cozy.k
                             color: Colors.primaryContainer
                             opacity: st.active ? 0.25 : 0
-                            Behavior on opacity { EffectsAnim {} }
+                            Behavior on opacity {
+                                EffectsAnim {}
+                            }
                         }
 
                         Rectangle {
                             anchors.fill: parent
                             radius: 2 * cozy.k
-                            color: st.active ? Colors.primary
-                                 : st.occupied ? Qt.alpha(Colors.primaryContainer, 0.55) : Colors.surfaceContainerHighest
+                            color: st.active ? Colors.primary : st.occupied ? Qt.alpha(Colors.primaryContainer, 0.55) : Colors.surfaceContainerHighest
                             border.width: 1 * cozy.k
                             border.color: Colors.outlineVariant
-                            Behavior on color { EffectsColorAnim {} }
+                            Behavior on color {
+                                EffectsColorAnim {}
+                            }
                         }
 
                         Rectangle {
@@ -333,17 +417,21 @@ Item {
             implicitWidth: (cozy.count * 19 + 6) * cozy.k
             implicitHeight: 32 * cozy.k
 
-            function px(i) { return (3 + (i + 0.5) * 19) * cozy.k }
-            function py(i) { return cf.ys[i % cf.ys.length] * cozy.k }
+            function px(i) {
+                return (3 + (i + 0.5) * 19) * cozy.k;
+            }
+            function py(i) {
+                return cf.ys[i % cf.ys.length] * cozy.k;
+            }
 
             readonly property var lit: {
-                const out = []
+                const out = [];
                 for (let i = 0; i < cozy.ids.length; i++) {
-                    const w = ServiceWorkspaces.getWorkspace(cozy.ids[i])
+                    const w = ServiceWorkspaces.getWorkspace(cozy.ids[i]);
                     if (w || cozy.isActive(cozy.ids[i]))
-                        out.push(i)
+                        out.push(i);
                 }
-                return out
+                return out;
             }
 
             Shape {
@@ -353,7 +441,9 @@ Item {
                     strokeColor: Qt.alpha(Colors.surfaceVariantText, 0.35)
                     strokeWidth: 1 * cozy.k
                     fillColor: "transparent"
-                    PathPolyline { path: cf.lit.map(i => Qt.point(cf.px(i), cf.py(i))) }
+                    PathPolyline {
+                        path: cf.lit.map(i => Qt.point(cf.px(i), cf.py(i)))
+                    }
                 }
             }
 
@@ -363,7 +453,11 @@ Item {
                     id: star
                     required property int modelData
                     required property int index
-                    Slot { id: st; wsId: star.modelData; owner: cozy.owner }
+                    Slot {
+                        id: st
+                        wsId: star.modelData
+                        owner: cozy.owner
+                    }
 
                     readonly property real rad: (st.active ? 8 : st.occupied ? 3 + Math.min(st.windows, 4) : 0) * cozy.k
 
@@ -379,7 +473,9 @@ Item {
                         radius: 9 * cozy.k
                         color: Colors.primary
                         opacity: st.active ? 0.22 : 0
-                        Behavior on opacity { EffectsAnim {} }
+                        Behavior on opacity {
+                            EffectsAnim {}
+                        }
                     }
 
                     Shape {
@@ -394,8 +490,16 @@ Item {
                             running: st.active
                             loops: Animation.Infinite
                             alwaysRunToEnd: true
-                            NumberAnimation { to: 0.8; duration: 1100; easing.type: Easing.InOutSine }
-                            NumberAnimation { to: 1; duration: 1100; easing.type: Easing.InOutSine }
+                            NumberAnimation {
+                                to: 0.8
+                                duration: 1100
+                                easing.type: Easing.InOutSine
+                            }
+                            NumberAnimation {
+                                to: 1
+                                duration: 1100
+                                easing.type: Easing.InOutSine
+                            }
                         }
 
                         ShapePath {
@@ -404,11 +508,10 @@ Item {
                             fillColor: st.active ? Colors.primary : Colors.secondary
                             PathSvg {
                                 path: {
-                                    const r = star.rad
-                                    const k = r * 0.28
-                                    const c = 9 * cozy.k
-                                    return `M${c},${c - r} Q${c + k},${c - k} ${c + r},${c} Q${c + k},${c + k} ${c},${c + r} `
-                                         + `Q${c - k},${c + k} ${c - r},${c} Q${c - k},${c - k} ${c},${c - r} Z`
+                                    const r = star.rad;
+                                    const k = r * 0.28;
+                                    const c = 9 * cozy.k;
+                                    return `M${c},${c - r} Q${c + k},${c - k} ${c + r},${c} Q${c + k},${c + k} ${c},${c + r} ` + `Q${c - k},${c + k} ${c - r},${c} Q${c - k},${c - k} ${c},${c - r} Z`;
                                 }
                             }
                         }
@@ -446,9 +549,8 @@ Item {
             Connections {
                 target: Hyprland
                 function onRawEvent(event) {
-                    if (["openwindow", "closewindow", "movewindowv2", "changefloatingmode", "fullscreen",
-                         "activewindowv2", "workspacev2"].indexOf(event.name) >= 0)
-                        Hyprland.refreshToplevels()
+                    if (["openwindow", "closewindow", "movewindowv2", "changefloatingmode", "fullscreen", "activewindowv2", "workspacev2"].indexOf(event.name) >= 0)
+                        Hyprland.refreshToplevels();
                 }
             }
 
@@ -463,20 +565,31 @@ Item {
                     delegate: Item {
                         id: fr
                         required property int modelData
-                        Slot { id: st; wsId: fr.modelData; owner: cozy.owner }
+                        Slot {
+                            id: st
+                            wsId: fr.modelData
+                            owner: cozy.owner
+                        }
                         readonly property bool shownFull: st.occupied || st.active
 
                         anchors.verticalCenter: parent.verticalCenter
                         width: st.active ? 30 * cozy.k : st.occupied ? 24 * cozy.k : 5 * cozy.k
                         height: st.active ? 20 * cozy.k : st.occupied ? 16 * cozy.k : 12 * cozy.k
-                        Behavior on width { SpatialAnim { speed: "fast" } }
-                        Behavior on height { SpatialAnim { speed: "fast" } }
+                        Behavior on width {
+                            SpatialAnim {
+                                speed: "fast"
+                            }
+                        }
+                        Behavior on height {
+                            SpatialAnim {
+                                speed: "fast"
+                            }
+                        }
 
                         Rectangle {
                             anchors.fill: parent
                             radius: fr.shownFull ? 4.5 * cozy.k : 2.5 * cozy.k
-                            color: st.active ? Qt.alpha(Colors.primary, 0.16)
-                                 : st.occupied ? Colors.surfaceContainer : Colors.surfaceContainerHighest
+                            color: st.active ? Qt.alpha(Colors.primary, 0.16) : st.occupied ? Colors.surfaceContainer : Colors.surfaceContainerHighest
                             border.width: fr.shownFull ? (st.active ? 1.4 * cozy.k : 1 * cozy.k) : 0
                             border.color: st.active ? Colors.primary : Colors.outlineVariant
                         }
@@ -533,14 +646,16 @@ Item {
             implicitWidth: 44 * cozy.k + label.implicitWidth + 6 * cozy.k
             implicitHeight: 32 * cozy.k
 
-            function ang(i) { return df.a0 + (df.a1 - df.a0) * i / Math.max(1, cozy.count - 1) }
+            function ang(i) {
+                return df.a0 + (df.a1 - df.a0) * i / Math.max(1, cozy.count - 1);
+            }
 
             function step(d) {
-                const n = cozy.count
+                const n = cozy.count;
                 if (n === 0)
-                    return
-                const next = cozy.ids[(df.activeIndex + d + n) % n]
-                cozy.go(next, ServiceWorkspaces.getWorkspace(next))
+                    return;
+                const next = cozy.ids[(df.activeIndex + d + n) % n];
+                cozy.go(next, ServiceWorkspaces.getWorkspace(next));
             }
 
             Rectangle {
@@ -558,7 +673,11 @@ Item {
                     id: tick
                     required property int modelData
                     required property int index
-                    Slot { id: st; wsId: tick.modelData; owner: cozy.owner }
+                    Slot {
+                        id: st
+                        wsId: tick.modelData
+                        owner: cozy.owner
+                    }
                     x: 16 * cozy.k
                     y: 16 * cozy.k
                     rotation: df.ang(tick.index)
@@ -579,7 +698,9 @@ Item {
                 x: 16 * cozy.k
                 y: 16 * cozy.k
                 rotation: df.ang(df.activeIndex)
-                Behavior on rotation { SpatialAnim {} }
+                Behavior on rotation {
+                    SpatialAnim {}
+                }
 
                 Rectangle {
                     x: -1.5 * cozy.k
@@ -611,7 +732,9 @@ Item {
                     content: cozy.activeId > 0 ? cozy.activeId : "–"
                     size: Math.round(16 * cozy.k)
                     weight: 800
-                    font.features: { "tnum": 1 }
+                    font.features: {
+                        "tnum": 1
+                    }
                 }
                 CustomText {
                     anchors.verticalCenter: parent.verticalCenter
@@ -627,10 +750,13 @@ Item {
                 cursorShape: Qt.PointingHandCursor
                 acceptedButtons: Qt.LeftButton | Qt.RightButton
                 onClicked: mouse => df.step(mouse.button === Qt.RightButton ? -1 : 1)
-                onWheel: wheel => {
-                    const d = wheel.angleDelta.y !== 0 ? wheel.angleDelta.y : wheel.angleDelta.x
-                    if (d !== 0)
-                        df.step(d > 0 ? -1 : 1)
+                WheelHandler {
+                    acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+                    onWheel: wheel => {
+                        const d = wheel.angleDelta.y !== 0 ? wheel.angleDelta.y : wheel.angleDelta.x;
+                        if (d !== 0)
+                            df.step(d > 0 ? -1 : 1);
+                    }
                 }
             }
         }

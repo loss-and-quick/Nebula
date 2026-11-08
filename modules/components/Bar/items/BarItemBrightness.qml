@@ -147,11 +147,14 @@ Item {
             cursorShape: Qt.PointingHandCursor
             onClicked: if (root.host)
                 root.host.openPanel("brightness", root)
-            onWheel: wheel => {
-                const d = wheel.angleDelta.y !== 0 ? wheel.angleDelta.y : wheel.angleDelta.x;
-                if (!root.monitor || !root.monitor.ready || d === 0)
-                    return;
-                root.monitor.setBrightness(Math.max(0.01, Math.min(1, root.level + (d > 0 ? 0.05 : -0.05))));
+            WheelHandler {
+                acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+                onWheel: wheel => {
+                    const d = wheel.angleDelta.y !== 0 ? wheel.angleDelta.y : wheel.angleDelta.x;
+                    if (!root.monitor || !root.monitor.ready || d === 0)
+                        return;
+                    root.monitor.setBrightness(Math.max(0.01, Math.min(1, root.level + (d > 0 ? 0.05 : -0.05))));
+                }
             }
         }
     }

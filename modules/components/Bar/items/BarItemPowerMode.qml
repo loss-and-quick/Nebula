@@ -74,13 +74,16 @@ Item {
             cursorShape: Qt.PointingHandCursor
             onClicked: if (root.host)
                 root.host.openPanel("powerMode", root)
-            onWheel: wheel => {
-                const d = wheel.angleDelta.y !== 0 ? wheel.angleDelta.y : wheel.angleDelta.x;
-                if (d === 0)
-                    return;
-                const ids = ServiceUPower.availableProfiles.map(p => p.id);
-                const at = Math.max(0, ids.indexOf(root.profile));
-                ServiceUPower.setPowerProfile(ids[Math.max(0, Math.min(ids.length - 1, at + (d > 0 ? 1 : -1)))]);
+            WheelHandler {
+                acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+                onWheel: wheel => {
+                    const d = wheel.angleDelta.y !== 0 ? wheel.angleDelta.y : wheel.angleDelta.x;
+                    if (d === 0)
+                        return;
+                    const ids = ServiceUPower.availableProfiles.map(p => p.id);
+                    const at = Math.max(0, ids.indexOf(root.profile));
+                    ServiceUPower.setPowerProfile(ids[Math.max(0, Math.min(ids.length - 1, at + (d > 0 ? 1 : -1)))]);
+                }
             }
         }
 

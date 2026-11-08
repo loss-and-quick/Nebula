@@ -413,9 +413,8 @@ Item {
                 easing.type: Easing.OutCubic
             }
 
-            MouseArea {
-                anchors.fill: parent
-                acceptedButtons: Qt.NoButton
+            WheelHandler {
+                acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
                 enabled: devFlick.interactive
                 onWheel: wheel => {
                     const goal = devScroll.running ? devScroll.to : devFlick.contentY;

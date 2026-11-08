@@ -153,7 +153,13 @@ Item {
                     anchors.fill: parent
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
-                    onWheel: wheel => root.setVolume(root.volume + (wheel.angleDelta.y > 0 ? 0.05 : -0.05))
+                    WheelHandler {
+                        acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+                        onWheel: wheel => {
+                            if (wheel.angleDelta.y !== 0)
+                                root.setVolume(root.volume + (wheel.angleDelta.y > 0 ? 0.05 : -0.05));
+                        }
+                    }
                     onClicked: {
                         if (root.volume > 0.001) {
                             root.lastVolume = root.volume;

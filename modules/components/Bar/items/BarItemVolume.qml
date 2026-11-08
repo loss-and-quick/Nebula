@@ -135,12 +135,15 @@ Item {
                 else if (root.host)
                     root.host.openPanel("sound", root);
             }
-            onWheel: wheel => {
-                const d = wheel.angleDelta.y !== 0 ? wheel.angleDelta.y : wheel.angleDelta.x;
-                if (d > 0)
-                    ServicePipewire.incrementVolume(0.05);
-                else if (d < 0)
-                    ServicePipewire.decrementVolume(0.05);
+            WheelHandler {
+                acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+                onWheel: wheel => {
+                    const d = wheel.angleDelta.y !== 0 ? wheel.angleDelta.y : wheel.angleDelta.x;
+                    if (d > 0)
+                        ServicePipewire.incrementVolume(0.05);
+                    else if (d < 0)
+                        ServicePipewire.decrementVolume(0.05);
+                }
             }
         }
     }

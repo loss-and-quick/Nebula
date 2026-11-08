@@ -109,9 +109,9 @@ Item {
         id: expandAnim
         target: root
         property: "unfoldRaw"
-        duration: M3Motion.container.duration
+        duration: M3Motion.effects.defaultDuration
         easing.type: Easing.BezierSpline
-        easing.bezierCurve: M3Motion.container.curve
+        easing.bezierCurve: M3Motion.effects.curve
     }
 
     Component.onCompleted: root.unfoldRaw = root.expanded ? 1 : 0

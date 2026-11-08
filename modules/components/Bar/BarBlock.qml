@@ -190,7 +190,8 @@ Item {
     readonly property real barH: barBlock.edgeCfg.height
     readonly property real stepT: (1 - barBlock.pillT) * (1 - barBlock.flatT)
     readonly property real roundT: barBlock.pillT + barBlock.stepT
-    readonly property bool hovering: blockHover.hovered || revealer.tabHovered
+    property bool dockHovered: false
+    readonly property bool hovering: blockHover.hovered || revealer.tabHovered || barBlock.dockHovered
     readonly property bool wantedBase: !barBlock.leaving && SettingsConfig.settingsReady && (barBlock.editMode || barBlock.panelKind !== "" || barBlock.shownCount > 0)
     readonly property bool folded: !!barBlock.frame && !!barBlock.frame.foldIds && barBlock.frame.foldIds.indexOf(barBlock.blockId) >= 0
     readonly property bool wanted: barBlock.wantedBase && !barBlock.folded
@@ -521,12 +522,14 @@ Item {
 
     BlockLayout {
         id: blockLayout
+        z: 2
         block: barBlock
         revealer: revealer
     }
 
     PanelRevealer {
         id: revealer
+        z: 1
         block: barBlock
         contentHost: contentHost
 

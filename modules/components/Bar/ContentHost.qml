@@ -128,14 +128,15 @@ Item {
 
         property string kind: ""
         property bool shown: false
-        readonly property real fw: block.vertical ? slot.height : slot.width
-        readonly property real fh: block.vertical ? slot.width : slot.height
+        readonly property real fw: slot.width
+        readonly property real fh: slot.height
         readonly property real slideY: block.far ? Math.max(0, contentHost.height - slot.fh) : Math.min(0, contentHost.height - slot.fh)
         readonly property real pinY: block.far ? contentHost.height - slot.fh - block.tuckShown : block.tuckShown
         property real reveal: 1
         property real drift: 0
         property bool quiet: false
         property bool ride: false
+        property string previewAppId: ""
         readonly property real rideY: block.far ? Math.max(0, slot.pinY) : Math.min(slot.pinY, contentHost.height - slot.fh)
 
         function enter() {
@@ -246,8 +247,8 @@ Item {
             }
         }
 
-        width: block.vertical ? revealer.contentHeight(slot.kind) : revealer.kindWidth(slot.kind)
-        height: block.vertical ? revealer.kindWidth(slot.kind) : revealer.contentHeight(slot.kind)
+        width: revealer.kindWidth(slot.kind)
+        height: revealer.contentHeight(slot.kind)
 
         x: Math.round((revealer.tabW - slot.fw) / 2)
         y: Math.round(slot.ride ? slot.rideY : slot.shown ? slot.pinY + (block.far ? slot.drift : -slot.drift) : slot.slideY)
@@ -271,6 +272,51 @@ Item {
         }
 
         sourceComponent: block.panels.forKind(slot.kind)
+
+        onItemChanged: {
+            if (slot.item)
+                PerfMonitor.markSlotLoaded(slot.kind, slot.item);
+        }
+
+        Binding {
+            target: slot.item
+            property: "appEntry"
+            value: revealer.dockAppEntry
+            when: slot.item !== null && slot.kind === "dockPreview"
+            restoreMode: Binding.RestoreBindingOrValue
+        }
+        Binding {
+            target: slot.item
+            property: "maxWidth"
+            value: revealer.dockPreviewCap
+            when: slot.item !== null && slot.kind === "dockPreview"
+            restoreMode: Binding.RestoreBindingOrValue
+        }
+        Connections {
+            target: slot.item
+            ignoreUnknownSignals: true
+            enabled: slot.item !== null && slot.kind === "dockPreview"
+            function onActivated() {
+                block.closePanel();
+            }
+            function onImplicitHeightChanged() {
+                if (slot.shown)
+                    revealer.syncDockPreview();
+            }
+            function onImplicitWidthChanged() {
+                if (slot.shown)
+                    revealer.syncDockPreview();
+            }
+            function onAppEntryChanged() {
+                const appId = slot.item?.appEntry?.appId ?? "";
+                if (slot.shown && slot.previewAppId !== "" && appId !== slot.previewAppId) {
+                    revealAnim.stop();
+                    slot.reveal = 1;
+                    slot.drift = 0;
+                }
+                slot.previewAppId = appId;
+            }
+        }
     }
 
     PanelSlot {

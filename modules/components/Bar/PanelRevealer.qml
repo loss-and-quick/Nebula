@@ -253,17 +253,74 @@ Item {
 
     readonly property string sysKind: GlobalStates.clipboardOpen && (SettingsConfig.general.clipboardPanelMode ?? "dock") !== "center" && revealer.hostsSys("clipboard") ? "clipboard" : GlobalStates.wallpaperOpen && (SettingsConfig.general.wallpaperPanelMode ?? "dock") !== "center" && revealer.hostsSys("wallpaper") ? "wallpaper" : revealer.sysHost && GlobalStates.osdOpen && BarLayout.osdHostItem === "" ? "osd" : ""
 
-    readonly property string panelKind: revealer.launchHost && GlobalStates.launcherPreview ? "launcher" : revealer.previewHost ? GlobalStates.panelPreview : block.leaving ? "" : block.editMode ? (!GlobalStates.barEditTest ? "" : revealer.osdWant || revealer.sysKind === "osd" ? "osd" : revealer.popupWant ? "notifPopup" : "") : revealer.sysKind !== "" ? revealer.sysKind : revealer.launchHost && GlobalStates.appLauncherOpen ? "launcher" : revealer.clickedKind !== "" ? revealer.clickedKind : block.hovering && revealer.hoverKind !== "" ? revealer.hoverKind : revealer.osdWant && !revealer.popupWant && revealer.tuckHost === "" ? "osd" : revealer.popupWant && revealer.tuckHost === "" ? "notifPopup" : ""
+    readonly property string panelKind: revealer.computePanelKind()
+
+    function computePanelKind() {
+        if (block.leaving)
+            return "";
+
+        // 1. Preview / live preview modes
+        if (revealer.launchHost && GlobalStates.launcherPreview)
+            return "launcher";
+        if (revealer.previewHost && GlobalStates.panelPreview !== "")
+            return GlobalStates.panelPreview;
+
+        // 2. Bar edit mode
+        if (block.editMode) {
+            if (!GlobalStates.barEditTest)
+                return "";
+            if (revealer.osdWant || revealer.sysKind === "osd")
+                return "osd";
+            if (revealer.popupWant)
+                return "notifPopup";
+            return "";
+        }
+
+        // 3. System overlays (clipboard, wallpaper, osd)
+        if (revealer.sysKind !== "")
+            return revealer.sysKind;
+
+        // 4. App launcher
+        if (revealer.launchHost && GlobalStates.appLauncherOpen)
+            return "launcher";
+
+        // 5. Explicit user click / toggle
+        if (revealer.clickedKind !== "")
+            return revealer.clickedKind;
+
+        // 6. Hover panels (dockPreview, clock/calendar hover, etc.)
+        if (revealer.hoverKind !== "") {
+            if (revealer.hoverKind === "dockPreview" || block.hovering)
+                return revealer.hoverKind;
+        }
+
+        // 7. Transient overlays (OSD, notification popups)
+        if (revealer.tuckHost === "") {
+            if (revealer.osdWant && !revealer.popupWant)
+                return "osd";
+            if (revealer.popupWant)
+                return "notifPopup";
+        }
+
+        return "";
+    }
 
     property int openSeq: 0
     onShownKindChanged: {
+        if (revealer.shownKind !== "")
+            PerfMonitor.markPanelOpen(revealer.shownKind);
+        else
+            PerfMonitor.markPanelClose(revealer.lastKind);
         revealer.updateCrowded();
         if (revealer.shownKind !== "" && layout.nextPanelSeq)
             revealer.openSeq = layout.nextPanelSeq();
         revealer.trackGoo();
         revealer.queueSync();
     }
-    onTabXChanged: revealer.trackGoo()
+    onTabXChanged: {
+        revealer.trackGoo();
+        PerfMonitor.markGeometry(tabX, tabW, tabH, state);
+    }
     onTabWChanged: revealer.trackGoo()
     onTabHChanged: revealer.trackGoo()
 
@@ -351,6 +408,7 @@ Item {
         revealer.pendingKind = "";
         revealer.clickedKind = "";
         revealer.hoverKind = "";
+        block.dockHovered = false;
     }
 
     function hoverOpen(kind, item) {
@@ -418,8 +476,12 @@ Item {
     function checkHoverLeave() {
         if (revealer.clickedKind !== "" || (revealer.launchHost && GlobalStates.appLauncherOpen))
             return;
-        if (!block.hovering)
+        if (revealer.hoverKind === "dockPreview") {
+            if (!block.dockHovered && !tabHover.hovered)
+                revealer.scheduleDockLeave();
+        } else if (!block.hovering) {
             revealer.hoverKind = "";
+        }
     }
 
     property real srcX: 0
@@ -447,6 +509,8 @@ Item {
     }
 
     function flushSource(kind) {
+        if (kind === "dockPreview" || kind === "dockMenu")
+            return;
         const w = revealer.alongOf(kind);
         const cx = revealer.srcX + revealer.srcW / 2;
         const tx = revealer.alignX(w, cx);
@@ -911,7 +975,7 @@ Item {
         block.frame.setBody(block.blockId, block.absX + revealer.tabTargetX, block.absX + revealer.tabTargetX + revealer.tabTargetW, fil && revealer.tabTargetX > 0.5, fil && revealer.tabTargetX + revealer.tabTargetW < block.width - 0.5, revealer.isTransient(revealer.shownKind));
     }
     function queueSync() {
-        revealer.syncBody();
+        Qt.callLater(revealer.syncBody);
     }
     onTabTargetXChanged: revealer.queueSync()
     onTabTargetWChanged: revealer.queueSync()
@@ -1022,6 +1086,7 @@ Item {
         revealer.beginOpen("trayMenu", source, true);
     }
 
+    property int dockEpoch: 0
     property string dockAppId: ""
     readonly property var dockAppEntry: {
         if (revealer.dockAppId === "")
@@ -1033,45 +1098,94 @@ Item {
     readonly property real dockPreviewCap: block.vertical ? Math.min(300, revealer.widthRoom) : Math.min(Math.max(block.width, 236), revealer.widthRoom)
     readonly property real dockPreviewWidth: Math.min(300, revealer.dockPreviewCap)
 
-    onDockAppEntryChanged: revealer.checkDockApp()
-    onDockWinCountChanged: revealer.checkDockApp()
+    onDockAppEntryChanged: {
+        revealer.checkDockApp();
+        revealer.syncDockPreview();
+    }
+    onDockWinCountChanged: {
+        revealer.checkDockApp();
+        revealer.syncDockPreview();
+    }
 
     function checkDockApp() {
         if (revealer.panelKind === "dockMenu" && !revealer.dockAppEntry)
             revealer.closePanel();
         else if (revealer.panelKind === "dockPreview" && revealer.dockWinCount === 0)
-            revealer.hoverKind = "";
+            revealer.cancelDockPreview();
     }
 
-    function appEntered(entry, item) {
-        if (block.editing || !entry)
+    function currentContentItem() {
+        if (!contentHost)
+            return null;
+        const k = revealer.shownKind;
+        if (k === "")
+            return null;
+        const cur = contentHost.curSlotItem;
+        if (cur && cur.kind === k && cur.shown && cur.item)
+            return cur.item;
+        return contentHost.itemOf(k);
+    }
+
+    function syncDockPreview() {
+        if (revealer.shownKind !== "dockPreview")
             return;
-        dockLeaveTimer.stop();
+        revealer.openAlong = revealer.alongOf("dockPreview");
+        revealer.openAcross = revealer.acrossOf("dockPreview");
+        if (revealer.heightFollow)
+            revealer.followAcross = revealer.liveAcross;
+        revealer.checkSettled();
+    }
+
+    function requestDockPreview(entry, item) {
         if (revealer.panelKind === "dockMenu" || revealer.clickedKind !== "")
             return;
+        if (revealer.panelKind !== "" && revealer.panelKind !== "dockPreview" && !revealer.isTransient(revealer.panelKind))
+            return;
         if (entry.toplevels.length === 0) {
-            if (revealer.panelKind === "dockPreview")
-                revealer.hoverKind = "";
+            revealer.cancelDockPreview();
             return;
         }
         revealer.dockAppId = entry.appId ?? "";
-        if (revealer.panelKind === "dockPreview") {
-            revealer.sourceFrom(item);
-            revealer.hoverKind = "dockPreview";
+        revealer.openerId = block.ownerIdOf(item);
+        revealer.snapSource(item, "dockPreview");
+        revealer.hoverKind = "dockPreview";
+        revealer.syncDockPreview();
+    }
+
+    function cancelDockPreview() {
+        if (revealer.hoverKind !== "dockPreview")
             return;
-        }
-        revealer.hoverOpen("dockPreview", item);
+        revealer.hoverKind = "";
+        revealer.dockAppId = "";
+    }
+
+    function scheduleDockLeave() {
+        if (revealer.hoverKind !== "dockPreview" || block.dockHovered || tabHover.hovered)
+            return;
+        dockLeaveTimer.epoch = ++revealer.dockEpoch;
+        dockLeaveTimer.restart();
+    }
+
+    function appEntered(entry, item) {
+        ++revealer.dockEpoch;
+        dockLeaveTimer.stop();
+        if (block.editing || !entry)
+            return;
+        PerfMonitor.markHoverTransition(entry.appId ?? "");
+        block.dockHovered = true;
+        revealer.requestDockPreview(entry, item);
     }
 
     function appExited() {
-        if (revealer.panelKind === "dockPreview")
-            dockLeaveTimer.restart();
+        ++revealer.dockEpoch;
+        revealer.scheduleDockLeave();
     }
 
     function appMenu(entry, item) {
+        ++revealer.dockEpoch;
+        dockLeaveTimer.stop();
         if (block.editing || !entry)
             return;
-        dockLeaveTimer.stop();
         if (revealer.panelKind === "dockMenu" && revealer.dockAppId === (entry.appId ?? "")) {
             revealer.closePanel();
             return;
@@ -1087,10 +1201,23 @@ Item {
 
     Timer {
         id: dockLeaveTimer
-        interval: 140
+        property int epoch: 0
+        interval: 180
         onTriggered: {
-            if (revealer.panelKind === "dockPreview" && !tabHover.hovered)
-                revealer.hoverKind = "";
+            const scheduledEpoch = dockLeaveTimer.epoch;
+            const currentEpoch = revealer.dockEpoch;
+            ++revealer.dockEpoch;
+            if (scheduledEpoch !== currentEpoch || block.dockHovered || tabHover.hovered)
+                return;
+            revealer.cancelDockPreview();
+        }
+    }
+
+    Connections {
+        target: block
+        function onDockHoveredChanged() {
+            if (!block.dockHovered)
+                revealer.scheduleDockLeave();
         }
     }
 
@@ -1244,12 +1371,6 @@ Item {
     visible: revealer.tabOpen || revealer.state === "open" || openTrans.running || closeTrans.running
     clip: true
 
-    HoverHandler {
-        id: tabHover
-        onHoveredChanged: if (!hovered)
-            revealer.checkHoverLeave()
-    }
-
     Item {
         id: clipItem
         x: 0
@@ -1263,6 +1384,18 @@ Item {
         layer.effect: MultiEffect {
             maskEnabled: true
             maskSource: panelCornerMask
+        }
+
+        HoverHandler {
+            id: tabHover
+            onHoveredChanged: {
+                if (hovered) {
+                    ++revealer.dockEpoch;
+                    dockLeaveTimer.stop();
+                } else {
+                    revealer.checkHoverLeave();
+                }
+            }
         }
     }
 

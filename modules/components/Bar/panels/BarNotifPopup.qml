@@ -254,29 +254,28 @@ Item {
 
         ParallelAnimation {
             id: enterFx
-            NumberAnimation {
+            SpatialAnim {
                 target: pc
                 property: "keep"
                 from: 0
                 to: 1
-                duration: M3Motion.spatialDuration("move")
-                easing.type: Easing.BezierSpline
-                easing.bezierCurve: M3Motion.panel.openCurve
+                role: "notification.popup"
+                speed: "move"
             }
-            NumberAnimation {
+            SpatialAnim {
                 target: pc
                 property: "lift"
                 from: -14
                 to: 0
-                duration: M3Motion.spatialDuration("move")
-                easing.type: Easing.BezierSpline
-                easing.bezierCurve: M3Motion.panel.openCurve
+                role: "notification.popup"
+                speed: "move"
             }
             EffectsAnim {
                 target: pc
                 property: "fade"
                 from: 0
                 to: 1
+                role: "notification.popup"
                 speed: "default"
             }
         }
@@ -288,24 +287,23 @@ Item {
                     target: pc
                     property: "fade"
                     to: 0
+                    role: "notification.popup"
                     speed: "fast"
                 }
-                NumberAnimation {
+                EffectsAnim {
                     target: pc
                     property: "slide"
                     to: pc.slide === 0 ? 24 : Math.sign(pc.slide) * (pc.width + 40)
-                    duration: M3Motion.effects.fastDuration
-                    easing.type: Easing.BezierSpline
-                    easing.bezierCurve: M3Motion.panel.closeCurve
+                    role: "notification.popup"
+                    speed: "fast"
                 }
             }
-            NumberAnimation {
+            EffectsAnim {
                 target: pc
                 property: "keep"
                 to: 0
-                duration: M3Motion.effects.defaultDuration
-                easing.type: Easing.BezierSpline
-                easing.bezierCurve: M3Motion.panel.closeCurve
+                role: "notification.popup"
+                speed: "default"
             }
             ScriptAction {
                 script: {

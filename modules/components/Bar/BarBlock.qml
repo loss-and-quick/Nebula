@@ -94,6 +94,7 @@ Item {
     Behavior on presence {
         enabled: BarLayout.settled
         SpatialAnim {
+            role: "bar.block"
             speed: "default"
         }
     }
@@ -104,10 +105,9 @@ Item {
     }
     Behavior on implicitWidth {
         enabled: BarLayout.settled
-        NumberAnimation {
-            duration: M3Motion.spatialDuration("fast")
-            easing.type: Easing.BezierSpline
-            easing.bezierCurve: [0.2, 0.0, 0.0, 1.0, 1, 1]
+        SpatialAnim {
+            role: "bar.block"
+            speed: "fast"
         }
     }
 

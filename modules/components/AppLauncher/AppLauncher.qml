@@ -48,9 +48,9 @@ Scope {
                 target: panelWindow
                 property: "openT"
                 to: 1
-                duration: M3Motion.panel.openDuration
+                duration: MotionRegistry.durationFor("launcher.open", "default")
                 easing.type: Easing.BezierSpline
-                easing.bezierCurve: M3Motion.panel.openCurve
+                easing.bezierCurve: MotionRegistry.curveFor("launcher.open", "default")
             }
 
             NumberAnimation {
@@ -58,9 +58,9 @@ Scope {
                 target: panelWindow
                 property: "openT"
                 to: 0
-                duration: M3Motion.panel.closeDuration
+                duration: MotionRegistry.durationFor("launcher.close", "default")
                 easing.type: Easing.BezierSpline
-                easing.bezierCurve: M3Motion.panel.closeCurve
+                easing.bezierCurve: MotionRegistry.curveFor("launcher.close", "default")
             }
 
             anchors.left: true
@@ -308,7 +308,7 @@ Scope {
 
     Timer {
         id: animationTimer
-        interval: M3Motion.panel.closeDuration + 20
+        interval: MotionRegistry.durationFor("launcher.close", "default") + 20
         onTriggered: {
             loader.active = false;
         }

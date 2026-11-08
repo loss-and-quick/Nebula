@@ -1541,20 +1541,14 @@ Item {
     readonly property bool autoHide: surface.cfg.autoHide
     readonly property bool dockActive: !surface.autoHide || revealHover.hovered || GlobalStates.barEditMode || (surface.autoHide && GlobalStates.dockPeek) || BarLayout.sysPanelOpen || surface.visibleBlocks.some(b => b.tabOpen || (b.revealer && b.revealer.tabHovered))
     property bool dockHidden: false
-    readonly property var spatialCurve: [0.38, 1.21, 0.22, 1.0, 1, 1]
-    readonly property var emphasizedCurve: [0.05, 0.0, 2 / 15, 0.06, 1 / 6, 0.4, 5 / 24, 0.82, 0.25, 1.0, 1, 1]
-    property bool revealOpening: true
     property real revealGoal: 1
     onDockHiddenChanged: {
-        surface.revealOpening = !surface.dockHidden;
         surface.revealGoal = surface.dockHidden ? 0 : 1;
     }
     property real reveal: surface.revealGoal
     Behavior on reveal {
-        NumberAnimation {
-            duration: surface.revealOpening ? 500 : 400
-            easing.type: Easing.BezierSpline
-            easing.bezierCurve: surface.revealOpening ? surface.spatialCurve : surface.emphasizedCurve
+        SpatialAnim {
+            role: "surface.reveal"
         }
     }
     readonly property real slide: (1 - surface.reveal) * (surface.barH + surface.edgeInset + surface.maxDrop + 6)
@@ -1565,11 +1559,9 @@ Item {
 
     property real bumpDepth: surface.revealGoal
     Behavior on bumpDepth {
-        NumberAnimation {
+        SpatialAnim {
             id: bumpAnim
-            duration: 500
-            easing.type: Easing.BezierSpline
-            easing.bezierCurve: surface.spatialCurve
+            role: "surface.reveal"
         }
     }
     onDockActiveChanged: {

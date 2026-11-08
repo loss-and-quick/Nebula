@@ -2371,8 +2371,8 @@ Item {
             }
         }
 
-        width: barBlock.vertical || barBlock.shownKind === "" ? barBlock.kindWidth(slot.kind) : barBlock.tabW
-        height: barBlock.vertical && barBlock.shownKind !== "" ? barBlock.tabW : barBlock.contentHeight(slot.kind)
+        width: barBlock.vertical ? barBlock.contentHeight(slot.kind) : barBlock.kindWidth(slot.kind)
+        height: barBlock.vertical ? barBlock.kindWidth(slot.kind) : barBlock.contentHeight(slot.kind)
 
         x: Math.round(barBlock.absX + slot.homeX) - barBlock.absX - slot.clipX
         y: Math.round(slot.clipY + (slot.ride ? slot.rideY

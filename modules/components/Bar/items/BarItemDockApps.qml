@@ -159,7 +159,7 @@ Item {
                 width: root.icon + 8
                 height: width
                 radius: root.host && root.host.isPill ? Math.max(0, root.host.pillRadius - (root.host.barH - width) / 2) : 10
-                color: dockIconArea.containsMouse ? Colors.primaryContainer : dockItem.isActive ? Qt.alpha(Colors.primaryContainer, 0.45) : Qt.alpha(Colors.primaryContainer, 0)
+                color: iconHover.hovered ? Colors.primaryContainer : dockItem.isActive ? Qt.alpha(Colors.primaryContainer, 0.45) : Qt.alpha(Colors.primaryContainer, 0)
                 Behavior on color {
                     ColorAnimation {
                         duration: 150
@@ -257,13 +257,16 @@ Item {
                 anchors.bottomMargin: (dockItem.index === root.model.length - 1 || !root.vertical) ? 0 : -2
                 acceptedButtons: Qt.LeftButton | Qt.RightButton
                 cursorShape: Qt.PointingHandCursor
-                hoverEnabled: true
-
-                onEntered: if (root.host && root.host.appEntered)
-                    root.host.appEntered(dockItem.modelData, dockItem)
-                onExited: if (root.host && root.host.appExited)
-                    root.host.appExited()
-                Component.onDestruction: dockIconArea.hoverEnabled = false
+                HoverHandler {
+                    id: iconHover
+                    onHoveredChanged: {
+                        if (hovered && root.host && root.host.appEntered)
+                            root.host.appEntered(dockItem.modelData, dockItem);
+                        else if (!hovered && root.host && root.host.appExited)
+                            root.host.appExited();
+                    }
+                }
+                Component.onDestruction: iconHover.enabled = false
 
                 onClicked: mouse => {
                     if (mouse.button === Qt.LeftButton) {

@@ -14,22 +14,28 @@ Item {
     id: root
     anchors.fill: parent
 
+    readonly property bool isCompact: root.width < 768
+    readonly property bool isMedium: root.width >= 768 && root.width < 1024
+    readonly property bool isExpanded: root.width >= 1024
+
     property int currentPage: firstPage
     signal settingClosed
 
     Connections {
         target: GlobalStates
-        function onSettingsPageChanged() { root.currentPage = GlobalStates.settingsPage }
+        function onSettingsPageChanged() {
+            root.currentPage = GlobalStates.settingsPage;
+        }
 
         // This Item is built once inside the FloatingWindow and only toggled via `visible`,
         // so the page has to be (re)selected on each open rather than at construction.
         function onSettingsOpenChanged() {
             if (GlobalStates.settingsOpen) {
-                root.currentPage = GlobalStates.settingsPage
-                rescanTimer.restart()
+                root.currentPage = GlobalStates.settingsPage;
+                rescanTimer.restart();
             } else {
-                root.prefetchPage = -1
-                GlobalStates.settingsPage = root.firstPage   // plain reopen lands on page one
+                root.prefetchPage = -1;
+                GlobalStates.settingsPage = root.firstPage;   // plain reopen lands on page one
             }
         }
     }
@@ -37,10 +43,10 @@ Item {
     property real t: 0
     Component.onCompleted: {
         if (GlobalStates.settingsOpen) {
-            root.currentPage = GlobalStates.settingsPage
-            root.shownPage = root.currentPage
+            root.currentPage = GlobalStates.settingsPage;
+            root.shownPage = root.currentPage;
         }
-        root.t = Qt.binding(() => GlobalStates.settingsOpen ? 1 : 0)
+        root.t = Qt.binding(() => GlobalStates.settingsOpen ? 1 : 0);
     }
     Behavior on t {
         NumberAnimation {
@@ -52,130 +58,202 @@ Item {
 
     opacity: Math.min(1, root.t * 1.6)
     scale: 0.92 + 0.08 * root.t
-    transform: Translate { y: (1 - root.t) * 28 }
+    transform: Translate {
+        y: (1 - root.t) * 28
+    }
 
     // Section → page-index mapping
     function hyprPageOn(p) {
         switch (p) {
-        case 15: return Features.hyprDisplays
-        case 16: return Features.hyprWindows
-        case 17: return Features.hyprInput || Features.hyprBinds
-        case 18: return Features.hyprBinds
+        case 15:
+            return Features.hyprDisplays;
+        case 16:
+            return Features.hyprWindows;
+        case 17:
+            return Features.hyprInput || Features.hyprBinds;
+        case 18:
+            return Features.hyprBinds;
         }
-        return true
+        return true;
     }
 
     readonly property var navSections: [
-        { label: "Look",    indices: [0, 3, 14] },
-        { label: "System",  indices: [1, 2, 12, 20] },
-        { label: "Desktop", indices: [15, 16, 17].filter(p => root.hyprPageOn(p)) },
-        { label: "Connect", indices: [4, 5] },
-        { label: "More",    indices: [6, 8] }
+        {
+            label: "Look",
+            indices: [0, 3, 14]
+        },
+        {
+            label: "System",
+            indices: [1, 2, 12, 20]
+        },
+        {
+            label: "Desktop",
+            indices: [15, 16, 17].filter(p => root.hyprPageOn(p))
+        },
+        {
+            label: "Connect",
+            indices: [4, 5]
+        },
+        {
+            label: "More",
+            indices: [6, 8]
+        }
     ].filter(g => g.indices.length > 0)
 
     readonly property var merges: [
-        { pages: [0, 9], name: "Appearance", icon: "palette", tabs: ["Wallpaper & colours", "Fonts & bar"] },
-        { pages: [3, 13], name: "Widgets", icon: "widgets", tabs: ["Widgets", "Sticky notes"] },
-        { pages: [12, 10], name: "Lock & sleep", icon: "lock", tabs: ["Lock screen", "Sleep"] },
-        Features.hyprInput && Features.hyprBinds
-            ? { pages: [17, 18], name: "Keyboard & mouse", icon: "keyboard", tabs: ["Mouse & keyboard", "Shortcuts"] }
-            : { pages: [17], name: Features.hyprInput ? "Keyboard & mouse" : "Shortcuts", icon: "keyboard",
-                tabs: [Features.hyprInput ? "Mouse & keyboard" : "Shortcuts"] },
-        { pages: [6, 7], name: "Built-in apps", icon: "apps", tabs: ["Weather", "Screenshots & recording"] },
-        { pages: [8, 11], name: "About", icon: "info", tabs: ["Nebula", "Storage"] }
+        {
+            pages: [0, 9],
+            name: "Appearance",
+            icon: "palette",
+            tabs: ["Wallpaper & colours", "Fonts & bar"]
+        },
+        {
+            pages: [3, 13],
+            name: "Widgets",
+            icon: "widgets",
+            tabs: ["Widgets", "Sticky notes"]
+        },
+        {
+            pages: [12, 10],
+            name: "Lock & sleep",
+            icon: "lock",
+            tabs: ["Lock screen", "Sleep"]
+        },
+        Features.hyprInput && Features.hyprBinds ? {
+            pages: [17, 18],
+            name: "Keyboard & mouse",
+            icon: "keyboard",
+            tabs: ["Mouse & keyboard", "Shortcuts"]
+        } : {
+            pages: [17],
+            name: Features.hyprInput ? "Keyboard & mouse" : "Shortcuts",
+            icon: "keyboard",
+            tabs: [Features.hyprInput ? "Mouse & keyboard" : "Shortcuts"]
+        },
+        {
+            pages: [6, 7],
+            name: "Built-in apps",
+            icon: "apps",
+            tabs: ["Weather", "Screenshots & recording"]
+        },
+        {
+            pages: [8, 11],
+            name: "About",
+            icon: "info",
+            tabs: ["Nebula", "Storage"]
+        }
     ]
 
     function mergeOf(p) {
-        return root.merges.find(m => m.pages.indexOf(p) >= 0) ?? null
+        return root.merges.find(m => m.pages.indexOf(p) >= 0) ?? null;
     }
 
     function leadOf(p) {
-        const m = root.mergeOf(p)
-        return m ? m.pages[0] : p
+        const m = root.mergeOf(p);
+        return m ? m.pages[0] : p;
     }
 
     function nameOf(p) {
-        const m = root.mergeOf(p)
-        return m ? m.name : (Settings.pages[p]?.name ?? "")
+        const m = root.mergeOf(p);
+        return m ? m.name : (Settings.pages[p]?.name ?? "");
     }
 
     function iconOf(p) {
-        const m = root.mergeOf(p)
-        return m ? m.icon : (Settings.pages[p]?.icon ?? "")
+        const m = root.mergeOf(p);
+        return m ? m.icon : (Settings.pages[p]?.icon ?? "");
     }
 
     function placeOf(p) {
-        const m = root.mergeOf(p)
-        return m ? m.name + "  ›  " + m.tabs[m.pages.indexOf(p)] : (Settings.pages[p]?.name ?? "")
+        const m = root.mergeOf(p);
+        return m ? m.name + "  ›  " + m.tabs[m.pages.indexOf(p)] : (Settings.pages[p]?.name ?? "");
     }
-
 
     // Whatever sits at the top of the sidebar — not necessarily page 0
     readonly property int firstPage: navSections[0].indices[0]
 
-    readonly property var pageFiles: ["Theme", "Sound", "Notifications", "Widgets", "Networking", "Bluetooth",
-        "WeatherSettings", "", "About", "", "", "", "Lockscreen",
-        "", "LayoutsSettings", "DisplaysSettings", "WindowsSettings", "InputSettings", "",
-        "ProfileSettings", "FeaturesSettings"]
+    readonly property var pageFiles: ["Theme", "Sound", "Notifications", "Widgets", "Networking", "Bluetooth", "WeatherSettings", "", "About", "", "", "", "Lockscreen", "", "LayoutsSettings", "DisplaysSettings", "WindowsSettings", "InputSettings", "", "ProfileSettings", "FeaturesSettings"]
 
-    readonly property var railOrder: root.navSections.reduce((all, g) =>
-        all.concat(g.indices.reduce((row, i) => row.concat(root.mergeOf(i)?.pages ?? [i]), [])), [])
+    readonly property var railOrder: root.navSections.reduce((all, g) => all.concat(g.indices.reduce((row, i) => row.concat(root.mergeOf(i)?.pages ?? [i]), [])), [])
     readonly property bool showSections: SettingsConfig.general.settingsSections ?? true
-    readonly property bool tocWanted: root.showSections && root.sections.length >= 2
+    readonly property bool tocWanted: root.showSections && root.sections.length >= 2 && !root.isCompact && (root.width - root.islandW >= 560)
     property real tocT: root.tocWanted ? 1 : 0
-    Behavior on tocT { enabled: root.t > 0.5; SpatialAnim {} }
+    Behavior on tocT {
+        enabled: root.t > 0.5
+        SpatialAnim {}
+    }
     readonly property bool tocSpace: root.tocWanted || root.tocT > 0.01
 
     property bool statusMenuOpen: false
     readonly property bool focusing: ServiceFocus.phase === "focus" || ServiceFocus.phase === "break"
     readonly property string mode: root.focusing ? "focus" : ServiceNotification.dnd ? "quiet" : "available"
     readonly property var modes: [
-        { value: "available", label: "Available", icon: "check_circle", hint: "Everything works as usual", tone: Colors.primary },
-        { value: "focus", label: "Focus", icon: "timer", hint: "Starts a focus session", tone: Colors.tertiary },
-        { value: "quiet", label: "Quiet", icon: "do_not_disturb_on", hint: "Turns on Do not disturb", tone: Colors.error }
+        {
+            value: "available",
+            label: "Available",
+            icon: "check_circle",
+            hint: "Everything works as usual",
+            tone: Colors.primary
+        },
+        {
+            value: "focus",
+            label: "Focus",
+            icon: "timer",
+            hint: "Starts a focus session",
+            tone: Colors.tertiary
+        },
+        {
+            value: "quiet",
+            label: "Quiet",
+            icon: "do_not_disturb_on",
+            hint: "Turns on Do not disturb",
+            tone: Colors.error
+        }
     ]
     readonly property var currentMode: root.modes.find(m => m.value === root.mode) ?? root.modes[0]
 
     function setMode(m) {
         if (m === "focus") {
             if (!root.focusing)
-                ServiceFocus.startFocus()
-            return
+                ServiceFocus.startFocus();
+            return;
         }
         if (root.focusing)
-            ServiceFocus.stop()
-        ServiceNotification.setDnd(m === "quiet")
+            ServiceFocus.stop();
+        ServiceNotification.setDnd(m === "quiet");
     }
-    readonly property bool islandWide: SettingsConfig.general.settingsRailWide ?? false
+    readonly property bool islandWide: !root.isCompact && (SettingsConfig.general.settingsRailWide ?? false)
     property real islandW: root.islandWide ? 204 : 62
-    Behavior on islandW { enabled: root.t > 0.5; SpatialAnim {} }
-    readonly property string groupName: root.shownPage === 19 ? "You"
-        : root.navSections.find(g => g.indices.indexOf(root.leadOf(root.shownPage)) >= 0)?.label ?? ""
+    Behavior on islandW {
+        enabled: root.t > 0.5
+        SpatialAnim {}
+    }
+    readonly property string groupName: root.shownPage === 19 ? "You" : root.navSections.find(g => g.indices.indexOf(root.leadOf(root.shownPage)) >= 0)?.label ?? ""
     property point menuAt: Qt.point(0, 0)
     property point searchAt: Qt.point(0, 0)
 
     function pageStatus(i) {
         switch (i) {
         case 1:
-            return ServicePipewire.muted ? "Muted" : Math.round(ServicePipewire.volume * 100) + "%"
+            return ServicePipewire.muted ? "Muted" : Math.round(ServicePipewire.volume * 100) + "%";
         case 2:
-            return ServiceNotification.dnd ? "Do not disturb" : ""
+            return ServiceNotification.dnd ? "Do not disturb" : "";
         case 4:
             if (ServiceNetwork.connectionType === "ethernet")
-                return ServiceNetwork.currentSSID !== "" ? "Ethernet, " + ServiceNetwork.currentSSID + " as backup" : "Ethernet"
-            return ServiceNetwork.connectionType === "wifi" ? ServiceNetwork.currentSSID : "Not connected"
-        case 5: {
-            if (!ServiceBluetooth.state)
-                return "Off"
-            const on = ServiceBluetooth.connectedDevicesList
-            return on.length === 0 ? "On" : ServiceBluetooth.nameOf(on[0]) + (on.length > 1 ? " +" + (on.length - 1) : "") + " connected"
-        }
+                return ServiceNetwork.currentSSID !== "" ? "Ethernet, " + ServiceNetwork.currentSSID + " as backup" : "Ethernet";
+            return ServiceNetwork.connectionType === "wifi" ? ServiceNetwork.currentSSID : "Not connected";
+        case 5:
+            {
+                if (!ServiceBluetooth.state)
+                    return "Off";
+                const on = ServiceBluetooth.connectedDevicesList;
+                return on.length === 0 ? "On" : ServiceBluetooth.nameOf(on[0]) + (on.length > 1 ? " +" + (on.length - 1) : "") + " connected";
+            }
         case 6:
-            return Features.weather && ServiceWeather.temperature !== "" ? ServiceWeather.location + " · " + ServiceWeather.temperature : ""
+            return Features.weather && ServiceWeather.temperature !== "" ? ServiceWeather.location + " · " + ServiceWeather.temperature : "";
         case 20:
-            return Features.list.filter(f => Features.on(f.id)).length + " of " + Features.list.length + " on"
+            return Features.list.filter(f => Features.on(f.id)).length + " of " + Features.list.length + " on";
         }
-        return ""
+        return "";
     }
     property int shownPage: firstPage
     property int incomingPage: -1
@@ -187,68 +265,68 @@ Item {
     function slotFor(p) {
         for (let i = 0; i < pageHost.children.length; i++)
             if (pageHost.children[i].page === p)
-                return pageHost.children[i]
-        return null
+                return pageHost.children[i];
+        return null;
     }
 
     function prefetch(p) {
-        const lead = root.leadOf(p)
+        const lead = root.leadOf(p);
         if (lead !== root.shownPage && lead !== root.incomingPage)
-            root.prefetchPage = lead
+            root.prefetchPage = lead;
     }
 
     function finishSwap() {
-        const slot = root.slotFor(root.incomingPage)
+        const slot = root.slotFor(root.incomingPage);
         if (!slot || slot.status !== Loader.Ready)
-            return
-        pageIn.stop()
-        pageOut.stop()
-        const old = root.slotFor(root.shownPage)
-        root.retiringPage = root.shownPage
-        root.shownPage = root.incomingPage
-        root.incomingPage = -1
+            return;
+        pageIn.stop();
+        pageOut.stop();
+        const old = root.slotFor(root.shownPage);
+        root.retiringPage = root.shownPage;
+        root.shownPage = root.incomingPage;
+        root.incomingPage = -1;
         if (root.prefetchPage === root.shownPage)
-            root.prefetchPage = -1
-        root.pageItem = slot.item
-        slot.opacity = 0
-        slot.shift = root.swapDir * 20
-        root.pageOpacity = 0
+            root.prefetchPage = -1;
+        root.pageItem = slot.item;
+        slot.opacity = 0;
+        slot.shift = root.swapDir * 20;
+        root.pageOpacity = 0;
         if (old) {
-            pageOut.target = old
-            pageOut.start()
+            pageOut.target = old;
+            pageOut.start();
         }
-        inFade.target = slot
-        inSlide.target = slot
-        pageIn.start()
+        inFade.target = slot;
+        inSlide.target = slot;
+        pageIn.start();
     }
 
     onCurrentPageChanged: {
         if (root.leadOf(root.currentPage) !== root.currentPage) {
-            root.currentPage = root.leadOf(root.currentPage)
-            return
+            root.currentPage = root.leadOf(root.currentPage);
+            return;
         }
         if (!GlobalStates.settingsOpen || root.t < 0.5) {
-            pageIn.stop()
-            pageOut.stop()
-            root.incomingPage = -1
-            root.retiringPage = -1
-            root.prefetchPage = -1
-            root.shownPage = root.currentPage
-            const s = root.slotFor(root.shownPage)
+            pageIn.stop();
+            pageOut.stop();
+            root.incomingPage = -1;
+            root.retiringPage = -1;
+            root.prefetchPage = -1;
+            root.shownPage = root.currentPage;
+            const s = root.slotFor(root.shownPage);
             if (s) {
-                s.opacity = 1
-                s.shift = 0
+                s.opacity = 1;
+                s.shift = 0;
             }
-            root.pageOpacity = 1
-            return
+            root.pageOpacity = 1;
+            return;
         }
         if (root.currentPage === root.shownPage) {
-            root.incomingPage = -1
-            return
+            root.incomingPage = -1;
+            return;
         }
-        root.swapDir = root.railOrder.indexOf(root.currentPage) >= root.railOrder.indexOf(root.shownPage) ? 1 : -1
-        root.incomingPage = root.currentPage
-        root.finishSwap()
+        root.swapDir = root.railOrder.indexOf(root.currentPage) >= root.railOrder.indexOf(root.shownPage) ? 1 : -1;
+        root.incomingPage = root.currentPage;
+        root.finishSwap();
     }
 
     property Item pageItem: null
@@ -273,276 +351,323 @@ Item {
     property bool tipShown: false
 
     readonly property var results: {
-        const q = root.query.trim().toLowerCase()
+        const q = root.query.trim().toLowerCase();
         if (q.length < 2)
-            return []
-        const out = []
+            return [];
+        const out = [];
         for (let p = 0; p < Settings.pages.length; p++) {
             if (!root.hyprPageOn(p))
-                continue
-            const m = root.mergeOf(p)
-            const names = [Settings.pages[p].name].concat(m ? [m.name, m.tabs[m.pages.indexOf(p)]] : [])
-            const at = names.map(n => n.toLowerCase().indexOf(q)).filter(i => i >= 0).sort((a, b) => a - b)[0] ?? -1
+                continue;
+            const m = root.mergeOf(p);
+            const names = [Settings.pages[p].name].concat(m ? [m.name, m.tabs[m.pages.indexOf(p)]] : []);
+            const at = names.map(n => n.toLowerCase().indexOf(q)).filter(i => i >= 0).sort((a, b) => a - b)[0] ?? -1;
             if (at >= 0)
-                out.push({ page: p, section: "", label: root.placeOf(p), isPage: true, rank: at === 0 ? 0 : 1 })
+                out.push({
+                    page: p,
+                    section: "",
+                    label: root.placeOf(p),
+                    isPage: true,
+                    rank: at === 0 ? 0 : 1
+                });
         }
         for (let i = 0; i < root.searchIndex.length; i++) {
-            const e = root.searchIndex[i]
+            const e = root.searchIndex[i];
             if (!root.hyprPageOn(e.page))
-                continue
-            const l = e.label.toLowerCase()
-            const at = l.indexOf(q)
+                continue;
+            const l = e.label.toLowerCase();
+            const at = l.indexOf(q);
             if (at < 0)
-                continue
-            out.push({ page: e.page, section: e.section, label: e.label, isPage: false,
-                       rank: at === 0 ? 2 : (l.charAt(at - 1) === " " ? 3 : 4) })
+                continue;
+            out.push({
+                page: e.page,
+                section: e.section,
+                label: e.label,
+                isPage: false,
+                rank: at === 0 ? 2 : (l.charAt(at - 1) === " " ? 3 : 4)
+            });
         }
-        out.sort((a, b) => a.rank - b.rank)
-        return out.slice(0, 8)
+        out.sort((a, b) => a.rank - b.rank);
+        return out.slice(0, 8);
     }
     onResultsChanged: root.resultIndex = 0
 
     onPageItemChanged: {
-        root.pageFlick = root.findFlick(root.pageItem)
-        root.activeSection = 0
-        Qt.callLater(root.rescan)
+        root.pageFlick = root.findFlick(root.pageItem);
+        root.activeSection = 0;
+        Qt.callLater(root.rescan);
         if (root.pageItem)
-            rescanTimer.restart()
+            rescanTimer.restart();
     }
 
     function findFlick(it) {
         if (!it)
-            return null
+            return null;
         for (let i = 0; i < it.children.length; i++) {
             if (it.children[i] instanceof Flickable)
-                return it.children[i]
+                return it.children[i];
         }
-        return null
+        return null;
     }
 
     function contentYOf(it) {
-        return it.mapToItem(root.pageFlick.contentItem, 0, 0).y
+        return it.mapToItem(root.pageFlick.contentItem, 0, 0).y;
     }
 
     function collectHeadings(it, depth, out) {
-        const kids = it.children
+        const kids = it.children;
         for (let i = 0; i < kids.length; i++) {
-            const c = kids[i]
+            const c = kids[i];
             if (!c.visible)
-                continue
+                continue;
             if (c instanceof Text) {
                 if (c.size === 13 && c.customColor === Colors.primary && c.text !== "")
-                    out.push(c)
-                continue
+                    out.push(c);
+                continue;
             }
             if (depth < 4 && !(c instanceof Rectangle) && !(c instanceof Flickable))
-                root.collectHeadings(c, depth + 1, out)
+                root.collectHeadings(c, depth + 1, out);
         }
     }
 
     function collectLabels(it, label, depth, out) {
-        const kids = it.children
+        const kids = it.children;
         for (let i = 0; i < kids.length; i++) {
-            const c = kids[i]
+            const c = kids[i];
             if (!c.visible)
-                continue
+                continue;
             if (c instanceof Text) {
                 if (c.text === label)
-                    out.push(c)
-                continue
+                    out.push(c);
+                continue;
             }
             if (depth < 14)
-                root.collectLabels(c, label, depth + 1, out)
+                root.collectLabels(c, label, depth + 1, out);
         }
     }
 
     function rescan() {
-        const f = root.pageFlick
+        const f = root.pageFlick;
         if (!f) {
             if (root.sections.length > 0)
-                root.sections = []
-            return
+                root.sections = [];
+            return;
         }
-        const found = []
-        root.collectHeadings(f.contentItem, 0, found)
-        let rows = found.map(h => ({ title: h.text, item: h, at: root.contentYOf(h) }))
-        const settled = rows.length < 2 || rows[0].at !== rows[rows.length - 1].at
+        const found = [];
+        root.collectHeadings(f.contentItem, 0, found);
+        let rows = found.map(h => ({
+                    title: h.text,
+                    item: h,
+                    at: root.contentYOf(h)
+                }));
+        const settled = rows.length < 2 || rows[0].at !== rows[rows.length - 1].at;
         if (settled)
-            rows.sort((m, n) => m.at - n.at)
-        const old = root.sections
-        let same = old.length === rows.length
+            rows.sort((m, n) => m.at - n.at);
+        const old = root.sections;
+        let same = old.length === rows.length;
         for (let i = 0; same && i < rows.length; i++)
-            same = old[i].item === rows[i].item && old[i].title === rows[i].title
+            same = old[i].item === rows[i].item && old[i].title === rows[i].title;
         if (!same)
-            root.sections = rows.map(r => ({ title: r.title, item: r.item }))
+            root.sections = rows.map(r => ({
+                        title: r.title,
+                        item: r.item
+                    }));
         if (settled) {
             if (!scrollAnim.running)
-                root.updateActive()
+                root.updateActive();
         } else {
-            root.activeSection = 0
+            root.activeSection = 0;
             if (GlobalStates.settingsOpen)
-                rescanTimer.restart()
+                rescanTimer.restart();
         }
     }
 
     function updateActive() {
-        const f = root.pageFlick
+        const f = root.pageFlick;
         if (!f || root.sections.length === 0) {
-            root.activeSection = 0
-            return
+            root.activeSection = 0;
+            return;
         }
         if (f.atYEnd && f.contentHeight > f.height + 1) {
-            root.activeSection = root.sections.length - 1
-            return
+            root.activeSection = root.sections.length - 1;
+            return;
         }
-        const edge = f.contentY + 40
-        let a = 0
+        const edge = f.contentY + 40;
+        let a = 0;
         for (let i = 0; i < root.sections.length; i++) {
-            const it = root.sections[i].item
+            const it = root.sections[i].item;
             if (it && root.contentYOf(it) <= edge)
-                a = i
+                a = i;
         }
-        root.activeSection = a
+        root.activeSection = a;
     }
 
     function scrollTo(y) {
-        const f = root.pageFlick
+        const f = root.pageFlick;
         if (!f)
-            return
-        scrollAnim.stop()
-        root.pinnedSection = -1
-        scrollAnim.from = f.contentY
-        scrollAnim.to = Math.max(0, Math.min(Math.max(0, f.contentHeight - f.height), y))
-        scrollAnim.start()
+            return;
+        scrollAnim.stop();
+        root.pinnedSection = -1;
+        scrollAnim.from = f.contentY;
+        scrollAnim.to = Math.max(0, Math.min(Math.max(0, f.contentHeight - f.height), y));
+        scrollAnim.start();
     }
 
     function openSection(i) {
-        const s = root.sections[i]
+        const s = root.sections[i];
         if (!s || !s.item)
-            return
-        root.activeSection = i
-        root.scrollTo(root.contentYOf(s.item) - 10)
-        root.pinnedSection = i
+            return;
+        root.activeSection = i;
+        root.scrollTo(root.contentYOf(s.item) - 10);
+        root.pinnedSection = i;
     }
 
     function indexPage(page, src) {
-        const out = []
-        const lines = src.split("\n")
-        let section = ""
+        const out = [];
+        const lines = src.split("\n");
+        let section = "";
         for (let i = 0; i < lines.length; i++) {
-            const ln = lines[i]
-            const m = ln.match(/content:\s*"([^"]+)"/)
+            const ln = lines[i];
+            const m = ln.match(/content:\s*"([^"]+)"/);
             if (!m)
-                continue
+                continue;
             if (/size:\s*13\b/.test(ln) && ln.indexOf("Colors.primary") >= 0) {
-                section = m[1]
-                out.push({ page: page, section: "", label: m[1] })
+                section = m[1];
+                out.push({
+                    page: page,
+                    section: "",
+                    label: m[1]
+                });
             } else if (/size:\s*14\b/.test(ln) && ln.indexOf("customColor") < 0) {
-                out.push({ page: page, section: section, label: m[1] })
+                out.push({
+                    page: page,
+                    section: section,
+                    label: m[1]
+                });
             }
         }
-        root.searchIndex = root.searchIndex.concat(out)
+        root.searchIndex = root.searchIndex.concat(out);
     }
 
     function openResult(r) {
         if (!r)
-            return
-        root.pendingJump = r.isPage ? null : { label: r.label, section: r.section }
-        root.searchOpen = false
-        searchInput.text = ""
-        searchInput.focus = false
+            return;
+        root.pendingJump = r.isPage ? null : {
+            label: r.label,
+            section: r.section
+        };
+        root.searchOpen = false;
+        searchInput.text = "";
+        searchInput.focus = false;
         if (root.currentPage !== r.page)
-            root.currentPage = r.page
+            root.currentPage = r.page;
         else
-            rescanTimer.restart()
+            rescanTimer.restart();
     }
 
     function performJump() {
-        const f = root.pageFlick
-        const j = root.pendingJump
-        root.pendingJump = null
+        const f = root.pageFlick;
+        const j = root.pendingJump;
+        root.pendingJump = null;
         if (!f || !j)
-            return
-        const hits = []
-        root.collectLabels(f.contentItem, j.label, 0, hits)
+            return;
+        const hits = [];
+        root.collectLabels(f.contentItem, j.label, 0, hits);
         if (hits.length === 0) {
             for (let i = 0; i < root.sections.length; i++) {
                 if (root.sections[i].title === j.section) {
-                    root.openSection(i)
-                    break
+                    root.openSection(i);
+                    break;
                 }
             }
-            return
+            return;
         }
-        hits.sort((a, b) => root.contentYOf(a) - root.contentYOf(b))
-        let floor = -1
+        hits.sort((a, b) => root.contentYOf(a) - root.contentYOf(b));
+        let floor = -1;
         for (let i = 0; i < root.sections.length; i++) {
-            const s = root.sections[i]
+            const s = root.sections[i];
             if (j.section !== "" && s.title === j.section && s.item)
-                floor = root.contentYOf(s.item)
+                floor = root.contentYOf(s.item);
         }
-        let target = hits[0]
+        let target = hits[0];
         for (let i = 0; i < hits.length; i++) {
             if (root.contentYOf(hits[i]) >= floor) {
-                target = hits[i]
-                break
+                target = hits[i];
+                break;
             }
         }
-        let card = target
+        let card = target;
         for (let a = target.parent; a && a !== f.contentItem; a = a.parent) {
             if (a.isCustomCard === true) {
-                card = a
-                break
+                card = a;
+                break;
             }
         }
-        const at = card.mapToItem(f.contentItem, 0, 0)
-        const grow = card === target ? 6 : 0
-        root.scrollTo(at.y - 70)
+        const at = card.mapToItem(f.contentItem, 0, 0);
+        const grow = card === target ? 6 : 0;
+        root.scrollTo(at.y - 70);
         flashComponent.createObject(f.contentItem, {
-            x: at.x - grow, y: at.y - grow, width: card.width + 2 * grow, height: card.height + 2 * grow,
-            topLeftRadius: card.topRadius ?? 10, topRightRadius: card.topRadius ?? 10,
-            bottomLeftRadius: card.bottomRadius ?? 10, bottomRightRadius: card.bottomRadius ?? 10
-        })
+            x: at.x - grow,
+            y: at.y - grow,
+            width: card.width + 2 * grow,
+            height: card.height + 2 * grow,
+            topLeftRadius: card.topRadius ?? 10,
+            topRightRadius: card.topRadius ?? 10,
+            bottomLeftRadius: card.bottomRadius ?? 10,
+            bottomRightRadius: card.bottomRadius ?? 10
+        });
     }
 
     function showTip(item, label, below, sub) {
-        root.tipItem = item
-        root.tipText = label
-        root.tipSub = sub ?? ""
-        root.tipBelow = below === true
-        const at = item.mapToItem(frame, item.width, root.tipBelow ? item.height : item.height / 2)
-        root.tipX = at.x
-        root.tipY = at.y
-        tipHide.stop()
+        root.tipItem = item;
+        root.tipText = label;
+        root.tipSub = sub ?? "";
+        root.tipBelow = below === true;
+        const at = item.mapToItem(frame, item.width, root.tipBelow ? item.height : item.height / 2);
+        root.tipX = at.x;
+        root.tipY = at.y;
+        tipHide.stop();
         if (!root.tipShown)
-            tipShow.restart()
+            tipShow.restart();
     }
 
     function hideTip(item) {
         if (root.tipItem !== item)
-            return
-        root.tipItem = null
-        tipShow.stop()
-        tipHide.restart()
+            return;
+        root.tipItem = null;
+        tipShow.stop();
+        tipHide.restart();
     }
 
     Timer {
         id: rescanTimer
         interval: 120
         onTriggered: {
-            root.rescan()
+            root.rescan();
             if (root.pendingJump)
-                root.performJump()
+                root.performJump();
         }
     }
 
-    Timer { id: tipShow; interval: 350; onTriggered: root.tipShown = root.tipItem !== null }
-    Timer { id: tipHide; interval: 120; onTriggered: root.tipShown = false }
+    Timer {
+        id: tipShow
+        interval: 350
+        onTriggered: root.tipShown = root.tipItem !== null
+    }
+    Timer {
+        id: tipHide
+        interval: 120
+        onTriggered: root.tipShown = false
+    }
 
     Connections {
         target: root.pageFlick
-        function onContentYChanged() { if (!scrollAnim.running) root.updateActive() }
-        function onContentHeightChanged() { rescanTimer.restart() }
+        function onContentYChanged() {
+            if (!scrollAnim.running)
+                root.updateActive();
+        }
+        function onContentHeightChanged() {
+            rescanTimer.restart();
+        }
     }
 
     EffectsAnim {
@@ -552,10 +677,10 @@ Item {
         speed: "slow"
         onFinished: {
             if (root.pinnedSection >= 0)
-                root.activeSection = root.pinnedSection
+                root.activeSection = root.pinnedSection;
             else
-                root.updateActive()
-            root.pinnedSection = -1
+                root.updateActive();
+            root.pinnedSection = -1;
         }
     }
 
@@ -583,7 +708,9 @@ Item {
         id: pageIn
         ParallelAnimation {
             SequentialAnimation {
-                PauseAnimation { duration: 60 }
+                PauseAnimation {
+                    duration: 60
+                }
                 ParallelAnimation {
                     NumberAnimation {
                         id: inFade
@@ -612,7 +739,9 @@ Item {
                 easing.bezierCurve: [0.05, 0.7, 0.1, 1, 1, 1]
             }
         }
-        ScriptAction { script: root.retiringPage = -1 }
+        ScriptAction {
+            script: root.retiringPage = -1
+        }
     }
 
     Shortcut {
@@ -631,10 +760,20 @@ Item {
 
             SequentialAnimation on opacity {
                 running: true
-                NumberAnimation { to: 0.22; duration: M3Motion.effects.fastDuration }
-                PauseAnimation { duration: 520 }
-                NumberAnimation { to: 0; duration: 520 }
-                ScriptAction { script: flash.destroy() }
+                NumberAnimation {
+                    to: 0.22
+                    duration: M3Motion.effects.fastDuration
+                }
+                PauseAnimation {
+                    duration: 520
+                }
+                NumberAnimation {
+                    to: 0
+                    duration: 520
+                }
+                ScriptAction {
+                    script: flash.destroy()
+                }
             }
         }
     }
@@ -645,17 +784,17 @@ Item {
         property real shift: 0
         anchors.fill: parent
         asynchronous: slot.page !== root.incomingPage
-        active: slot.page === root.shownPage || slot.page === root.incomingPage
-            || slot.page === root.retiringPage || slot.page === root.prefetchPage
-        visible: slot.status === Loader.Ready
-            && (slot.page === root.shownPage || (slot.page === root.retiringPage && slot.opacity > 0.01))
+        active: slot.page === root.shownPage || slot.page === root.incomingPage || slot.page === root.retiringPage || slot.page === root.prefetchPage
+        visible: slot.status === Loader.Ready && (slot.page === root.shownPage || (slot.page === root.retiringPage && slot.opacity > 0.01))
         layer.enabled: slot.visible && slot.opacity > 0.01 && slot.opacity < 0.99
-        transform: Translate { y: slot.shift }
+        transform: Translate {
+            y: slot.shift
+        }
         onLoaded: {
             if (slot.page === root.shownPage)
-                root.pageItem = slot.item
+                root.pageItem = slot.item;
             else if (slot.page === root.incomingPage)
-                Qt.callLater(root.finishSwap)
+                Qt.callLater(root.finishSwap);
         }
     }
 
@@ -665,7 +804,7 @@ Item {
         property string label: ""
         property int page: -1
         property bool active: false
-        signal clicked()
+        signal clicked
 
         implicitWidth: root.islandWide ? root.islandW - 16 : 46
         implicitHeight: 42
@@ -675,12 +814,25 @@ Item {
             width: root.islandWide ? islandButton.width : islandButton.active ? 46 : 40
             height: islandButton.active ? 42 : 40
             radius: root.islandWide ? height / 2 : islandButton.active ? 15 : 20
-            color: islandButton.active ? Colors.primary
-                 : islandMouse.containsMouse ? Colors.surfaceContainerHighest : Qt.alpha(Colors.surfaceContainerHighest, 0)
-            Behavior on width { SpatialAnim { speed: "fast" } }
-            Behavior on height { SpatialAnim { speed: "fast" } }
-            Behavior on radius { SpatialAnim { speed: "fast" } }
-            Behavior on color { EffectsColorAnim {} }
+            color: islandButton.active ? Colors.primary : islandMouse.containsMouse ? Colors.surfaceContainerHighest : Qt.alpha(Colors.surfaceContainerHighest, 0)
+            Behavior on width {
+                SpatialAnim {
+                    speed: "fast"
+                }
+            }
+            Behavior on height {
+                SpatialAnim {
+                    speed: "fast"
+                }
+            }
+            Behavior on radius {
+                SpatialAnim {
+                    speed: "fast"
+                }
+            }
+            Behavior on color {
+                EffectsColorAnim {}
+            }
         }
 
         MaterialIconSymbol {
@@ -690,8 +842,7 @@ Item {
             content: islandButton.icon
             iconSize: 19
             fill: 1
-            customColor: islandButton.active ? Colors.primaryText
-                       : islandMouse.containsMouse ? Colors.surfaceText : Colors.surfaceVariantText
+            customColor: islandButton.active ? Colors.primaryText : islandMouse.containsMouse ? Colors.surfaceText : Colors.surfaceVariantText
         }
 
         CustomText {
@@ -700,13 +851,14 @@ Item {
             width: islandButton.width - x - 10
             opacity: root.islandWide ? 1 : 0
             visible: opacity > 0.01
-            Behavior on opacity { EffectsAnim {} }
+            Behavior on opacity {
+                EffectsAnim {}
+            }
             content: islandButton.label
             size: 14
             weight: islandButton.active ? 600 : 500
             elide: Text.ElideRight
-            customColor: islandButton.active ? Colors.primaryText
-                       : islandMouse.containsMouse ? Colors.surfaceText : Colors.surfaceVariantText
+            customColor: islandButton.active ? Colors.primaryText : islandMouse.containsMouse ? Colors.surfaceText : Colors.surfaceVariantText
         }
 
         MouseArea {
@@ -716,15 +868,17 @@ Item {
             hoverEnabled: !GlobalStates.fileDialogOpen
             enabled: !GlobalStates.fileDialogOpen
             onEntered: {
-                const status = islandButton.page >= 0 ? root.pageStatus(islandButton.page) : ""
+                const status = islandButton.page >= 0 ? root.pageStatus(islandButton.page) : "";
                 if (!root.islandWide)
-                    root.showTip(islandButton, islandButton.label, false, status)
+                    root.showTip(islandButton, islandButton.label, false, status);
                 else if (status !== "")
-                    root.showTip(islandButton, status, false)
+                    root.showTip(islandButton, status, false);
             }
             onExited: root.hideTip(islandButton)
-            onContainsMouseChanged: if (containsMouse && islandButton.page >= 0) root.prefetch(islandButton.page)
-            onPressed: if (islandButton.page >= 0) root.prefetch(islandButton.page)
+            onContainsMouseChanged: if (containsMouse && islandButton.page >= 0)
+                root.prefetch(islandButton.page)
+            onPressed: if (islandButton.page >= 0)
+                root.prefetch(islandButton.page)
             onClicked: islandButton.clicked()
         }
     }
@@ -786,8 +940,14 @@ Item {
                                 anchors.margins: profileButton.current ? -4 : -2
                                 radius: width / 2
                                 color: profileButton.current ? Colors.primary : root.currentMode.tone
-                                Behavior on color { EffectsColorAnim {} }
-                                Behavior on anchors.margins { SpatialAnim { speed: "fast" } }
+                                Behavior on color {
+                                    EffectsColorAnim {}
+                                }
+                                Behavior on anchors.margins {
+                                    SpatialAnim {
+                                        speed: "fast"
+                                    }
+                                }
                             }
 
                             Rectangle {
@@ -812,7 +972,9 @@ Item {
                             spacing: 0
                             opacity: root.islandWide ? 1 : 0
                             visible: opacity > 0.01
-                            Behavior on opacity { EffectsAnim {} }
+                            Behavior on opacity {
+                                EffectsAnim {}
+                            }
 
                             CustomText {
                                 Layout.fillWidth: true
@@ -835,7 +997,8 @@ Item {
                             anchors.fill: parent
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
-                            onEntered: if (!root.islandWide) root.showTip(profileButton, LockSession.greeting + ", " + (SettingsConfig.profileName || Quickshell.env("USER") || "you"), false, "Your profile")
+                            onEntered: if (!root.islandWide)
+                                root.showTip(profileButton, LockSession.greeting + ", " + (SettingsConfig.profileName || Quickshell.env("USER") || "you"), false, "Your profile")
                             onExited: root.hideTip(profileButton)
                             onClicked: root.currentPage = 19
                         }
@@ -885,29 +1048,33 @@ Item {
                                                 label: root.nameOf(modelData)
                                                 page: modelData
                                                 active: root.leadOf(root.currentPage) === modelData
-                                                onClicked: if (root.leadOf(root.currentPage) !== modelData) root.currentPage = modelData
+                                                onClicked: if (root.leadOf(root.currentPage) !== modelData)
+                                                    root.currentPage = modelData
                                             }
                                         }
                                     }
                                 }
                             }
                         }
-
                     }
 
-                    IslandDot { Layout.alignment: Qt.AlignHCenter }
+                    IslandDot {
+                        Layout.alignment: Qt.AlignHCenter
+                    }
 
                     IslandButton {
                         id: islandToggle
+                        visible: !root.isCompact
                         Layout.alignment: Qt.AlignHCenter
                         icon: root.islandWide ? "left_panel_close" : "left_panel_open"
                         label: root.islandWide ? "Collapse" : "Expand"
                         onClicked: {
-                            root.hideTip(islandToggle)
-                            SettingsConfig.general = Object.assign({}, SettingsConfig.general, { settingsRailWide: !root.islandWide })
+                            root.hideTip(islandToggle);
+                            SettingsConfig.general = Object.assign({}, SettingsConfig.general, {
+                                settingsRailWide: !root.islandWide
+                            });
                         }
                     }
-
                 }
             }
 
@@ -950,7 +1117,7 @@ Item {
 
                     Rectangle {
                         id: searchField
-                        Layout.preferredWidth: 260
+                        Layout.preferredWidth: root.isCompact ? (searchInput.activeFocus ? 180 : 120) : 260
                         Layout.preferredHeight: 44
                         radius: 22
                         color: Colors.surfaceContainer
@@ -963,7 +1130,11 @@ Item {
                             anchors.rightMargin: 10
                             spacing: 8
 
-                            MaterialIconSymbol { content: "search"; iconSize: 18; customColor: Colors.outline }
+                            MaterialIconSymbol {
+                                content: "search"
+                                iconSize: 18
+                                customColor: Colors.outline
+                            }
 
                             TextInput {
                                 id: searchInput
@@ -977,24 +1148,24 @@ Item {
                                 selectByMouse: true
                                 clip: true
                                 onTextChanged: {
-                                    root.query = text
+                                    root.query = text;
                                     if (text !== "")
-                                        root.searchOpen = true
+                                        root.searchOpen = true;
                                 }
                                 onActiveFocusChanged: {
                                     if (activeFocus) {
-                                        root.searchAt = searchField.mapToItem(frame, searchField.width, searchField.height)
-                                        root.indexWanted = true
-                                        root.searchOpen = true
+                                        root.searchAt = searchField.mapToItem(frame, searchField.width, searchField.height);
+                                        root.indexWanted = true;
+                                        root.searchOpen = true;
                                     }
                                 }
                                 onAccepted: root.openResult(root.results[root.resultIndex])
                                 Keys.onDownPressed: root.resultIndex = Math.min(root.results.length - 1, root.resultIndex + 1)
                                 Keys.onUpPressed: root.resultIndex = Math.max(0, root.resultIndex - 1)
                                 Keys.onEscapePressed: {
-                                    text = ""
-                                    root.searchOpen = false
-                                    focus = false
+                                    text = "";
+                                    root.searchOpen = false;
+                                    focus = false;
                                 }
 
                                 CustomText {
@@ -1034,7 +1205,9 @@ Item {
                         Layout.preferredWidth: statusRow.implicitWidth + 28
                         radius: 22
                         color: statusMouse.containsMouse || root.statusMenuOpen ? Colors.surfaceContainerHigh : Colors.surfaceContainer
-                        Behavior on color { EffectsColorAnim {} }
+                        Behavior on color {
+                            EffectsColorAnim {}
+                        }
 
                         RowLayout {
                             id: statusRow
@@ -1046,17 +1219,28 @@ Item {
                                 implicitHeight: 8
                                 radius: 4
                                 color: root.currentMode.tone
-                                Behavior on color { EffectsColorAnim {} }
+                                Behavior on color {
+                                    EffectsColorAnim {}
+                                }
                             }
 
-                            CustomText { content: root.currentMode.label; size: 12; weight: 500 }
+                            CustomText {
+                                visible: !root.isCompact
+                                content: root.currentMode.label
+                                size: 12
+                                weight: 500
+                            }
 
                             MaterialIconSymbol {
                                 content: "expand_more"
                                 iconSize: 16
                                 customColor: Colors.outline
                                 rotation: root.statusMenuOpen ? 180 : 0
-                                Behavior on rotation { SpatialAnim { speed: "fast" } }
+                                Behavior on rotation {
+                                    SpatialAnim {
+                                        speed: "fast"
+                                    }
+                                }
                             }
                         }
 
@@ -1066,20 +1250,22 @@ Item {
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
                             onClicked: {
-                                root.menuAt = statusChip.mapToItem(frame, statusChip.width, statusChip.height)
-                                root.statusMenuOpen = !root.statusMenuOpen
+                                root.menuAt = statusChip.mapToItem(frame, statusChip.width, statusChip.height);
+                                root.statusMenuOpen = !root.statusMenuOpen;
                             }
                         }
                     }
 
                     Rectangle {
                         id: sectionsToggle
-                        visible: root.sections.length >= 2
+                        visible: !root.isCompact && root.sections.length >= 2
                         Layout.preferredWidth: 44
                         Layout.preferredHeight: 44
                         radius: 22
                         color: root.showSections ? Colors.secondaryContainer : Colors.surfaceContainer
-                        Behavior on color { EffectsColorAnim {} }
+                        Behavior on color {
+                            EffectsColorAnim {}
+                        }
 
                         MaterialIconSymbol {
                             anchors.centerIn: parent
@@ -1095,8 +1281,10 @@ Item {
                             onEntered: root.showTip(sectionsToggle, root.showSections ? "Hide sections" : "Show sections", true)
                             onExited: root.hideTip(sectionsToggle)
                             onClicked: {
-                                SettingsConfig.general = Object.assign({}, SettingsConfig.general, { settingsSections: !root.showSections })
-                                root.hideTip(sectionsToggle)
+                                SettingsConfig.general = Object.assign({}, SettingsConfig.general, {
+                                    settingsSections: !root.showSections
+                                });
+                                root.hideTip(sectionsToggle);
                             }
                         }
                     }
@@ -1107,7 +1295,9 @@ Item {
                         Layout.preferredHeight: 44
                         radius: 22
                         color: lockMouse.containsMouse ? Colors.surfaceContainerHigh : Colors.surfaceContainer
-                        Behavior on color { EffectsColorAnim {} }
+                        Behavior on color {
+                            EffectsColorAnim {}
+                        }
 
                         MaterialIconSymbol {
                             anchors.centerIn: parent
@@ -1124,9 +1314,9 @@ Item {
                             onEntered: root.showTip(lockButton, "Lock now", true)
                             onExited: root.hideTip(lockButton)
                             onClicked: {
-                                root.hideTip(lockButton)
-                                GlobalStates.settingsOpen = false
-                                Quickshell.execDetached(["loginctl", "lock-session"])
+                                root.hideTip(lockButton);
+                                GlobalStates.settingsOpen = false;
+                                Quickshell.execDetached(["loginctl", "lock-session"]);
                             }
                         }
                     }
@@ -1148,21 +1338,66 @@ Item {
                             width: parent.width
                             height: parent.height
 
-                            PageSlot { page: 0; sourceComponent: Theme {} }
-                            PageSlot { page: 1; sourceComponent: Sound {} }
-                            PageSlot { page: 2; sourceComponent: Notifications {} }
-                            PageSlot { page: 3; sourceComponent: Widgets {} }
-                            PageSlot { page: 4; sourceComponent: Networking {} }
-                            PageSlot { page: 5; sourceComponent: Bluetooth {} }
-                            PageSlot { page: 6; sourceComponent: WeatherSettings {} }
-                            PageSlot { page: 8; sourceComponent: About {} }
-                            PageSlot { page: 12; sourceComponent: Lockscreen {} }
-                            PageSlot { page: 14; sourceComponent: LayoutsSettings {} }
-                            PageSlot { page: 15; sourceComponent: DisplaysSettings {} }
-                            PageSlot { page: 16; sourceComponent: WindowsSettings {} }
-                            PageSlot { page: 17; sourceComponent: InputSettings {} }
-                            PageSlot { page: 19; sourceComponent: ProfileSettings {} }
-                            PageSlot { page: 20; sourceComponent: FeaturesSettings {} }
+                            PageSlot {
+                                page: 0
+                                sourceComponent: Theme {}
+                            }
+                            PageSlot {
+                                page: 1
+                                sourceComponent: Sound {}
+                            }
+                            PageSlot {
+                                page: 2
+                                sourceComponent: Notifications {}
+                            }
+                            PageSlot {
+                                page: 3
+                                sourceComponent: Widgets {}
+                            }
+                            PageSlot {
+                                page: 4
+                                sourceComponent: Networking {}
+                            }
+                            PageSlot {
+                                page: 5
+                                sourceComponent: Bluetooth {}
+                            }
+                            PageSlot {
+                                page: 6
+                                sourceComponent: WeatherSettings {}
+                            }
+                            PageSlot {
+                                page: 8
+                                sourceComponent: About {}
+                            }
+                            PageSlot {
+                                page: 12
+                                sourceComponent: Lockscreen {}
+                            }
+                            PageSlot {
+                                page: 14
+                                sourceComponent: LayoutsSettings {}
+                            }
+                            PageSlot {
+                                page: 15
+                                sourceComponent: DisplaysSettings {}
+                            }
+                            PageSlot {
+                                page: 16
+                                sourceComponent: WindowsSettings {}
+                            }
+                            PageSlot {
+                                page: 17
+                                sourceComponent: InputSettings {}
+                            }
+                            PageSlot {
+                                page: 19
+                                sourceComponent: ProfileSettings {}
+                            }
+                            PageSlot {
+                                page: 20
+                                sourceComponent: FeaturesSettings {}
+                            }
                         }
                     }
 
@@ -1170,10 +1405,12 @@ Item {
                         id: tocColumn
                         visible: root.tocSpace
                         opacity: root.pageOpacity * Math.max(0, Math.min(1, root.tocT))
-                        transform: Translate { x: (1 - root.tocT) * 28 }
+                        transform: Translate {
+                            x: (1 - root.tocT) * 28
+                        }
                         Layout.fillHeight: true
-                        Layout.preferredWidth: 168
-                        Layout.maximumWidth: 168
+                        Layout.preferredWidth: root.tocSpace ? 168 : 0
+                        Layout.maximumWidth: root.tocSpace ? 168 : 0
                         Layout.topMargin: 6
                         Layout.rightMargin: 12
                         Layout.leftMargin: 2
@@ -1201,9 +1438,10 @@ Item {
                                 Layout.fillWidth: true
                                 implicitHeight: 30
                                 radius: 10
-                                color: tocItem.current ? Colors.secondaryContainer
-                                     : tocMouse.containsMouse ? Colors.surfaceContainerHigh : Qt.alpha(Colors.surfaceContainerHigh, 0)
-                                Behavior on color { EffectsColorAnim {} }
+                                color: tocItem.current ? Colors.secondaryContainer : tocMouse.containsMouse ? Colors.surfaceContainerHigh : Qt.alpha(Colors.surfaceContainerHigh, 0)
+                                Behavior on color {
+                                    EffectsColorAnim {}
+                                }
 
                                 CustomText {
                                     anchors.fill: parent
@@ -1225,7 +1463,9 @@ Item {
                             }
                         }
 
-                        Item { Layout.fillHeight: true }
+                        Item {
+                            Layout.fillHeight: true
+                        }
                     }
                 }
             }
@@ -1235,9 +1475,9 @@ Item {
                 visible: resultsPanel.visible
                 enabled: resultsPanel.visible
                 onPressed: mouse => {
-                    root.searchOpen = false
-                    searchInput.focus = false
-                    mouse.accepted = false
+                    root.searchOpen = false;
+                    searchInput.focus = false;
+                    mouse.accepted = false;
                 }
             }
 
@@ -1264,8 +1504,16 @@ Item {
                 opacity: root.statusMenuOpen ? 1 : 0
                 scale: root.statusMenuOpen ? 1 : 0.92
                 transformOrigin: Item.TopRight
-                Behavior on opacity { EffectsAnim { speed: "fast" } }
-                Behavior on scale { SpatialAnim { speed: "fast" } }
+                Behavior on opacity {
+                    EffectsAnim {
+                        speed: "fast"
+                    }
+                }
+                Behavior on scale {
+                    SpatialAnim {
+                        speed: "fast"
+                    }
+                }
 
                 ColumnLayout {
                     id: statusMenuColumn
@@ -1286,9 +1534,10 @@ Item {
                             Layout.fillWidth: true
                             implicitHeight: 48
                             radius: 12
-                            color: modeRow.selected ? Colors.secondaryContainer
-                                 : modeMouse.containsMouse ? Colors.surfaceContainerHigh : Qt.alpha(Colors.surfaceContainerHigh, 0)
-                            Behavior on color { EffectsColorAnim {} }
+                            color: modeRow.selected ? Colors.secondaryContainer : modeMouse.containsMouse ? Colors.surfaceContainerHigh : Qt.alpha(Colors.surfaceContainerHigh, 0)
+                            Behavior on color {
+                                EffectsColorAnim {}
+                            }
 
                             RowLayout {
                                 anchors.fill: parent
@@ -1334,8 +1583,8 @@ Item {
                                 hoverEnabled: true
                                 cursorShape: Qt.PointingHandCursor
                                 onClicked: {
-                                    root.setMode(modeRow.modelData.value)
-                                    root.statusMenuOpen = false
+                                    root.setMode(modeRow.modelData.value);
+                                    root.statusMenuOpen = false;
                                 }
                             }
                         }
@@ -1413,8 +1662,7 @@ Item {
                                     CustomText {
                                         Layout.fillWidth: true
                                         visible: !resultRow.modelData.isPage
-                                        content: root.placeOf(resultRow.modelData.page)
-                                               + (resultRow.modelData.section !== "" ? "  ›  " + resultRow.modelData.section : "")
+                                        content: root.placeOf(resultRow.modelData.page) + (resultRow.modelData.section !== "" ? "  ›  " + resultRow.modelData.section : "")
                                         size: 11
                                         weight: 500
                                         customColor: resultRow.current ? Colors.secondaryContainerText : Colors.outline
@@ -1444,8 +1692,17 @@ Item {
                 height: 30
                 radius: 10
                 color: Colors.inverseSurface
-                Behavior on opacity { EffectsAnim { speed: "fast" } }
-                Behavior on y { enabled: railTip.visible; EffectsAnim { speed: "fast" } }
+                Behavior on opacity {
+                    EffectsAnim {
+                        speed: "fast"
+                    }
+                }
+                Behavior on y {
+                    enabled: railTip.visible
+                    EffectsAnim {
+                        speed: "fast"
+                    }
+                }
 
                 RowLayout {
                     id: tipRow

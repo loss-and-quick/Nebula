@@ -13,10 +13,10 @@ Scope {
         target: GlobalStates
         function onSettingsOpenChanged() {
             if (GlobalStates.settingsOpen) {
-                unloadTimer.stop()
-                scope.loaded = true
+                unloadTimer.stop();
+                scope.loaded = true;
             } else {
-                unloadTimer.restart()
+                unloadTimer.restart();
             }
         }
     }
@@ -24,7 +24,8 @@ Scope {
     Timer {
         id: unloadTimer
         interval: 10000
-        onTriggered: if (!GlobalStates.settingsOpen) scope.loaded = false
+        onTriggered: if (!GlobalStates.settingsOpen)
+            scope.loaded = false
     }
 
     LazyLoader {
@@ -35,6 +36,7 @@ Scope {
         component: FloatingWindow {
             implicitWidth: 1000
             implicitHeight: 700
+            minimumSize: Qt.size(540, 460)
             title: "Settings"
             color: Colors.surface
 
@@ -65,7 +67,7 @@ Scope {
         target: settingsLoader.item
         function onVisibleChanged() {
             if (settingsLoader.item && !settingsLoader.item.visible)
-                GlobalStates.settingsOpen = false
+                GlobalStates.settingsOpen = false;
         }
     }
 

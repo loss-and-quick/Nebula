@@ -16,25 +16,19 @@ Rectangle {
     property string label: ""
     property string tip: ""
 
-    signal activated()
+    signal activated
 
     readonly property bool showLabel: BarLayout.opt(root.itemId, "showLabel") === true
-    readonly property color ink: root.clickable && hov.containsMouse ? Colors.primaryContainerText
-                               : root.alert ? Colors.error
-                               : root.active ? Colors.primary : Colors.surfaceText
+    readonly property color ink: root.clickable && hov.hovered ? Colors.primaryContainerText : root.alert ? Colors.error : root.active ? Colors.primary : Colors.surfaceText
     readonly property bool iconSizable: true
     readonly property real hostIcon: root.host && root.host.iconSize ? root.host.iconSize : 0
     readonly property real defaultIcon: root.hostIcon > 0 ? Math.round(root.hostIcon * 0.69) : 18
     readonly property real defaultPlate: root.hostIcon > 0 ? root.hostIcon + 8 : 28
     readonly property real box: BarLayout.boxFor(root.itemId, root.host)
     readonly property real iconPx: BarLayout.iconPxFor(root.itemId, root.box, root.defaultIcon)
-    readonly property real plate: BarLayout.platePxFor(root.box, root.iconPx,
-                                                       root.defaultIcon, root.defaultPlate)
-    readonly property color plateColor: root.clickable && hov.containsMouse ? Colors.primaryContainer
-         : root.alert ? Qt.alpha(Colors.error, 0.16)
-         : root.active ? Qt.alpha(Colors.primary, 0.18) : Qt.alpha(Colors.primaryContainer, 0)
-    readonly property bool plateless: BarLayout.chipHovers(root.itemId, root.implicitWidth,
-                                                           root.implicitHeight)
+    readonly property real plate: BarLayout.platePxFor(root.box, root.iconPx, root.defaultIcon, root.defaultPlate)
+    readonly property color plateColor: root.clickable && hov.hovered ? Colors.primaryContainer : root.alert ? Qt.alpha(Colors.error, 0.16) : root.active ? Qt.alpha(Colors.primary, 0.18) : Qt.alpha(Colors.primaryContainer, 0)
+    readonly property bool plateless: BarLayout.chipHovers(root.itemId, root.implicitWidth, root.implicitHeight)
     readonly property bool plateOn: root.plateColor.a > 0.01
     readonly property real labelPx: BarLayout.scaleFor(root.iconPx, root.defaultIcon, 12, 8)
     readonly property real gapPx: BarLayout.scaleFor(root.iconPx, root.defaultIcon, 6, 3)
@@ -44,7 +38,9 @@ Rectangle {
     implicitHeight: root.plate
     radius: root.plate / 2
     color: root.plateless ? Qt.alpha(root.plateColor, 0) : root.plateColor
-    Behavior on color { EffectsColorAnim {} }
+    Behavior on color {
+        EffectsColorAnim {}
+    }
 
     Row {
         id: row
@@ -68,16 +64,18 @@ Rectangle {
         }
     }
 
-    MouseArea {
+    HoverHandler {
         id: hov
-        anchors.fill: parent
-        hoverEnabled: true
+    }
+
+    TapHandler {
         cursorShape: root.clickable ? Qt.PointingHandCursor : Qt.ArrowCursor
-        onClicked: if (root.clickable) root.activated()
+        onTapped: if (root.clickable)
+            root.activated()
     }
 
     CustomToolTip {
         content: root.tip !== "" ? root.tip : root.label
-        visible: hov.containsMouse && !root.showLabel
+        visible: hov.hovered && !root.showLabel
     }
 }

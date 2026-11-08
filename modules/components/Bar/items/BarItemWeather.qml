@@ -34,7 +34,7 @@ Item {
         width: root.vertical ? Math.max(root.plate, weatherRow.implicitWidth + 8) : weatherRow.implicitWidth + root.plate - root.iconPx
         height: root.vertical ? weatherRow.implicitHeight + 10 : root.plate
         radius: Math.min(width, height) / 2
-        color: root.plateless ? Qt.alpha(Colors.primaryContainer, 0) : weatherHov.containsMouse ? Colors.primaryContainer : Qt.alpha(Colors.primaryContainer, 0)
+        color: root.plateless ? Qt.alpha(Colors.primaryContainer, 0) : weatherHov.hovered ? Colors.primaryContainer : Qt.alpha(Colors.primaryContainer, 0)
         Behavior on color {
             ColorAnimation {
                 duration: 150
@@ -64,7 +64,7 @@ Item {
                 content: ServiceWeather.temperature
                 size: BarLayout.scaleFor(root.iconPx, 16, root.vertical ? 11 : 13, 8)
                 weight: 700
-                customColor: weatherHov.containsMouse ? Colors.primaryContainerText : Colors.surfaceText
+                customColor: weatherHov.hovered ? Colors.primaryContainerText : Colors.surfaceText
                 Behavior on customColor {
                     ColorAnimation {
                         duration: 150
@@ -77,17 +77,19 @@ Item {
                 Layout.alignment: Qt.AlignHCenter
                 value: String(ServiceWeather.temperature)
                 maxWidth: (root.host ? root.host.barH : 40) - 10
-                ink: weatherHov.containsMouse ? Colors.primaryContainerText : Colors.surfaceText
+                ink: weatherHov.hovered ? Colors.primaryContainerText : Colors.surfaceText
                 size: 12
             }
         }
 
-        MouseArea {
+        HoverHandler {
             id: weatherHov
-            anchors.fill: parent
-            hoverEnabled: root.clickable
+            enabled: root.clickable
+        }
+
+        TapHandler {
             cursorShape: root.clickable ? Qt.PointingHandCursor : Qt.ArrowCursor
-            onClicked: if (root.clickable && root.host)
+            onTapped: if (root.clickable && root.host)
                 root.host.openPanel("weather", root)
         }
     }

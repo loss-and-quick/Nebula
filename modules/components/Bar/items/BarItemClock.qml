@@ -723,10 +723,9 @@ Item {
             }
         }
 
-        MouseArea {
-            anchors.fill: parent
+        TapHandler {
             enabled: root.islandUp
-            onClicked: root.event = ""
+            onTapped: root.event = ""
         }
     }
 

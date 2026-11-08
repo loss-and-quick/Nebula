@@ -15,7 +15,7 @@ Rectangle {
     readonly property real box: BarLayout.boxFor(root.itemId, root.host)
     readonly property real iconPx: BarLayout.iconPxFor(root.itemId, root.box, 18)
     readonly property real plate: BarLayout.platePxFor(root.box, root.iconPx, 18, 28)
-    readonly property color plateColor: hov.containsMouse ? Colors.primaryContainer : root.low ? Qt.alpha(Colors.error, 0.15) : Qt.alpha(Colors.primaryContainer, 0)
+    readonly property color plateColor: hov.hovered ? Colors.primaryContainer : root.low ? Qt.alpha(Colors.error, 0.15) : Qt.alpha(Colors.primaryContainer, 0)
     readonly property bool plateless: BarLayout.chipHovers(root.itemId, root.implicitWidth, root.implicitHeight)
     readonly property bool plateOn: root.plateColor.a > 0.01
     readonly property real labelPx: BarLayout.scaleFor(root.iconPx, 18, 13, 8)
@@ -81,7 +81,7 @@ Rectangle {
             easing.type: Easing.InOutSine
         }
     }
-    readonly property color ink: hov.containsMouse ? Colors.primaryContainerText : root.low ? Colors.error : Colors.surfaceText
+    readonly property color ink: hov.hovered ? Colors.primaryContainerText : root.low ? Colors.error : Colors.surfaceText
 
     implicitWidth: root.bigCookie ? root.host.barH : root.vertical ? Math.max(root.plate, battRow.implicitWidth + 8) : root.showPercent || (root.glyph && glyphItem.implicitWidth > root.plate - 4) ? battRow.implicitWidth + root.padPx : root.plate
     implicitHeight: root.bigCookie ? root.host.barH : root.sideNum ? battRow.implicitHeight + 8 : root.plate
@@ -135,8 +135,8 @@ Rectangle {
             saver: ServiceUPower.powerProfile === 0
             missing: !UPower.displayDevice.isPresent
             showNumber: root.style === "pill"
-            mono: hov.containsMouse
-            ink: hov.containsMouse ? Colors.primaryContainerText : Colors.surfaceText
+            mono: hov.hovered
+            ink: hov.hovered ? Colors.primaryContainerText : Colors.surfaceText
             ground: root.plateOn ? Qt.tint(Colors.surface, root.plateColor) : Colors.surface
         }
 
@@ -164,18 +164,19 @@ Rectangle {
         }
     }
 
-    MouseArea {
+    HoverHandler {
         id: hov
-        anchors.fill: parent
-        hoverEnabled: true
+    }
+
+    TapHandler {
         cursorShape: Qt.PointingHandCursor
-        onClicked: if (root.host)
+        onTapped: if (root.host)
             root.host.openPanel("battery", root)
     }
 
     CustomToolTip {
         content: (ServiceUPower.isCharging ? "Charging · " : "") + Math.round(ServiceUPower.powerLevel * 100) + "%"
         detail: ServiceUPower.isCharging && ServiceUPower.timeToFull !== "0m" ? "Full in " + ServiceUPower.timeToFull : ""
-        visible: hov.containsMouse && !(root.host && root.host.panelKind === "battery")
+        visible: hov.hovered && !(root.host && root.host.panelKind === "battery")
     }
 }

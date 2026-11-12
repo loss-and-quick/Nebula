@@ -16,7 +16,7 @@ Item {
     property string shownKind: ""
     property string residentKind: ""
     property bool panelSwap: false
-    readonly property var warmKinds: ["calendar", "weather"]
+    readonly property var warmKinds: ["calendar", "weather", "notifications"]
 
     property int curSlot: 0
     readonly property Item curSlotItem: curSlot === 0 ? slotA : slotB

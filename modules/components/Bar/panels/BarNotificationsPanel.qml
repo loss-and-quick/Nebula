@@ -26,7 +26,6 @@ Item {
     property bool showAllOlder: false
     property bool ready: false
     property real now: Date.now()
-    property int openSeq: 0
     property bool clearing: false
     readonly property int shownRows: root.fresh.length + root.olderShown.length
     readonly property int olderCap: 4
@@ -74,7 +73,17 @@ Item {
 
     function reveal(item) {
         root.revealItem = item;
-        revealTimer.restart();
+        Qt.callLater(root.scrollToReveal);
+    }
+
+    function scrollToReveal() {
+        const it = root.revealItem;
+        if (!it)
+            return;
+        const bottom = it.mapToItem(listCol, 0, 0).y + it.height;
+        const maxY = Math.max(0, body.contentHeight - body.height);
+        if (bottom > body.contentY + body.height)
+            body.contentY = Math.min(maxY, bottom - body.height);
     }
 
     MotionAnim {
@@ -93,18 +102,10 @@ Item {
         }
     }
 
-    Timer {
-        id: revealTimer
-        interval: 380
-        onTriggered: {
-            const it = root.revealItem;
-            root.revealItem = null;
-            if (!it)
-                return;
-            const bottom = it.mapToItem(listCol, 0, 0).y + it.height;
-            const maxY = Math.max(0, body.contentHeight - body.height);
-            if (bottom > body.contentY + body.height)
-                body.contentY = Math.min(maxY, bottom - body.height);
+    Connections {
+        target: root.revealItem
+        function onHeightChanged() {
+            Qt.callLater(root.scrollToReveal);
         }
     }
     readonly property var olderShown: root.showAllOlder ? root.older : root.older.slice(0, root.olderCap)
@@ -208,12 +209,11 @@ Item {
         root.syncCount();
         root.now = Date.now();
         if (root.visible) {
-            readyTimer.restart();
+            root.ready = true;
             root.cascadeHead();
-            root.openSeq++;
         } else {
-            readyTimer.stop();
             root.ready = false;
+            root.revealItem = null;
             root.dndOpen = false;
             root.showAllOlder = false;
         }
@@ -221,18 +221,12 @@ Item {
     Component.onCompleted: {
         root.morning = root.nextMorning();
         root.syncCount();
-        readyTimer.restart();
-        root.cascadeHead();
-        Qt.callLater(() => root.openSeq++);
+        root.ready = root.visible;
+        if (root.visible)
+            root.cascadeHead();
     }
     Component.onDestruction: if (root.counted)
         GlobalStates.notificationCenterCount--
-
-    Timer {
-        id: readyTimer
-        interval: 450
-        onTriggered: root.ready = true
-    }
 
     Timer {
         interval: 30000
@@ -575,17 +569,6 @@ Item {
 
         Connections {
             target: root
-            function onOpenSeqChanged() {
-                if (gr.leaving)
-                    return;
-                enterAnim.stop();
-                cascadeFx.stop();
-                gr.keep = 1;
-                gr.fade = 0;
-                gr.lift = 12;
-                cascadePause.duration = 120 + gr.order * 40;
-                cascadeFx.start();
-            }
             function onClearingChanged() {
                 if (!root.clearing || gr.leaving)
                     return;
@@ -593,27 +576,6 @@ Item {
                 sweepPause.duration = Math.max(0, root.shownRows - 1 - gr.order) * 35;
                 sweepTo.to = gr.width + 40;
                 sweepFx.start();
-            }
-        }
-
-        SequentialAnimation {
-            id: cascadeFx
-            PauseAnimation {
-                id: cascadePause
-            }
-            ParallelAnimation {
-                MotionAnim {
-                    role: "notification.card"
-                    target: gr
-                    property: "fade"
-                    to: 1
-                }
-                MotionAnim {
-                    role: "notification.card"
-                    target: gr
-                    property: "lift"
-                    to: 0
-                }
             }
         }
 
@@ -677,6 +639,14 @@ Item {
                 dismissTarget: root.dismissTarget
 
                 onExpandRequested: root.reveal(gr)
+                onExpansionFinished: if (root.revealItem === gr) {
+                    Qt.callLater(() => {
+                        if (root.revealItem === gr) {
+                            root.scrollToReveal();
+                            root.revealItem = null;
+                        }
+                    });
+                }
                 onDragBegan: i => root.beginDrag(gr.section, i)
                 onDragMoved: d => root.updateDrag(d)
                 onDragCancelled: root.endDrag()

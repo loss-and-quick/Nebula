@@ -23,6 +23,7 @@ Item {
 
     signal dragBegan(int i)
     signal expandRequested(int i)
+    signal expansionFinished
     signal dragMoved(real d)
     signal dragCancelled
     signal dragDismissed(bool toRight)
@@ -89,8 +90,6 @@ Item {
 
     property real unfoldRaw: 0
     readonly property real unfold: Math.max(0, Math.min(1, root.unfoldRaw))
-    readonly property bool unfolding: expandAnim.running
-    readonly property bool seamsOpen: root.expanded && !root.unfolding
 
     readonly property real cardHeight: Math.max(0, stack.implicitHeight - root.clipBottomAmount)
 
@@ -98,9 +97,9 @@ Item {
         if (root.group)
             root.group.isExpanded = root.expanded;
         expandAnim.to = root.expanded ? 1 : 0;
-        expandAnim.restart();
         if (root.expanded)
             root.expandRequested(root.index);
+        expandAnim.restart();
     }
 
     onMultipleChanged: if (!root.multiple)
@@ -109,8 +108,10 @@ Item {
     MotionAnim {
         id: expandAnim
         role: "notification.group"
+        speed: "fast"
         target: root
         property: "unfoldRaw"
+        onFinished: root.expansionFinished()
     }
 
     Component.onCompleted: root.unfoldRaw = root.expanded ? 1 : 0
@@ -262,7 +263,7 @@ Item {
             height: root.cardHeight
             radius: root.outerRadius
             color: Colors.surfaceContainerHigh
-            visible: !root.seamsOpen
+            opacity: root.multiple ? 1 - root.unfold : 1
         }
 
         ColumnLayout {
@@ -300,7 +301,7 @@ Item {
                 visible: root.multiple
                 Layout.fillWidth: true
                 Layout.preferredHeight: visible ? Math.round(root.vPad + headerRow.implicitHeight + root.vPad * root.unfold) : 0
-                color: root.seamsOpen ? Colors.surfaceContainerHigh : "transparent"
+                color: Qt.alpha(Colors.surfaceContainerHigh, root.unfold)
                 clip: true
 
                 readonly property real bottomR: (root.childDragActive && root.childDragIndex === 0) ? root.outerRadius : root.innerRadius
@@ -538,7 +539,7 @@ Item {
                         width: parent.width
                         height: parent.height
                         clip: true
-                        color: root.seamsOpen ? Colors.surfaceContainerHigh : "transparent"
+                        color: Qt.alpha(Colors.surfaceContainerHigh, root.unfold)
 
                         topLeftRadius: childSlot.cornerTop
                         topRightRadius: childSlot.cornerTop
@@ -613,7 +614,7 @@ Item {
                             anchors.leftMargin: root.pad
                             anchors.rightMargin: root.pad
                             anchors.topMargin: root.vPad
-                            enabled: root.seamsOpen
+                            enabled: root.expanded
                             opacity: root.unfold
                             notifData: childSlot.modelData
                             showIcon: false

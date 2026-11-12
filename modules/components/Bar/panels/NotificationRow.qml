@@ -80,20 +80,10 @@ Item {
         id: extraFx
         ScriptAction {
             script: {
-                extraCol.opacity = 0;
                 extraLift.y = 8;
             }
         }
-        PauseAnimation {
-            duration: 60
-        }
         ParallelAnimation {
-            MotionAnim {
-                role: "notification.card"
-                target: extraCol
-                property: "opacity"
-                to: 1
-            }
             MotionAnim {
                 role: "notification.card"
                 target: extraLift

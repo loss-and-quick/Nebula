@@ -19,9 +19,9 @@ Rectangle {
 
     color: Colors.surfaceContainerHigh
 
-    topLeftRadius:     topRadius
-    topRightRadius:    topRadius
-    bottomLeftRadius:  bottomRadius
+    topLeftRadius: topRadius
+    topRightRadius: topRadius
+    bottomLeftRadius: bottomRadius
     bottomRightRadius: bottomRadius
 
     Layout.fillWidth: true
@@ -32,50 +32,71 @@ Rectangle {
     // - If the item directly below is also a CustomCard → flatten the bottom (radius 5)
     // This means cards with ANY non-card element between them stay fully rounded,
     // while truly consecutive CustomCards form a grouped stack automatically.
-    Component.onCompleted: { if (autoRadius) Qt.callLater(_updateRadius) }
+    Component.onCompleted: Qt.callLater(root._regroup)
     onVisibleChanged: Qt.callLater(root._regroup)
 
-    function _neighbour(dir) {
-        if (!parent) return null
-        const ch = parent.children
-        let i = -1
-        for (let k = 0; k < ch.length; k++) {
-            if (ch[k] === root) { i = k; break }
+    Connections {
+        target: root.parent
+
+        function onChildrenChanged() {
+            if (root.autoRadius)
+                Qt.callLater(root._regroup);
         }
-        if (i < 0) return null
+    }
+
+    function _neighbour(dir) {
+        if (!parent)
+            return null;
+        const ch = parent.children;
+        let i = -1;
+        for (let k = 0; k < ch.length; k++) {
+            if (ch[k] === root) {
+                i = k;
+                break;
+            }
+        }
+        if (i < 0)
+            return null;
         for (i += dir; i >= 0 && i < ch.length; i += dir) {
             if (ch[i].visible)
-                return ch[i]
+                return ch[i];
         }
-        return null
+        return null;
     }
 
     function _regroup() {
-        if (!root.parent) return
-        if (root.autoRadius) root._updateRadius()
+        if (!root.parent)
+            return;
+        if (root.autoRadius)
+            root._updateRadius();
         for (const dir of [-1, 1]) {
-            if (!root.parent) return
-            const ch = root.parent.children
-            let i = -1
+            if (!root.parent)
+                return;
+            const ch = root.parent.children;
+            let i = -1;
             for (let k = 0; k < ch.length; k++) {
-                if (ch[k] === root) { i = k; break }
+                if (ch[k] === root) {
+                    i = k;
+                    break;
+                }
             }
             for (i += dir; i >= 0 && i < ch.length; i += dir) {
-                const n = ch[i]
+                const n = ch[i];
                 if (n.isCustomCard === true && n.autoRadius)
-                    n._updateRadius()
+                    n._updateRadius();
                 if (n.visible)
-                    break
+                    break;
             }
         }
     }
 
     function _updateRadius() {
-        if (!parent) return
-        const prev = root._neighbour(-1)
-        const next = root._neighbour(1)
-        root.topRadius    = prev && prev.isCustomCard === true ? 5 : 20
-        root.bottomRadius = next && next.isCustomCard === true ? 5 : 20
+        if (!parent)
+            return;
+        const prev = root._neighbour(-1);
+        const next = root._neighbour(1);
+        root.topRadius = prev && prev.isCustomCard === true ? 5 : 20;
+        root.bottomRadius = next && next.isCustomCard === true ? 5 : 20;
     }
 
     ColumnLayout {

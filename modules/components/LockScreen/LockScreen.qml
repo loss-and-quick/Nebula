@@ -16,16 +16,16 @@ Scope {
 
     function requestLock() {
         if (root.screenLocked)
-            return
-        root.startAnimation = false
-        root.screenLocked = true
+            return;
+        root.startAnimation = false;
+        root.screenLocked = true;
     }
 
     function isPrimary(screen) {
-        const pm = SettingsConfig.general.primaryMonitor ?? ""
+        const pm = SettingsConfig.general.primaryMonitor ?? "";
         if (pm !== "" && Quickshell.screens.some(s => s.name === pm))
-            return !!screen && screen.name === pm
-        return screen === Quickshell.screens[0]
+            return !!screen && screen.name === pm;
+        return screen === Quickshell.screens[0];
     }
 
     LockContext {
@@ -33,8 +33,8 @@ Scope {
         active: root.screenLocked
 
         onUnlocked: {
-            timer.start()
-            root.startAnimation = true
+            timer.start();
+            root.startAnimation = true;
         }
     }
 
@@ -42,8 +42,8 @@ Scope {
         id: timer
         interval: 1000
         onTriggered: {
-            root.screenLocked = false
-            root.startAnimation = false
+            root.screenLocked = false;
+            root.startAnimation = false;
         }
     }
 
@@ -58,7 +58,7 @@ Scope {
             Loader {
                 id: contentLoader
                 active: root.screenLocked
-                asynchronous: true
+                asynchronous: false
                 anchors.fill: parent
 
                 sourceComponent: Item {
@@ -79,7 +79,9 @@ Scope {
 
     Connections {
         target: GlobalStates
-        function onLockRequested() { root.requestLock() }
+        function onLockRequested() {
+            root.requestLock();
+        }
     }
 
     GlobalShortcut {

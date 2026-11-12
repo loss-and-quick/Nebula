@@ -23,40 +23,59 @@ Scope {
 
             function close() {
                 if (win.closing)
-                    return
-                win.closing = true
-                morph.close()
+                    return;
+                win.closing = true;
+                morph.close();
             }
 
             function openFull() {
-                const p = win.page
-                win.close()
-                GlobalStates.settingsPage = p
-                GlobalStates.settingsOpen = true
+                const p = win.page;
+                win.close();
+                GlobalStates.settingsPage = p;
+                GlobalStates.settingsOpen = true;
             }
 
             function compFor(p) {
                 switch (p) {
-                case 0: return themeComp
-                case 1: return soundComp
-                case 2: return notifComp
-                case 3: return widgetsComp
-                case 4: return netComp
-                case 5: return btComp
-                case 6: return weatherComp
-                case 7: return weatherComp
-                case 9: return themeComp
-                case 10: return lockComp
-                case 12: return lockComp
-                case 15: return displaysComp
-                case 16: return windowsComp
-                case 17: return inputComp
+                case 0:
+                    return themeComp;
+                case 1:
+                    return soundComp;
+                case 2:
+                    return notifComp;
+                case 3:
+                    return widgetsComp;
+                case 4:
+                    return netComp;
+                case 5:
+                    return btComp;
+                case 6:
+                    return weatherComp;
+                case 7:
+                    return weatherComp;
+                case 9:
+                    return themeComp;
+                case 10:
+                    return lockComp;
+                case 12:
+                    return lockComp;
+                case 15:
+                    return displaysComp;
+                case 16:
+                    return windowsComp;
+                case 17:
+                    return inputComp;
                 }
-                return null
+                return null;
             }
 
             screen: Quickshell.screens.find(s => s.name === GlobalStates.quickSettingsScreen) ?? Quickshell.screens[0]
-            anchors { top: true; bottom: true; left: true; right: true }
+            anchors {
+                top: true
+                bottom: true
+                left: true
+                right: true
+            }
             exclusionMode: ExclusionMode.Ignore
             color: "transparent"
             WlrLayershell.layer: WlrLayer.Overlay
@@ -67,8 +86,8 @@ Scope {
                 target: GlobalStates
                 function onQuickSettingsPageChanged() {
                     if (GlobalStates.quickSettingsPage >= 0 && win.closing) {
-                        win.closing = false
-                        morph.open()
+                        win.closing = false;
+                        morph.open();
                     }
                 }
             }
@@ -77,7 +96,9 @@ Scope {
                 anchors.fill: parent
                 color: Colors.scrim
                 opacity: morph.opened ? 0.4 : 0
-                Behavior on opacity { EffectsAnim {} }
+                Behavior on opacity {
+                    EffectsAnim {}
+                }
 
                 MouseArea {
                     anchors.fill: parent
@@ -87,6 +108,7 @@ Scope {
 
             MorphCard {
                 id: morph
+                autoOpen: true
 
                 readonly property rect from: GlobalStates.quickSettingsFrom
                 readonly property bool hasFrom: morph.from.width > 0
@@ -104,8 +126,8 @@ Scope {
                 cardColor: Colors.surface
                 fadeCard: !morph.hasFrom
 
-                onCloseFinished: if (win.closing) GlobalStates.quickSettingsPage = -1
-                Component.onCompleted: Qt.callLater(morph.open)
+                onCloseFinished: if (win.closing)
+                    GlobalStates.quickSettingsPage = -1
 
                 Item {
                     anchors.fill: parent
@@ -182,17 +204,50 @@ Scope {
                 }
             }
 
-            Component { id: themeComp; Theme {} }
-            Component { id: soundComp; Sound {} }
-            Component { id: notifComp; Notifications {} }
-            Component { id: widgetsComp; Widgets {} }
-            Component { id: netComp; Networking {} }
-            Component { id: btComp; Bluetooth {} }
-            Component { id: weatherComp; WeatherSettings {} }
-            Component { id: lockComp; Lockscreen {} }
-            Component { id: displaysComp; DisplaysSettings {} }
-            Component { id: windowsComp; WindowsSettings {} }
-            Component { id: inputComp; InputSettings {} }
+            Component {
+                id: themeComp
+                Theme {}
+            }
+            Component {
+                id: soundComp
+                Sound {}
+            }
+            Component {
+                id: notifComp
+                Notifications {}
+            }
+            Component {
+                id: widgetsComp
+                Widgets {}
+            }
+            Component {
+                id: netComp
+                Networking {}
+            }
+            Component {
+                id: btComp
+                Bluetooth {}
+            }
+            Component {
+                id: weatherComp
+                WeatherSettings {}
+            }
+            Component {
+                id: lockComp
+                Lockscreen {}
+            }
+            Component {
+                id: displaysComp
+                DisplaysSettings {}
+            }
+            Component {
+                id: windowsComp
+                WindowsSettings {}
+            }
+            Component {
+                id: inputComp
+                InputSettings {}
+            }
         }
     }
 }

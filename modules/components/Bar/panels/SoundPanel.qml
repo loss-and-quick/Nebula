@@ -39,6 +39,7 @@ PopupWindow {
 
     MorphCard {
         id: morph
+        autoOpen: true
         anchors.fill: parent
 
         srcWidth: root.srcWidth
@@ -50,7 +51,6 @@ PopupWindow {
         cardColor: Colors.surface
 
         onCloseFinished: root.close()
-        Component.onCompleted: Qt.callLater(morph.open)
 
         ColumnLayout {
             id: col

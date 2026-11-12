@@ -5,6 +5,7 @@ import Quickshell.Wayland
 import QtQuick
 import QtQuick.Layouts
 import qs.modules.utils
+import qs.modules.settings
 import qs.modules.services
 import qs.modules.components.custom
 
@@ -12,14 +13,14 @@ Scope {
     id: scope
 
     property string path: ""
-    property bool   shown: false
+    property bool shown: false
 
     Connections {
         target: ServiceTools
         function onScreenshotReady(p) {
-            scope.path  = p
-            scope.shown = true
-            dismiss.restart()
+            scope.path = p;
+            scope.shown = true;
+            dismiss.restart();
         }
     }
 
@@ -36,33 +37,55 @@ Scope {
         sourceComponent: PanelWindow {
             id: win
 
-            anchors { right: true; bottom: true }
-            implicitWidth:  320
+            anchors {
+                right: true
+                bottom: true
+            }
+            implicitWidth: 320
             implicitHeight: 220
             color: "transparent"
-            WlrLayershell.namespace:     "quickshell:screenshotPreview"
-            WlrLayershell.layer:         WlrLayer.Overlay
+            WlrLayershell.namespace: "quickshell:screenshotPreview"
+            WlrLayershell.layer: WlrLayer.Overlay
             WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
-            exclusionMode:               ExclusionMode.Ignore
+            exclusionMode: ExclusionMode.Ignore
 
-            mask: Region { item: card }
+            mask: Region {
+                item: card
+            }
 
-            property real _slide: 40
-            property real _op: 0
-            Component.onCompleted: Qt.callLater(() => { win._slide = 0; win._op = 1 })
-            Behavior on _slide { SpatialAnim { speed: "default" } }
-            Behavior on _op    { EffectsAnim { speed: "default" } }
+            property real _slide: 0
+            property real _op: 1
+            NumberAnimation on _slide {
+                from: 40
+                to: 0
+                duration: M3Motion.spatialDuration("default")
+                easing.type: Easing.BezierSpline
+                easing.bezierCurve: M3Motion.spatialCurve("default")
+            }
+            NumberAnimation on _op {
+                from: 0
+                to: 1
+                duration: M3Motion.effectsDuration("default")
+                easing.type: Easing.BezierSpline
+                easing.bezierCurve: M3Motion.effects.curve
+            }
 
             Rectangle {
                 id: card
-                anchors { right: parent.right; bottom: parent.bottom; margins: 16 }
+                anchors {
+                    right: parent.right
+                    bottom: parent.bottom
+                    margins: 16
+                }
                 width: 288
                 height: 188
                 radius: 24
                 color: Colors.surfaceContainerLow
                 clip: true
                 opacity: win._op
-                transform: Translate { x: win._slide }
+                transform: Translate {
+                    x: win._slide
+                }
 
                 ColumnLayout {
                     anchors.fill: parent
@@ -107,8 +130,8 @@ Scope {
                                 hoverEnabled: true
                                 cursorShape: Qt.PointingHandCursor
                                 onClicked: {
-                                    scope.shown = false
-                                    dismiss.stop()
+                                    scope.shown = false;
+                                    dismiss.stop();
                                 }
                             }
                         }
@@ -120,23 +143,40 @@ Scope {
 
                         PreviewAction {
                             Layout.fillWidth: true
-                            icon: "content_copy"; label: "Copy"
-                            onTriggered: { ServiceTools.copyScreenshot(scope.path); scope.shown = false }
+                            icon: "content_copy"
+                            label: "Copy"
+                            onTriggered: {
+                                ServiceTools.copyScreenshot(scope.path);
+                                scope.shown = false;
+                            }
                         }
                         PreviewAction {
                             Layout.fillWidth: true
-                            icon: "edit"; label: "Edit"
-                            onTriggered: { ServiceTools.editScreenshot(scope.path); scope.shown = false }
+                            icon: "edit"
+                            label: "Edit"
+                            onTriggered: {
+                                ServiceTools.editScreenshot(scope.path);
+                                scope.shown = false;
+                            }
                         }
                         PreviewAction {
                             Layout.fillWidth: true
-                            icon: "folder_open"; label: "Open"
-                            onTriggered: { Quickshell.execDetached(["xdg-open", scope.path]); scope.shown = false }
+                            icon: "folder_open"
+                            label: "Open"
+                            onTriggered: {
+                                Quickshell.execDetached(["xdg-open", scope.path]);
+                                scope.shown = false;
+                            }
                         }
                         PreviewAction {
                             Layout.fillWidth: true
-                            icon: "delete"; label: "Delete"; danger: true
-                            onTriggered: { ServiceTools.deleteScreenshot(scope.path); scope.shown = false }
+                            icon: "delete"
+                            label: "Delete"
+                            danger: true
+                            onTriggered: {
+                                ServiceTools.deleteScreenshot(scope.path);
+                                scope.shown = false;
+                            }
                         }
                     }
                 }
@@ -146,7 +186,7 @@ Scope {
                     acceptedButtons: Qt.NoButton
                     hoverEnabled: true
                     onEntered: dismiss.stop()
-                    onExited:  dismiss.restart()
+                    onExited: dismiss.restart()
                 }
             }
         }
@@ -160,15 +200,19 @@ Scope {
 
         property string icon: ""
         property string label: ""
-        property bool   danger: false
-        signal triggered()
+        property bool danger: false
+        signal triggered
 
         Rectangle {
             anchors.fill: parent
             radius: parent.radius
             color: pa.danger ? Colors.error : Colors.surfaceText
             opacity: ma.pressed ? 0.14 : ma.containsMouse ? 0.09 : 0
-            Behavior on opacity { EffectsAnim { speed: "fast" } }
+            Behavior on opacity {
+                EffectsAnim {
+                    speed: "fast"
+                }
+            }
         }
 
         Column {
@@ -184,7 +228,8 @@ Scope {
             CustomText {
                 anchors.horizontalCenter: parent.horizontalCenter
                 content: pa.label
-                size: 9; weight: 600
+                size: 9
+                weight: 600
                 color: pa.danger ? Colors.error : Colors.surfaceVariantText
             }
         }

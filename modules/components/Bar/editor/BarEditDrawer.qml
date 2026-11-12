@@ -80,10 +80,12 @@ Item {
     readonly property bool hiding: drawer.dragOut && drawer.editor.overDrawer
     property string selected: ""
     readonly property string liveSelected: drawer.editor ? drawer.editor.selectedItem : ""
-    onLiveSelectedChanged: Qt.callLater(drawer.applySelected)
-    function applySelected() {
-        if (!drawer.closing)
-            drawer.selected = drawer.liveSelected;
+    Binding {
+        target: drawer
+        property: "selected"
+        value: drawer.liveSelected
+        when: !drawer.closing
+        delayed: true
     }
     readonly property bool itemPage: drawer.selected !== ""
     readonly property bool dashPage: false
@@ -186,14 +188,12 @@ Item {
 
     visible: drawer.alive
     readonly property real liveHeight: Math.min(contentLoader.item ? contentLoader.item.contentHeight : 0, drawer.maxHeight)
-    onLiveHeightChanged: Qt.callLater(drawer.applyHeight)
-    function applyHeight() {
-        if (!drawer.closing)
-            drawer.height = drawer.liveHeight;
-    }
-    Component.onCompleted: {
-        drawer.selected = drawer.liveSelected;
-        drawer.height = drawer.liveHeight;
+    Binding {
+        target: drawer
+        property: "height"
+        value: drawer.liveHeight
+        when: !drawer.closing
+        delayed: true
     }
 
     function open() {
@@ -220,9 +220,8 @@ Item {
         }
         drawer.closing = false;
         drawer.pendingClose = false;
-        drawer.selected = drawer.liveSelected;
         drawer.alive = true;
-        Qt.callLater(morph.open);
+        morph.open();
     }
 
     function close() {

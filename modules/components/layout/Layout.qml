@@ -1327,19 +1327,27 @@ PanelWindow {
                     }
                 }
 
-                function placeNow() {
-                    drawerItem.width = drawerItem.liveW;
-                    drawerItem.x = drawerItem.liveX;
-                    drawerItem.y = drawerItem.liveY;
+                Binding {
+                    target: drawerItem
+                    property: "width"
+                    value: drawerItem.liveW
+                    when: layout.drawerWanted
+                    delayed: true
                 }
-                function placeIfWanted() {
-                    if (layout.drawerWanted)
-                        drawerItem.placeNow();
+                Binding {
+                    target: drawerItem
+                    property: "x"
+                    value: drawerItem.liveX
+                    when: layout.drawerWanted
+                    delayed: true
                 }
-                onLiveWChanged: Qt.callLater(drawerItem.placeIfWanted)
-                onLiveXChanged: Qt.callLater(drawerItem.placeIfWanted)
-                onLiveYChanged: Qt.callLater(drawerItem.placeIfWanted)
-                Component.onCompleted: drawerItem.placeNow()
+                Binding {
+                    target: drawerItem
+                    property: "y"
+                    value: drawerItem.liveY
+                    when: layout.drawerWanted
+                    delayed: true
+                }
 
                 Behavior on y {
                     enabled: drawerItem.alive

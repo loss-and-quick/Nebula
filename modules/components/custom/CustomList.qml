@@ -6,7 +6,7 @@ import QtQuick.Layouts
 import qs.modules.utils
 import qs.modules.settings
 
-Rectangle{
+Rectangle {
     id: root
     property bool isListClicked: false
     property var currentVal
@@ -27,22 +27,21 @@ Rectangle{
     signal listChildClicked(var child)
     height: 30
 
-    MouseArea{
+    MouseArea {
         anchors.fill: parent
         cursorShape: Qt.PointingHandCursor
-        onClicked:{
-            root.isListClicked = true
-            root.listClicked()
+        onClicked: {
+            root.isListClicked = true;
+            root.listClicked();
         }
     }
 
-
-    RowLayout{
+    RowLayout {
         //visible: !root.isListClicked && root.height === 30
         anchors.fill: parent
         anchors.margins: 5
         anchors.leftMargin: 10
-        CustomText{
+        CustomText {
             Layout.fillWidth: true
             Layout.alignment: Qt.AlignHCenter
             content: root.shownVal
@@ -50,17 +49,16 @@ Rectangle{
             weight: 600
         }
 
-        MaterialIconSymbol{
+        MaterialIconSymbol {
             content: "keyboard_arrow_down"
             iconSize: 20
-        } 
-
+        }
     }
 
-    Loader{
+    Loader {
         id: listLoader
         active: root.isListClicked
-        sourceComponent: PopupWindow{
+        sourceComponent: PopupWindow {
             id: popup
             anchor.window: layout
             visible: true
@@ -68,27 +66,25 @@ Rectangle{
             implicitHeight: Math.min(listView.contentHeight + 10, 250)
             color: "transparent"
 
-
             HyprlandFocusGrab {
                 active: true
                 windows: [QsWindow.window]
                 onCleared: morph.close()
             }
 
-
-
             property var windowPos: layout?.mapFromItem(root, 0, root.height) ?? Qt.point(0, 0)
 
-            anchor{
+            anchor {
                 rect.x: windowPos.x
                 rect.y: windowPos.y - root.height
             }
 
-            MorphCard{
+            MorphCard {
                 id: morph
+                autoOpen: true
                 anchors.fill: parent
 
-                srcWidth:  root.width
+                srcWidth: root.width
                 srcHeight: root.height
                 srcRadius: root.radius
 
@@ -99,11 +95,10 @@ Rectangle{
                 cardBorderColor: Colors.outline
 
                 onCloseFinished: root.isListClicked = false
-                Component.onCompleted: Qt.callLater(morph.open)
 
-                ListView{
+                ListView {
                     id: listView
-                    anchors{
+                    anchors {
                         fill: parent
                         margins: 5
                     }
@@ -112,12 +107,12 @@ Rectangle{
                     spacing: 5
                     clip: true
 
-                    delegate: Rectangle{
+                    delegate: Rectangle {
                         implicitWidth: ListView.view.width
                         implicitHeight: 20
                         radius: 5
                         color: root.shownVal === modelData.description ? Colors.primary : area.containsMouse ? Qt.alpha(Colors.primary, 0.5) : "transparent"
-                        CustomText{
+                        CustomText {
                             anchors.left: parent.left
                             anchors.verticalCenter: parent.verticalCenter
                             anchors.leftMargin: 5
@@ -128,17 +123,17 @@ Rectangle{
                             color: root.shownVal === modelData.description ? Colors.primaryText : Colors.surfaceVariantText
                         }
 
-                        MouseArea{
+                        MouseArea {
                             id: area
                             anchors.fill: parent
                             cursorShape: Qt.PointingHandCursor
                             hoverEnabled: true
 
-                            onClicked:{
-                                morph.close()
-                                root._picked = modelData.description
-                                pickedTimer.restart()
-                                root.listChildClicked(modelData)
+                            onClicked: {
+                                morph.close();
+                                root._picked = modelData.description;
+                                pickedTimer.restart();
+                                root.listChildClicked(modelData);
                             }
                         }
                     }
@@ -203,7 +198,7 @@ Rectangle{
     //                 width: text.width
     //                 size: 12
     //                 weight: 600
-    //                 color: root.currentVal === modelData.name ? Colors.primaryText : Colors.surfaceVariantText 
+    //                 color: root.currentVal === modelData.name ? Colors.primaryText : Colors.surfaceVariantText
     //             }
     //
     //             MouseArea{

@@ -19,6 +19,7 @@ Item {
     property real cardBorderWidth: 0
     property color cardBorderColor: "transparent"
 
+    property bool autoOpen: false
     property bool opened: false
     property bool contentVisible: false
     property bool fadeCard: false
@@ -31,30 +32,35 @@ Item {
 
     implicitHeight: morph.contentHeight
 
+    Component.onCompleted: if (morph.autoOpen)
+        morph.open()
+
     function open() {
-        closeTimer.stop()
-        morph.opened = true
+        closeTimer.stop();
+        morph.opened = true;
     }
 
     function close() {
-        if (!morph.opened) return
-        morph.opened = false
-        closeTimer.restart()
+        if (!morph.opened)
+            return;
+        morph.opened = false;
+        closeTimer.restart();
     }
 
     onOpenedChanged: {
         if (morph.opened) {
-            contentTimer.restart()
+            contentTimer.restart();
         } else {
-            contentTimer.stop()
-            morph.contentVisible = false
+            contentTimer.stop();
+            morph.contentVisible = false;
         }
     }
 
     Timer {
         id: contentTimer
         interval: morph.morphDuration * 0.3
-        onTriggered: if (morph.opened) morph.contentVisible = true
+        onTriggered: if (morph.opened)
+            morph.contentVisible = true
     }
 
     Timer {
@@ -139,11 +145,9 @@ Item {
 
             Behavior on opacity {
                 NumberAnimation {
-                    duration: morph.contentVisible ? morph.morphDuration * 0.366
-                                                   : morph.morphDuration * 0.3
+                    duration: morph.contentVisible ? morph.morphDuration * 0.366 : morph.morphDuration * 0.3
                     easing.type: Easing.BezierSpline
-                    easing.bezierCurve: morph.contentVisible ? [0, 0, 0.6, 1, 1, 1]
-                                                             : [0.4, 0, 1, 1, 1, 1]
+                    easing.bezierCurve: morph.contentVisible ? [0, 0, 0.6, 1, 1, 1] : [0.4, 0, 1, 1, 1, 1]
                 }
             }
         }

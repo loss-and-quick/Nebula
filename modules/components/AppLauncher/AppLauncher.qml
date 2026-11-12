@@ -30,7 +30,7 @@ Scope {
         sourceComponent: PanelWindow {
             id: panelWindow
 
-            property bool shown: false
+            property bool shown: root.want
             property real openT: 0
 
             onShownChanged: {
@@ -72,8 +72,6 @@ Scope {
             exclusionMode: ExclusionMode.Normal
             WlrLayershell.keyboardFocus: root.preview ? WlrKeyboardFocus.None : WlrKeyboardFocus.OnDemand
             color: "transparent"
-
-            Component.onCompleted: Qt.callLater(() => panelWindow.shown = Qt.binding(() => root.want))
 
             property Region inputRegion: Region {
                 item: maskRect

@@ -782,16 +782,46 @@ Item {
 
     EditKit.Card {
         id: toolbar
-        function place() {
-            if (!toolbar.shown)
-                return;
-            toolbar.side = toolbar.liveSide;
-            toolbar.below = toolbar.liveBelow;
-            toolbar.ox = toolbar.liveOx;
-            toolbar.x = toolbar.liveX;
-            toolbar.y = toolbar.liveY;
+        Binding {
+            target: toolbar
+            property: "side"
+            value: toolbar.liveSide
+            when: toolbar.shown
+            delayed: true
+            restoreMode: Binding.RestoreNone
         }
-        onShownChanged: toolbar.place()
+        Binding {
+            target: toolbar
+            property: "below"
+            value: toolbar.liveBelow
+            when: toolbar.shown
+            delayed: true
+            restoreMode: Binding.RestoreNone
+        }
+        Binding {
+            target: toolbar
+            property: "ox"
+            value: toolbar.liveOx
+            when: toolbar.shown
+            delayed: true
+            restoreMode: Binding.RestoreNone
+        }
+        Binding {
+            target: toolbar
+            property: "x"
+            value: toolbar.liveX
+            when: toolbar.shown
+            delayed: true
+            restoreMode: Binding.RestoreNone
+        }
+        Binding {
+            target: toolbar
+            property: "y"
+            value: toolbar.liveY
+            when: toolbar.shown
+            delayed: true
+            restoreMode: Binding.RestoreNone
+        }
         readonly property var entry: chrome.sel !== "" && chrome.sel.indexOf("dash:") !== 0 ? BarLayout.entry(chrome.sel) : null
         readonly property var styleSpec: toolbar.entry && toolbar.entry.options ? toolbar.entry.options.find(o => o.key === "style" && (o.type === "grid" || o.type === "choice") && o.choices) ?? null : null
         readonly property var styleValue: toolbar.styleSpec ? BarLayout.opt(chrome.sel, "style") : undefined
@@ -817,14 +847,11 @@ Item {
         readonly property bool shown: chrome.editing && toolbar.entry !== null && chrome.selFound && !chrome.dragging && !chrome.stage && !chrome.drawerShown && !chrome.shelfOpen
         property bool side: false
         readonly property bool liveSide: chrome.selEdge === "left" || chrome.selEdge === "right"
-        onLiveSideChanged: Qt.callLater(toolbar.place)
         property bool below: false
         readonly property bool liveBelow: chrome.selEdge !== "bottom"
-        onLiveBelowChanged: Qt.callLater(toolbar.place)
 
         property real ox: 0
         readonly property real liveOx: chrome.selEdge === "left" ? -16 : chrome.selEdge === "right" ? toolbar.width + 16 : chrome.selRect.x + chrome.selRect.width / 2 - toolbar.x
-        onLiveOxChanged: Qt.callLater(toolbar.place)
 
         property real showT: toolbar.shown || styleCard.showT > 0.02 ? 1 : 0
         Behavior on showT {
@@ -843,9 +870,7 @@ Item {
             yScale: 0.3 + 0.7 * toolbar.showT
         }
         readonly property real liveX: Math.max(12, Math.min(chrome.width - toolbar.width - 12, chrome.selEdge === "left" ? chrome.selRect.x + chrome.selRect.width + 16 : chrome.selEdge === "right" ? chrome.selRect.x - toolbar.width - 16 : chrome.selRect.x + chrome.selRect.width / 2 - toolbar.width / 2))
-        onLiveXChanged: Qt.callLater(toolbar.place)
         readonly property real liveY: chrome.avoidCap(toolbar.x, toolbar.width, toolbar.side ? chrome.selRect.y + chrome.selRect.height / 2 - toolbar.height / 2 : toolbar.below ? chrome.selRect.y + chrome.selRect.height + 16 : chrome.selRect.y - toolbar.height - 16, toolbar.height)
-        onLiveYChanged: Qt.callLater(toolbar.place)
         height: 52
         width: toolRow.implicitWidth + 12
         radius: 26
@@ -1044,16 +1069,46 @@ Item {
 
     EditKit.Card {
         id: blockBar
-        function place() {
-            if (!blockBar.shown)
-                return;
-            blockBar.side = blockBar.liveSide;
-            blockBar.below = blockBar.liveBelow;
-            blockBar.ox = blockBar.liveOx;
-            blockBar.x = blockBar.liveX;
-            blockBar.y = blockBar.liveY;
+        Binding {
+            target: blockBar
+            property: "side"
+            value: blockBar.liveSide
+            when: blockBar.shown
+            delayed: true
+            restoreMode: Binding.RestoreNone
         }
-        onShownChanged: blockBar.place()
+        Binding {
+            target: blockBar
+            property: "below"
+            value: blockBar.liveBelow
+            when: blockBar.shown
+            delayed: true
+            restoreMode: Binding.RestoreNone
+        }
+        Binding {
+            target: blockBar
+            property: "ox"
+            value: blockBar.liveOx
+            when: blockBar.shown
+            delayed: true
+            restoreMode: Binding.RestoreNone
+        }
+        Binding {
+            target: blockBar
+            property: "x"
+            value: blockBar.liveX
+            when: blockBar.shown
+            delayed: true
+            restoreMode: Binding.RestoreNone
+        }
+        Binding {
+            target: blockBar
+            property: "y"
+            value: blockBar.liveY
+            when: blockBar.shown
+            delayed: true
+            restoreMode: Binding.RestoreNone
+        }
         readonly property string shape: chrome.selBlock !== "" ? BarLayout.blockShape(chrome.selBlock) : ""
         readonly property var blockInfo: chrome.selBlock !== "" ? BarLayout.blockById(chrome.selBlock) : null
         readonly property string tint: chrome.selBlock !== "" ? BarLayout.blockStyle(chrome.selBlock, "tint", "none") : "none"
@@ -1064,14 +1119,11 @@ Item {
         readonly property bool shown: chrome.editing && chrome.selBlock !== "" && chrome.blockFound && !chrome.dragging && !chrome.stage && !chrome.drawerShown && !chrome.shelfOpen
         property bool side: false
         readonly property bool liveSide: chrome.blockEdge === "left" || chrome.blockEdge === "right"
-        onLiveSideChanged: Qt.callLater(blockBar.place)
         property bool below: false
         readonly property bool liveBelow: chrome.blockEdge !== "bottom"
-        onLiveBelowChanged: Qt.callLater(blockBar.place)
 
         property real ox: 0
         readonly property real liveOx: chrome.blockRect.x + chrome.blockRect.width / 2 - blockBar.x
-        onLiveOxChanged: Qt.callLater(blockBar.place)
 
         property real showT: blockBar.shown || tintCard.showT > 0.02 || blockCard.showT > 0.02 || cornersCard.showT > 0.02 ? 1 : 0
         Behavior on showT {
@@ -1090,9 +1142,7 @@ Item {
             yScale: 0.3 + 0.7 * blockBar.showT
         }
         readonly property real liveX: Math.max(12, Math.min(chrome.width - blockBar.width - 12, chrome.blockEdge === "left" ? chrome.blockRect.x + chrome.blockRect.width + 42 : chrome.blockEdge === "right" ? chrome.blockRect.x - blockBar.width - 42 : chrome.blockRect.x + chrome.blockRect.width / 2 - blockBar.width / 2))
-        onLiveXChanged: Qt.callLater(blockBar.place)
         readonly property real liveY: chrome.avoidCap(blockBar.x, blockBar.width, blockBar.side ? chrome.blockRect.y + chrome.blockRect.height / 2 - blockBar.height / 2 : blockBar.below ? chrome.blockRect.y + chrome.blockRect.height + 42 : chrome.blockRect.y - blockBar.height - 42, blockBar.height)
-        onLiveYChanged: Qt.callLater(blockBar.place)
         height: 52
         width: blockRow.implicitWidth + 12
         radius: 26
@@ -1412,13 +1462,22 @@ Item {
 
     EditKit.Card {
         id: tintCard
-        function place() {
-            if (!tintCard.shown)
-                return;
-            tintCard.x = tintCard.liveX;
-            tintCard.y = tintCard.liveY;
+        Binding {
+            target: tintCard
+            property: "x"
+            value: tintCard.liveX
+            when: tintCard.shown
+            delayed: true
+            restoreMode: Binding.RestoreNone
         }
-        onShownChanged: tintCard.place()
+        Binding {
+            target: tintCard
+            property: "y"
+            value: tintCard.liveY
+            when: tintCard.shown
+            delayed: true
+            restoreMode: Binding.RestoreNone
+        }
         readonly property bool shown: chrome.pop === "tint" && blockBar.shown
         readonly property bool up: !blockBar.side && !blockBar.below
         readonly property real anchorX: blockBar.x + blockRow.x + tintBtn.x + tintBtn.width / 2
@@ -1439,9 +1498,7 @@ Item {
             yScale: 0.15 + 0.85 * tintCard.showT
         }
         readonly property real liveX: Math.max(12, Math.min(chrome.width - tintCard.width - 12, tintCard.anchorX - tintCard.width / 2))
-        onLiveXChanged: Qt.callLater(tintCard.place)
         readonly property real liveY: tintCard.up ? Math.max(12, blockBar.y - tintCard.height - 8) : Math.min(chrome.height - tintCard.height - 12, blockBar.y + blockBar.height + 8)
-        onLiveYChanged: Qt.callLater(tintCard.place)
         width: tintCardRow.implicitWidth + 32
         height: 56
         radius: 28
@@ -1473,13 +1530,22 @@ Item {
 
     EditKit.Card {
         id: blockCard
-        function place() {
-            if (!blockCard.shown)
-                return;
-            blockCard.x = blockCard.liveX;
-            blockCard.y = blockCard.liveY;
+        Binding {
+            target: blockCard
+            property: "x"
+            value: blockCard.liveX
+            when: blockCard.shown
+            delayed: true
+            restoreMode: Binding.RestoreNone
         }
-        onShownChanged: blockCard.place()
+        Binding {
+            target: blockCard
+            property: "y"
+            value: blockCard.liveY
+            when: blockCard.shown
+            delayed: true
+            restoreMode: Binding.RestoreNone
+        }
         readonly property bool shown: chrome.pop === "block" && blockBar.shown
         readonly property bool up: !blockBar.side && !blockBar.below
         readonly property string side: blockBar.blockInfo ? blockBar.blockInfo.edge : "top"
@@ -1528,9 +1594,7 @@ Item {
             yScale: 0.2 + 0.8 * blockCard.showT
         }
         readonly property real liveX: Math.max(12, Math.min(chrome.width - blockCard.width - 12, blockBar.x + blockRow.x + morePill.x + morePill.width / 2 - blockCard.width / 2))
-        onLiveXChanged: Qt.callLater(blockCard.place)
         readonly property real liveY: blockCard.up ? Math.max(12, blockBar.y - blockCard.height - 8) : Math.max(12, Math.min(chrome.height - blockCard.height - 12, blockBar.y + blockBar.height + 8))
-        onLiveYChanged: Qt.callLater(blockCard.place)
         width: 420
         height: blockCol.implicitHeight + 32
         radius: 28
@@ -1783,13 +1847,22 @@ Item {
 
     EditKit.Card {
         id: styleCard
-        function place() {
-            if (!styleCard.shown)
-                return;
-            styleCard.x = styleCard.liveX;
-            styleCard.y = styleCard.liveY;
+        Binding {
+            target: styleCard
+            property: "x"
+            value: styleCard.liveX
+            when: styleCard.shown
+            delayed: true
+            restoreMode: Binding.RestoreNone
         }
-        onShownChanged: styleCard.place()
+        Binding {
+            target: styleCard
+            property: "y"
+            value: styleCard.liveY
+            when: styleCard.shown
+            delayed: true
+            restoreMode: Binding.RestoreNone
+        }
         readonly property bool shown: chrome.pop === "style" && toolbar.shown && toolbar.styleSpec !== null
         readonly property bool up: !toolbar.below || toolbar.y + toolbar.height + 8 + styleCard.height > chrome.height - 12
         property real showT: styleCard.shown ? 1 : 0
@@ -1809,9 +1882,7 @@ Item {
             yScale: 0.15 + 0.85 * styleCard.showT
         }
         readonly property real liveX: Math.max(12, Math.min(chrome.width - styleCard.width - 12, toolbar.x))
-        onLiveXChanged: Qt.callLater(styleCard.place)
         readonly property real liveY: styleCard.up ? Math.max(12, toolbar.y - styleCard.height - 8) : toolbar.y + toolbar.height + 8
-        onLiveYChanged: Qt.callLater(styleCard.place)
         width: 380
         height: styleFlow.implicitHeight + 28
         radius: 22
@@ -1840,13 +1911,22 @@ Item {
 
     EditKit.Card {
         id: cornersCard
-        function place() {
-            if (!cornersCard.shown)
-                return;
-            cornersCard.x = cornersCard.liveX;
-            cornersCard.y = cornersCard.liveY;
+        Binding {
+            target: cornersCard
+            property: "x"
+            value: cornersCard.liveX
+            when: cornersCard.shown
+            delayed: true
+            restoreMode: Binding.RestoreNone
         }
-        onShownChanged: cornersCard.place()
+        Binding {
+            target: cornersCard
+            property: "y"
+            value: cornersCard.liveY
+            when: cornersCard.shown
+            delayed: true
+            restoreMode: Binding.RestoreNone
+        }
         readonly property var corners: chrome.selBlock !== "" ? BarLayout.blockCorners(chrome.selBlock) : ({
                 tl: null,
                 tr: null,
@@ -1885,9 +1965,7 @@ Item {
             yScale: 0.15 + 0.85 * cornersCard.showT
         }
         readonly property real liveX: Math.max(12, Math.min(chrome.width - cornersCard.width - 12, cornersCard.anchorX - cornersCard.width / 2))
-        onLiveXChanged: Qt.callLater(cornersCard.place)
         readonly property real liveY: cornersCard.up ? Math.max(12, blockBar.y - cornersCard.height - 8) : Math.min(chrome.height - cornersCard.height - 12, blockBar.y + blockBar.height + 8)
-        onLiveYChanged: Qt.callLater(cornersCard.place)
         width: 340
         height: cornersCol.implicitHeight + 28
         radius: 22

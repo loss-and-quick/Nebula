@@ -115,7 +115,7 @@ Singleton {
 
     readonly property list<DesktopEntry> pinnedApps: {
         const pins = new Set(root.currentPinnedApps);
-        return list.filter(app => pins.has(app.id));
+        return list.filter(app => !!app && !!app.id && pins.has(app.id));
     }
 
     readonly property var dockModel: {

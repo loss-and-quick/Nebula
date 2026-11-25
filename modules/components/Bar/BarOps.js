@@ -47,21 +47,21 @@ function sanitize(blocks, legacy, entryOf, anchors) {
     }
     const lg = legacy ?? {}
     const dockIdx = out.findIndex(b => b.edge === "bottom" || b.id === "dock")
-    if (lg.dockItems && lg.dockItems.length > 0) {
+    if (dockIdx >= 0) {
+        if (lg.dockAnchor && anchors.indexOf(lg.dockAnchor) >= 0)
+            out[dockIdx].anchor = lg.dockAnchor
+        if (lg.dockEdge)
+            out[dockIdx].edge = normSide(lg.dockEdge, "bottom")
+    } else {
         const items = []
-        for (const i of lg.dockItems) {
+        const pool = (lg.dockItems && lg.dockItems.length > 0) ? lg.dockItems : (!lg.migrated ? defaultDock(lg.musicOn ?? true) : [])
+        for (const i of pool) {
             if (seen[i] || !entryOf(i))
                 continue
             seen[i] = true
             items.push(i)
         }
-        if (dockIdx >= 0) {
-            out[dockIdx].items = items
-            if (lg.dockAnchor && anchors.indexOf(lg.dockAnchor) >= 0)
-                out[dockIdx].anchor = lg.dockAnchor
-            if (lg.dockEdge)
-                out[dockIdx].edge = normSide(lg.dockEdge, "bottom")
-        } else {
+        if (items.length > 0) {
             out.push({
                 id: uniqueId(ids, "dock"),
                 anchor: (lg.dockAnchor && anchors.indexOf(lg.dockAnchor) >= 0) ? lg.dockAnchor : "center",
@@ -69,15 +69,6 @@ function sanitize(blocks, legacy, entryOf, anchors) {
                 items: items
             })
         }
-    } else if (dockIdx < 0 && !lg.migrated) {
-        const items = []
-        for (const i of defaultDock(lg.musicOn ?? true)) {
-            if (seen[i] || !entryOf(i))
-                continue
-            seen[i] = true
-            items.push(i)
-        }
-        out.push({ id: uniqueId(ids, "dock"), anchor: "center", edge: "bottom", items: items })
     }
     return out
 }
@@ -202,10 +193,10 @@ function edgeDefaults(barCfg, general) {
     }
 }
 
-function legacyEdges(barCfg, general) {
+function legacyEdges(barCfg, general, dockCfg) {
     const c = barCfg ?? {}
     const g = general ?? {}
-    const d = c.dock ?? {}
+    const d = Object.assign({}, c.dock ?? {}, dockCfg ?? {})
     const s = sidesOf(c)
     const out = {}
     out[s.bar] = {}
@@ -216,20 +207,20 @@ function legacyEdges(barCfg, general) {
         blockGap: d.blockGap ?? -1,
         radius: d.radius ?? 18,
         pillGap: d.pillGap ?? g.pillMargin ?? 6,
-        autoHide: g.dockAutoHide ?? true,
+        autoHide: d.autoHide ?? g.dockAutoHide ?? true,
         gameHide: true,
-        hidden: g.dock === false,
+        hidden: d.hidden ?? (g.dock === false),
         sys: true,
         shape: dockStyleOf(d, g)
     }
     return out
 }
 
-function storedEdges(barCfg, general) {
+function storedEdges(barCfg, general, dockCfg) {
     if (isEdgeV2(barCfg)) {
         const edges = Object.assign({}, barCfg.edges ?? {})
-        const d = barCfg.dock ?? {}
-        const dockSide = normSide(d.side, "bottom")
+        const d = Object.assign({}, barCfg.dock ?? {}, dockCfg ?? {})
+        const dockSide = normSide(d.edge ?? d.side, "bottom")
         if (edges[dockSide]) {
             const dockOverrides = {}
             if (d.height !== undefined) dockOverrides.height = d.height
@@ -243,15 +234,15 @@ function storedEdges(barCfg, general) {
         }
         return edges
     }
-    return legacyEdges(barCfg, general)
+    return legacyEdges(barCfg, general, dockCfg)
 }
 
-function edgeCfg(barCfg, general, side) {
-    return Object.assign(edgeDefaults(barCfg, general), storedEdges(barCfg, general)[side] ?? {})
+function edgeCfg(barCfg, general, side, dockCfg) {
+    return Object.assign(edgeDefaults(barCfg, general), storedEdges(barCfg, general, dockCfg)[side] ?? {})
 }
 
-function sysEdge(barCfg, general) {
-    const all = storedEdges(barCfg, general)
+function sysEdge(barCfg, general, dockCfg) {
+    const all = storedEdges(barCfg, general, dockCfg)
     for (const side of SIDES)
         if (all[side] && all[side].sys)
             return side

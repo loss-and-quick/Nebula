@@ -419,10 +419,10 @@ Singleton {
     readonly property var sideNames: ["top", "right", "bottom", "left"]
 
     readonly property var edges: root._stable("edges", {
-        top: BarOps.edgeCfg(SettingsConfig.bar, SettingsConfig.general, "top"),
-        right: BarOps.edgeCfg(SettingsConfig.bar, SettingsConfig.general, "right"),
-        bottom: BarOps.edgeCfg(SettingsConfig.bar, SettingsConfig.general, "bottom"),
-        left: BarOps.edgeCfg(SettingsConfig.bar, SettingsConfig.general, "left")
+        top: BarOps.edgeCfg(SettingsConfig.bar, SettingsConfig.general, "top", root.dockConfig),
+        right: BarOps.edgeCfg(SettingsConfig.bar, SettingsConfig.general, "right", root.dockConfig),
+        bottom: BarOps.edgeCfg(SettingsConfig.bar, SettingsConfig.general, "bottom", root.dockConfig),
+        left: BarOps.edgeCfg(SettingsConfig.bar, SettingsConfig.general, "left", root.dockConfig)
     })
 
     function edge(side) {
@@ -439,7 +439,7 @@ Singleton {
         return root.presentEdges.indexOf(side) >= 0;
     }
 
-    readonly property string sysEdge: BarOps.sysEdge(SettingsConfig.bar, SettingsConfig.general)
+    readonly property string sysEdge: BarOps.sysEdge(SettingsConfig.bar, SettingsConfig.general, root.dockConfig)
 
     function _v2Base() {
         if (root.edgeV2)

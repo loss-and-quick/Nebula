@@ -25,6 +25,7 @@ Singleton {
     property alias greeter: settingsAdapter.greeter
     property alias bar: settingsAdapter.bar
     property alias dock: settingsAdapter.dock
+    property alias launcher: settingsAdapter.launcher
     property alias hypr: settingsAdapter.hypr
     property alias features: settingsAdapter.features
 
@@ -1018,6 +1019,10 @@ Singleton {
                     iconSize: 32,
                     autoHide: true,
                     dim: false
+                })
+
+            property var launcher: ({
+                    sections: ["pinned", "recent", "shell"]
                 })
 
             property var hypr: ({

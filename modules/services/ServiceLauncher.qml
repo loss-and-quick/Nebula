@@ -35,8 +35,8 @@ Singleton {
     }
     readonly property bool matchDock: SettingsConfig.general.launcherMatchDock === true
     readonly property var styles: [
-        { value: "palette",    label: "Palette",    icon: "bolt",              w: 560, h: 560 },
-        { value: "hearth",     label: "Hearth",     icon: "fireplace",         w: 660, h: 720 }
+        { value: "palette",    label: "Palette",    icon: "bolt",              w: 560, h: 560, minW: 420 },
+        { value: "hearth",     label: "Hearth",     icon: "fireplace",         w: 660, h: 720, minW: 420 }
     ]
 
     readonly property string style: {
@@ -46,7 +46,7 @@ Singleton {
     readonly property var styleSpec: root.styles.find(x => x.value === root.style)
     readonly property int defaultWidth: root.styleSpec.w
     readonly property int defaultHeight: root.styleSpec.h
-    readonly property int minWidth: 320
+    readonly property int minWidth: root.styleSpec.minW ?? 420
     readonly property int maxWidth: 1200
     readonly property int minHeight: 360
     readonly property int maxHeight: 1200

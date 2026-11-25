@@ -682,7 +682,7 @@ Item {
         case "launcher":
             {
                 if (ServiceLauncher.position === "block" && SettingsConfig.general.launcherMatchDock === true)
-                    return Math.max(block.width, ServiceLauncher.minWidth);
+                    return Math.min(revealer.widthRoom, Math.max(block.width, ServiceLauncher.minWidth));
                 return BarLayout.panelW("launcher");
             }
         }

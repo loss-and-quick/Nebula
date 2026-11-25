@@ -31,6 +31,8 @@ Item {
     property color inactiveTextColor: Colors.surfaceText
 
     property bool fillWidth: false
+    property bool compact: false
+    readonly property bool iconOnly: root.compact || (root.model.some(m => !!m.icon) && root.width > 0 && root.width < (root.model.length * 68))
     property int iconSize: 14
     property int textSize: 11
 
@@ -64,6 +66,7 @@ Item {
                 readonly property bool isLast: index === root.model.length - 1
                 readonly property bool hasIcon: !!modelData.icon
                 readonly property bool hasLabel: !!modelData.label
+                readonly property bool showText: seg.hasLabel && (!seg.hasIcon || !root.iconOnly)
                 readonly property bool isPressed: root.pressedIndex === index
                 readonly property bool isDragged: root.dragIndex === index
                 readonly property bool isDropTarget: root.reorderable
@@ -79,8 +82,8 @@ Item {
 
                 readonly property real contentWidth:
                     (seg.hasIcon ? _icon.implicitWidth : 0)
-                    + (seg.hasIcon && seg.hasLabel ? _content.spacing : 0)
-                    + (seg.hasLabel ? _label.implicitWidth : 0)
+                    + (seg.hasIcon && seg.showText ? _content.spacing : 0)
+                    + (seg.showText ? _label.implicitWidth : 0)
 
                 readonly property real baseWidth: root.fillWidth
                     ? (root.width - (root.model.length - 1) * root.gap)
@@ -168,7 +171,7 @@ Item {
 
                         CustomText {
                             id: _label
-                            visible: seg.hasLabel
+                            visible: seg.showText
                             anchors.verticalCenter: parent.verticalCenter
                             width: Math.max(0, Math.min(implicitWidth,
                                 _box.width - (seg.hasIcon
@@ -195,6 +198,15 @@ Item {
                                                      : Colors.primary, 0.25)
                     onPressedChanged: root.pressedIndex = pressed ? seg.index : -1
                     onClicked: if (!root.reorderable) root.segmentClicked(seg.modelData.value)
+
+                    HoverHandler {
+                        id: segHover
+                    }
+
+                    CustomToolTip {
+                        content: seg.modelData.label ?? ""
+                        visible: !seg.showText && segHover.hovered
+                    }
                 }
 
                 MouseArea {

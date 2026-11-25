@@ -26,28 +26,34 @@ Item {
     readonly property var filters: [
         {
             value: "all",
-            label: "All"
+            label: "All",
+            icon: "dashboard"
         },
         {
             value: "apps",
-            label: "Apps"
+            label: "Apps",
+            icon: "grid_view"
         },
         {
             value: "actions",
-            label: "Actions"
+            label: "Actions",
+            icon: "bolt"
         },
         {
             value: "windows",
-            label: "Windows"
+            label: "Windows",
+            icon: "select_window"
         },
         {
             value: "shell",
-            label: "Shell"
+            label: "Shell",
+            icon: "tune"
         }
     ]
 
     readonly property var shellActions: [
         {
+            id: "note",
             title: "New note",
             sub: "Pins a note to the screen edge",
             symbol: "sticky_note_2",
@@ -56,6 +62,7 @@ Item {
             run: () => ServiceNotes.requestOpen(ServiceNotes.add())
         },
         {
+            id: "screenshot",
             title: "Take a screenshot",
             sub: "Select an area to capture",
             symbol: "screenshot_region",
@@ -66,6 +73,7 @@ Item {
             }
         },
         {
+            id: "clipboard",
             title: "Clipboard history",
             sub: "Paste something you copied",
             symbol: "content_paste",
@@ -76,6 +84,7 @@ Item {
             }
         },
         {
+            id: "wallpaper",
             title: "Change wallpaper",
             sub: "Opens the wallpaper picker",
             symbol: "wallpaper",
@@ -85,6 +94,7 @@ Item {
             }
         },
         {
+            id: "dnd",
             title: ServiceNotification.dnd ? "Turn off Do not disturb" : "Turn on Do not disturb",
             sub: "Silences notification popups",
             symbol: "do_not_disturb_on",
@@ -92,6 +102,7 @@ Item {
             run: () => ServiceNotification.setDnd(!ServiceNotification.dnd, 0)
         },
         {
+            id: "reading",
             title: "Reading filter",
             sub: "Warm, sepia or e-ink screen",
             symbol: "chrome_reader_mode",
@@ -100,6 +111,7 @@ Item {
             run: () => ServiceReading.toggle()
         },
         {
+            id: "caffeine",
             title: "Keep awake",
             sub: "Stops the screen from sleeping",
             symbol: "coffee",
@@ -107,6 +119,7 @@ Item {
             run: () => ServiceIdleInhibit.toggle()
         },
         {
+            id: "settings",
             title: "Open settings",
             sub: "Shell settings",
             symbol: "settings",
@@ -116,6 +129,7 @@ Item {
             }
         },
         {
+            id: "power",
             title: "Power options",
             sub: "Shut down, restart or log out",
             symbol: "power_settings_new",
@@ -123,6 +137,7 @@ Item {
             run: () => GlobalStates.openPanel("power")
         },
         {
+            id: "lock",
             title: "Lock screen",
             sub: "Locks this session",
             symbol: "lock",
@@ -222,6 +237,72 @@ Item {
         return out;
     }
 
+    function resolveLauncherItem(rawItem) {
+        if (!rawItem)
+            return null;
+
+        if (typeof rawItem === "object") {
+            const title = rawItem.title || rawItem.name || "Action";
+            const sub = rawItem.sub || rawItem.subtitle || "";
+            const sym = rawItem.symbol || rawItem.icon || "terminal";
+            const cmd = rawItem.command || rawItem.exec;
+            if (!cmd)
+                return null;
+            return {
+                kind: "shell",
+                id: rawItem.id || title,
+                title: title,
+                sub: sub,
+                label: "Custom",
+                symbol: sym,
+                run: () => ServiceApps.spawn(Array.isArray(cmd) ? cmd : [cmd], ""),
+                rank: root.searching ? root.rank(title) : 0
+            };
+        }
+
+        const id = String(rawItem).trim();
+
+        const sAction = root.shellActions.find(s => s.id === id);
+        if (sAction) {
+            if (sAction.feature && !Features.on(sAction.feature))
+                return null;
+            return {
+                kind: "shell",
+                id: sAction.id,
+                title: sAction.title,
+                sub: sAction.sub,
+                label: "Shell",
+                symbol: sAction.symbol,
+                run: sAction.run,
+                rank: root.searching ? root.rank(sAction.title) : 0
+            };
+        }
+
+        const app = ServiceApps.resolveApp(id);
+        if (app)
+            return root.appItem(app);
+
+        return null;
+    }
+
+    readonly property var customSectionActions: {
+        const out = [];
+        const cfgSections = SettingsConfig.launcher?.sections ?? [];
+        for (const secDef of cfgSections) {
+            if (typeof secDef === "object" && secDef !== null) {
+                const rawItems = secDef.items || secDef.apps || [];
+                for (const raw of rawItems) {
+                    if (typeof raw === "object" && raw !== null) {
+                        const it = root.resolveLauncherItem(raw);
+                        if (it)
+                            out.push(it);
+                    }
+                }
+            }
+        }
+        return out;
+    }
+
     function shellItems() {
         const out = [];
         for (const s of root.shellActions) {
@@ -231,6 +312,7 @@ Item {
                 continue;
             out.push({
                 kind: "shell",
+                id: s.id,
                 title: s.title,
                 sub: s.sub,
                 label: "Shell",
@@ -266,11 +348,53 @@ Item {
             return root.group(root.shellItems(), "Shell");
 
         if (!root.searching) {
-            const recent = root.group(root.recentApps.map(a => root.appItem(a)), "Recent");
-            return recent.concat(root.group(root.shellItems().slice(0, 5), "Shell"));
+            const cfgSections = SettingsConfig.launcher?.sections ?? ["pinned", "recent", "shell"];
+            let outRows = [];
+
+            for (const secDef of cfgSections) {
+                if (typeof secDef === "string") {
+                    const secName = secDef.toLowerCase();
+                    if (secName === "pinned" || secName === "@pinned") {
+                        if (ServiceApps.pinnedApps.length > 0)
+                            outRows = outRows.concat(root.group(ServiceApps.pinnedApps.map(a => root.appItem(a)), "Pinned"));
+                    } else if (secName === "recent" || secName === "@recent") {
+                        const unpinnedRecent = root.recentApps.filter(a => !ServiceApps.isPinned(a));
+                        if (unpinnedRecent.length > 0)
+                            outRows = outRows.concat(root.group(unpinnedRecent.map(a => root.appItem(a)), "Recent"));
+                    } else if (secName === "shell" || secName === "@shell") {
+                        const items = root.shellItems();
+                        if (items.length > 0)
+                            outRows = outRows.concat(root.group(items.slice(0, 5), "Shell"));
+                    }
+                } else if (typeof secDef === "object" && secDef !== null) {
+                    const secTitle = secDef.name || secDef.title || "Section";
+                    const rawItems = secDef.items || secDef.apps || [];
+                    const items = [];
+                    for (const raw of rawItems) {
+                        if (raw === "pinned" || raw === "@pinned") {
+                            for (const a of ServiceApps.pinnedApps)
+                                items.push(root.appItem(a));
+                        } else if (raw === "recent" || raw === "@recent") {
+                            for (const a of root.recentApps)
+                                if (!ServiceApps.isPinned(a))
+                                    items.push(root.appItem(a));
+                        } else if (raw === "shell" || raw === "@shell") {
+                            for (const s of root.shellItems())
+                                items.push(s);
+                        } else {
+                            const it = root.resolveLauncherItem(raw);
+                            if (it)
+                                items.push(it);
+                        }
+                    }
+                    if (items.length > 0)
+                        outRows = outRows.concat(root.group(items, secTitle));
+                }
+            }
+            return outRows;
         }
 
-        const pool = Array.prototype.slice.call(apps, 0, 6).map(a => root.appItem(a)).concat(root.actionItems(6), root.windowItems(), root.shellItems());
+        const pool = Array.prototype.slice.call(apps, 0, 6).map(a => root.appItem(a)).concat(root.actionItems(6), root.windowItems(), root.shellItems(), root.customSectionActions);
         const order = {
             app: 0,
             action: 1,
@@ -448,10 +572,11 @@ Item {
         }
 
         M3ButtonGroup {
-            visible: root.launcher.isApps && root.width >= 360
+            visible: root.launcher.isApps
             Layout.preferredHeight: 36
             height: 36
             textSize: 13
+            fillWidth: true
             inactiveColor: Colors.surfaceContainerHigh
             model: root.filters
             activeCheck: value => root.filter === value
@@ -867,7 +992,7 @@ Item {
                                                                 customColor: Colors.primaryContainerText
                                                             }
                                                             CustomText {
-                                                                content: parent.pinned ? "Unpin from dock" : "Pin to dock"
+                                                                content: parent.pinned ? "Unpin" : "Pin"
                                                                 size: 13
                                                                 weight: 600
                                                                 customColor: Colors.primaryContainerText

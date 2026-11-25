@@ -11,7 +11,8 @@ Item {
     property real p: 0
 
     readonly property string family: SettingsConfig.general.displayFont ?? "Titan One"
-    readonly property int hour: LockSession.hour24 % 12 === 0 ? 12 : LockSession.hour24 % 12
+    readonly property bool use24: SettingsConfig.widgets?.clockUse24 ?? SettingsConfig.lockscreen?.use24 ?? false
+    readonly property int hour: root.use24 ? LockSession.hour24 : (LockSession.hour24 % 12 === 0 ? 12 : LockSession.hour24 % 12)
     readonly property var digits: [String(Math.floor(root.hour / 10)), String(root.hour % 10), LockSession.minute.charAt(0), LockSession.minute.charAt(1)]
 
     readonly property real u: 100 / 30

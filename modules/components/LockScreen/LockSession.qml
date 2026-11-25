@@ -43,11 +43,12 @@ QtObject {
 
     readonly property var cfg: root.greeter ? root.greeterCfg : root.lockCfg
 
+    readonly property bool use24: SettingsConfig.widgets?.clockUse24 ?? SettingsConfig.lockscreen?.use24 ?? false
     readonly property int hour24: parseInt(ServiceClock.hour)
-    readonly property string hour: String(root.hour24 % 12 === 0 ? 12 : root.hour24 % 12)
+    readonly property string hour: root.use24 ? ServiceClock.hour : String(root.hour24 % 12 === 0 ? 12 : root.hour24 % 12)
     readonly property string hourPad: root.hour.length < 2 ? "0" + root.hour : root.hour
     readonly property string minute: ServiceClock.minute
-    readonly property string ampm: root.hour24 < 12 ? "AM" : "PM"
+    readonly property string ampm: root.use24 ? "" : (root.hour24 < 12 ? "AM" : "PM")
     readonly property string weekday: ServiceClock.day
     readonly property string month: ServiceClock.month
     readonly property int dayNum: parseInt(ServiceClock.date)

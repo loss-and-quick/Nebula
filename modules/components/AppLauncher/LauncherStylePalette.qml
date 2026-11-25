@@ -319,11 +319,15 @@ Item {
         return out;
     }
 
-    function group(items, header) {
+    function group(items, header, sectionMeta) {
+        const meta = sectionMeta ?? { name: header, index: -1, isCustom: false };
         return items.map((it, i) => Object.assign({}, it, {
                 header: i === 0 ? header : "",
                 first: i === 0,
-                last: i === items.length - 1
+                last: i === items.length - 1,
+                sectionName: i === 0 ? meta.name : "",
+                sectionIndex: i === 0 ? meta.index : -1,
+                isCustomSection: i === 0 ? meta.isCustom : false
             }));
     }
 
@@ -346,20 +350,21 @@ Item {
             const cfgSections = SettingsConfig.launcher?.sections ?? ["pinned", "recent", "shell"];
             let outRows = [];
 
-            for (const secDef of cfgSections) {
+            for (let i = 0; i < cfgSections.length; i++) {
+                const secDef = cfgSections[i];
                 if (typeof secDef === "string") {
                     const secName = secDef.toLowerCase();
                     if (secName === "pinned" || secName === "@pinned") {
                         if (ServiceApps.pinnedApps.length > 0)
-                            outRows = outRows.concat(root.group(ServiceApps.pinnedApps.map(a => root.appItem(a)), "Pinned"));
+                            outRows = outRows.concat(root.group(ServiceApps.pinnedApps.map(a => root.appItem(a)), "Pinned", { name: "Pinned", index: i, isCustom: false }));
                     } else if (secName === "recent" || secName === "@recent") {
                         const unpinnedRecent = root.recentApps.filter(a => !ServiceApps.isPinned(a));
                         if (unpinnedRecent.length > 0)
-                            outRows = outRows.concat(root.group(unpinnedRecent.map(a => root.appItem(a)), "Recent"));
+                            outRows = outRows.concat(root.group(unpinnedRecent.map(a => root.appItem(a)), "Recent", { name: "Recent", index: i, isCustom: false }));
                     } else if (secName === "shell" || secName === "@shell") {
                         const items = root.shellItems();
                         if (items.length > 0)
-                            outRows = outRows.concat(root.group(items.slice(0, 5), "Shell"));
+                            outRows = outRows.concat(root.group(items.slice(0, 5), "Shell", { name: "Shell", index: i, isCustom: false }));
                     }
                 } else if (typeof secDef === "object" && secDef !== null) {
                     const secTitle = secDef.name || secDef.title || "Section";
@@ -383,7 +388,7 @@ Item {
                         }
                     }
                     if (items.length > 0)
-                        outRows = outRows.concat(root.group(items, secTitle));
+                        outRows = outRows.concat(root.group(items, secTitle, { name: secTitle, index: i, isCustom: true }));
                 }
             }
             return outRows;
@@ -471,11 +476,20 @@ Item {
         root.heroOpen = false;
         root.filter = "all";
         root.chipIndex = -1;
+        sectionMenu.targetSection = null;
         nav.activeIndex = 0;
         flick.contentY = 0;
     }
 
     function handleEscape() {
+        if (sectionMenu.targetSection !== null) {
+            sectionMenu.targetSection = null;
+            return true;
+        }
+        if (root.launcher.sectionDialogOpen) {
+            root.launcher.closeSectionDialog();
+            return true;
+        }
         if (root.heroOpen) {
             root.heroOpen = false;
             return true;
@@ -487,6 +501,14 @@ Item {
         return false;
     }
 
+    function showSectionMenu(sectionName, sectionIndex, item, x, y) {
+        const p = item.mapToItem(root, x, y);
+        sectionMenu.targetSection = sectionName;
+        sectionMenu.targetSectionIndex = sectionIndex;
+        sectionMenu.x = Math.max(4, Math.min(p.x, root.width - sectionMenu.width - 4));
+        sectionMenu.y = p.y;
+    }
+
     function cycleFilter(step) {
         const i = root.filters.findIndex(x => x.value === root.filter);
         const n = root.filters.length;
@@ -495,6 +517,7 @@ Item {
 
     onRowsChanged: {
         root.heroOpen = false;
+        sectionMenu.targetSection = null;
         nav.activeIndex = 0;
         root.chipIndex = -1;
         flick.contentY = 0;
@@ -608,6 +631,45 @@ Item {
                     width: flick.width - (scrollBar.size < 1.0 ? 14 : 0)
                     spacing: 2
 
+                    Rectangle {
+                        id: addSectionBtn
+                        visible: !root.searching
+                        Layout.preferredHeight: 34
+                        Layout.preferredWidth: addSectionLabel.implicitWidth + 56
+                        radius: 17
+                        color: Colors.surfaceContainerHigh
+                        Behavior on color {
+                            EffectsColorAnim {}
+                        }
+
+                        RowLayout {
+                            anchors.centerIn: parent
+                            spacing: 8
+                            MaterialIconSymbol {
+                                anchors.verticalCenter: parent.verticalCenter
+                                content: "add"
+                                iconSize: 16
+                                customColor: Colors.primary
+                            }
+                            CustomText {
+                                id: addSectionLabel
+                                anchors.verticalCenter: parent.verticalCenter
+                                content: "Add Section"
+                                size: 12
+                                weight: 500
+                                customColor: Colors.outline
+                            }
+                        }
+
+                        RippleEffect {
+                            anchors.fill: parent
+                            radius: parent.radius
+                            hoverColor: Qt.alpha(Colors.primary, 0.08)
+                            rippleColor: Qt.alpha(Colors.primary, 0.18)
+                            onClicked: root.launcher.openSectionDialog("create", "", null)
+                        }
+                    }
+
                     Repeater {
                         id: rowRepeater
                         model: root.rows
@@ -621,15 +683,53 @@ Item {
                             spacing: 0
                             topPadding: entry.modelData.header !== "" && entry.index > 0 ? 10 : 0
 
-                            CustomText {
+                            Rectangle {
+                                id: sectionHeader
                                 visible: entry.modelData.header !== ""
                                 width: parent.width
                                 leftPadding: 6
                                 bottomPadding: 6
-                                content: entry.modelData.header
-                                size: 12
-                                weight: 600
-                                customColor: Colors.primary
+                                implicitHeight: 26
+                                color: entry.modelData.isCustomSection && sectionHeaderHover.hovered ? Qt.alpha(Colors.primary, 0.08) : "transparent"
+                                Behavior on color {
+                                    EffectsColorAnim {}
+                                }
+
+                                CustomText {
+                                    anchors.left: parent.left
+                                    anchors.right: moreIcon.left
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    content: entry.modelData.header
+                                    size: 12
+                                    weight: 600
+                                    customColor: Colors.primary
+                                }
+
+                                MaterialIconSymbol {
+                                    id: moreIcon
+                                    anchors.right: parent.right
+                                    anchors.rightMargin: 8
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    visible: entry.modelData.isCustomSection && sectionHeaderHover.containsMouse
+                                    content: "more_horiz"
+                                    iconSize: 16
+                                    customColor: Colors.outline
+                                }
+
+                                MouseArea {
+                                    id: sectionHeaderHover
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    acceptedButtons: Qt.LeftButton | Qt.RightButton
+                                    cursorShape: entry.modelData.isCustomSection ? Qt.PointingHandCursor : Qt.ArrowCursor
+                                    onClicked: mouse => {
+                                        if (entry.modelData.isCustomSection) {
+                                            root.showSectionMenu(entry.modelData.sectionName, entry.modelData.sectionIndex, sectionHeader, mouse.x, mouse.y);
+                                        } else if (mouse.button === Qt.RightButton) {
+                                            root.launcher.openSectionDialog("create", "", null);
+                                        }
+                                    }
+                                }
                             }
 
                             Loader {
@@ -1244,5 +1344,268 @@ Item {
                 }
             }
         }
+    }
+
+    // ── Section management menu ──────────────────────────────────────────────
+    Rectangle {
+        id: sectionMenu
+        property var targetSection: null
+        property int targetSectionIndex: -1
+
+        visible: targetSection !== null
+        z: 100
+        width: 220
+        height: smCol.implicitHeight + 16
+        radius: 18
+        color: Colors.surfaceContainer
+
+        onHeightChanged: {
+            if (y + height > root.height - 8)
+                y = Math.max(4, root.height - height - 8);
+        }
+
+        transformOrigin: Item.Top
+        scale: visible ? 1 : 0.88
+        opacity: visible ? 1 : 0
+        Behavior on scale {
+            SpatialAnim {
+                speed: "fast"
+            }
+        }
+        Behavior on opacity {
+            EffectsAnim {
+                speed: "fast"
+            }
+        }
+
+        ColumnLayout {
+            id: smCol
+            anchors {
+                top: parent.top
+                left: parent.left
+                right: parent.right
+                margins: 8
+            }
+            spacing: 6
+
+            // Header
+            Rectangle {
+                Layout.fillWidth: true
+                implicitHeight: 54
+                radius: 12
+                color: Colors.surfaceContainerHigh
+
+                RowLayout {
+                    anchors.fill: parent
+                    anchors.leftMargin: 12
+                    anchors.rightMargin: 12
+                    spacing: 10
+
+                    Rectangle {
+                        width: 36
+                        height: 36
+                        radius: 10
+                        color: Qt.alpha(Colors.primary, 0.1)
+
+                        MaterialIconSymbol {
+                            anchors.centerIn: parent
+                            content: "folder"
+                            iconSize: 20
+                            customColor: Colors.primary
+                        }
+                    }
+
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 2
+                        CustomText {
+                            Layout.fillWidth: true
+                            content: targetSection ?? ""
+                            size: 13
+                            weight: 700
+                            elide: Text.ElideRight
+                        }
+                        CustomText {
+                            Layout.fillWidth: true
+                            content: "Section"
+                            size: 10
+                            customColor: Colors.outline
+                            elide: Text.ElideRight
+                        }
+                    }
+                }
+            }
+
+            // Actions
+            Rectangle {
+                Layout.fillWidth: true
+                implicitHeight: smActions.implicitHeight
+                radius: 12
+                color: Colors.surfaceContainerHigh
+                clip: true
+
+                ColumnLayout {
+                    id: smActions
+                    anchors {
+                        left: parent.left
+                        right: parent.right
+                    }
+                    spacing: 0
+
+                    // Rename
+                    Rectangle {
+                        Layout.fillWidth: true
+                        implicitHeight: 42
+                        color: "transparent"
+
+                        RowLayout {
+                            anchors.fill: parent
+                            anchors.leftMargin: 12
+                            anchors.rightMargin: 12
+                            spacing: 10
+                            MaterialIconSymbol {
+                                content: "edit"
+                                iconSize: 16
+                                customColor: Colors.primary
+                            }
+                            CustomText {
+                                Layout.fillWidth: true
+                                content: "Rename"
+                                size: 13
+                            }
+                        }
+
+                        RippleEffect {
+                            anchors.fill: parent
+                            onClicked: {
+                                root.launcher.openSectionDialog("rename", targetSection, null);
+                                targetSection = null;
+                            }
+                        }
+                    }
+
+                    Rectangle {
+                        Layout.fillWidth: true
+                        implicitHeight: 1
+                        color: Colors.surfaceContainerHighest
+                    }
+
+                    // Move up
+                    Rectangle {
+                        Layout.fillWidth: true
+                        implicitHeight: 42
+                        color: "transparent"
+                        visible: targetSectionIndex > 0
+
+                        RowLayout {
+                            anchors.fill: parent
+                            anchors.leftMargin: 12
+                            anchors.rightMargin: 12
+                            spacing: 10
+                            MaterialIconSymbol {
+                                content: "arrow_upward"
+                                iconSize: 16
+                                customColor: Colors.outline
+                            }
+                            CustomText {
+                                Layout.fillWidth: true
+                                content: "Move up"
+                                size: 13
+                            }
+                        }
+
+                        RippleEffect {
+                            anchors.fill: parent
+                            onClicked: {
+                                root.launcher.moveSection(targetSection, -1);
+                                targetSection = null;
+                            }
+                        }
+                    }
+
+                    // Move down
+                    Rectangle {
+                        Layout.fillWidth: true
+                        implicitHeight: 42
+                        color: "transparent"
+                        visible: targetSectionIndex < root.launcher.sectionCount - 1
+
+                        RowLayout {
+                            anchors.fill: parent
+                            anchors.leftMargin: 12
+                            anchors.rightMargin: 12
+                            spacing: 10
+                            MaterialIconSymbol {
+                                content: "arrow_downward"
+                                iconSize: 16
+                                customColor: Colors.outline
+                            }
+                            CustomText {
+                                Layout.fillWidth: true
+                                content: "Move down"
+                                size: 13
+                            }
+                        }
+
+                        RippleEffect {
+                            anchors.fill: parent
+                            onClicked: {
+                                root.launcher.moveSection(targetSection, 1);
+                                targetSection = null;
+                            }
+                        }
+                    }
+
+                    Rectangle {
+                        Layout.fillWidth: true
+                        implicitHeight: 1
+                        color: Colors.surfaceContainerHighest
+                    }
+
+                    // Delete
+                    Rectangle {
+                        Layout.fillWidth: true
+                        implicitHeight: 42
+                        color: "transparent"
+
+                        RowLayout {
+                            anchors.fill: parent
+                            anchors.leftMargin: 12
+                            anchors.rightMargin: 12
+                            spacing: 10
+                            MaterialIconSymbol {
+                                content: "delete"
+                                iconSize: 16
+                                customColor: Colors.primary
+                            }
+                            CustomText {
+                                Layout.fillWidth: true
+                                content: "Delete"
+                                size: 13
+                            }
+                        }
+
+                        RippleEffect {
+                            anchors.fill: parent
+                            onClicked: {
+                                root.launcher.removeSection(targetSection);
+                                targetSection = null;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // ── Section menu click-away ──────────────────────────────────────────────
+    MouseArea {
+        anchors.fill: parent
+        visible: sectionMenu.targetSection !== null
+        z: 99
+        hoverEnabled: true
+        cursorShape: Qt.ArrowCursor
+        onClicked: sectionMenu.targetSection = null
+        onPressed: sectionMenu.targetSection = null
     }
 }

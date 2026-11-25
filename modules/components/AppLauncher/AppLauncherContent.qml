@@ -44,6 +44,15 @@ Item {
 
     property string selectedCategory: "All"
 
+    // ── Section dialog (create / rename) ────────────────────────────────────
+    property bool sectionDialogOpen: false
+    property string sectionDialogMode: "create"  // "create" | "rename"
+    property string sectionDialogTarget: ""      // original name when renaming
+    property string sectionDialogName: ""        // current text in the field
+    property var sectionDialogApp: null          // app to add when creating
+
+    readonly property bool sectionDialogReady: sectionDialogField.text.trim().length > 0
+
     readonly property var _categoryMap: ({
             "AudioVideo": "Media",
             "Audio": "Media",
@@ -151,6 +160,125 @@ Item {
     function favourites(n) {
         const out = Array.prototype.slice.call(ServiceApps.pinnedApps, 0, n);
         return out.length > 0 ? out : appLauncher.mostUsed(n);
+    }
+
+    // ── Launcher sections (SettingsConfig.launcher.sections) ────────────────
+    // A section is either a string ("pinned" | "recent" | "shell") or a custom
+    // object ({ name, items }). The helpers below mutate the list immutably so
+    // the settings adapter and the launcher UI refresh cleanly.
+    readonly property int sectionCount: (SettingsConfig.launcher?.sections ?? []).length
+
+    readonly property var customSections: {
+        const out = [];
+        for (const sec of (SettingsConfig.launcher?.sections ?? [])) {
+            if (typeof sec === "object" && sec !== null)
+                out.push(sec);
+        }
+        return out;
+    }
+
+    function sectionByName(name) {
+        return (SettingsConfig.launcher?.sections ?? []).find(
+            sec => typeof sec === "object" && sec !== null && sec.name === name
+        ) ?? null;
+    }
+
+    function sectionOfApp(app) {
+        const list = appLauncher.sectionsOfApp(app);
+        return list.length > 0 ? list[0] : null;
+    }
+
+    function sectionsOfApp(app) {
+        const id = app?.id ?? "";
+        if (!id)
+            return [];
+        const out = [];
+        for (const sec of (SettingsConfig.launcher?.sections ?? [])) {
+            if (typeof sec === "object" && sec !== null) {
+                const items = sec.items ?? sec.apps ?? [];
+                if (items.includes(id))
+                    out.push(sec.name);
+            }
+        }
+        return out;
+    }
+
+    function _writeSections(next) {
+        SettingsConfig.launcher = Object.assign({}, SettingsConfig.launcher ?? {}, {
+            sections: next
+        });
+    }
+
+    function addAppToSection(app, sectionName) {
+        if (!app || !sectionName)
+            return;
+        const id = app.id;
+        const sections = Array.prototype.slice.call(SettingsConfig.launcher?.sections ?? []);
+        const idx = sections.findIndex(sec => typeof sec === "object" && sec !== null && sec.name === sectionName);
+        if (idx < 0) {
+            sections.push({ name: sectionName, items: [id] });
+        } else {
+            const items = Array.prototype.slice.call(sections[idx].items ?? sections[idx].apps ?? []);
+            if (!items.includes(id)) {
+                items.push(id);
+                sections[idx] = Object.assign({}, sections[idx], { items: items });
+            }
+        }
+        _writeSections(sections);
+    }
+
+    function removeAppFromSection(app, sectionName) {
+        if (!app || !sectionName)
+            return;
+        const id = app.id;
+        const sections = Array.prototype.slice.call(SettingsConfig.launcher?.sections ?? []);
+        const idx = sections.findIndex(sec => typeof sec === "object" && sec !== null && sec.name === sectionName);
+        if (idx < 0)
+            return;
+        const items = Array.prototype.slice.call(sections[idx].items ?? sections[idx].apps ?? []);
+        sections[idx] = Object.assign({}, sections[idx], { items: items.filter(x => x !== id) });
+        _writeSections(sections);
+    }
+
+    function createSection(name) {
+        const trimmed = (name ?? "").trim();
+        if (trimmed === "")
+            return;
+        const sections = Array.prototype.slice.call(SettingsConfig.launcher?.sections ?? []);
+        const exists = sections.some(sec => typeof sec === "object" && sec !== null && sec.name === trimmed);
+        if (!exists)
+            sections.push({ name: trimmed, items: [] });
+        _writeSections(sections);
+    }
+
+    function removeSection(sectionName) {
+        const sections = Array.prototype.slice.call(SettingsConfig.launcher?.sections ?? []);
+        _writeSections(sections.filter(sec => !(typeof sec === "object" && sec !== null && sec.name === sectionName)));
+    }
+
+    function moveSection(sectionName, delta) {
+        const sections = Array.prototype.slice.call(SettingsConfig.launcher?.sections ?? []);
+        const idx = sections.findIndex(sec => typeof sec === "object" && sec !== null && sec.name === sectionName);
+        if (idx < 0)
+            return;
+        const to = idx + delta;
+        if (to < 0 || to >= sections.length)
+            return;
+        const [it] = sections.splice(idx, 1);
+        sections.splice(to, 0, it);
+        _writeSections(sections);
+    }
+
+    function renameSection(sectionName, newName) {
+        const trimmed = (newName ?? "").trim();
+        if (trimmed === "")
+            return;
+        const sections = Array.prototype.slice.call(SettingsConfig.launcher?.sections ?? []);
+        const idx = sections.findIndex(sec => typeof sec === "object" && sec !== null && sec.name === sectionName);
+        if (idx < 0)
+            return;
+        sections[idx] = Object.assign({}, sections[idx], { name: trimmed });
+        _writeSections(sections);
     }
 
     function timeAgo(app) {
@@ -261,6 +389,11 @@ Item {
     function handleKey(event) {
         const view = appLauncher.activeView;
         if (event.key === Qt.Key_Escape) {
+            if (ctxMenu.targetApp !== null) {
+                ctxMenu.targetApp = null;
+                event.accepted = true;
+                return;
+            }
             if (appLauncher.styleItem && appLauncher.styleItem.handleEscape && appLauncher.styleItem.handleEscape()) {
                 event.accepted = true;
             } else if (!appLauncher.isApps || appLauncher.searching) {
@@ -311,6 +444,39 @@ Item {
         ctxMenu.targetApp = app;
         ctxMenu.x = Math.max(4, Math.min(clickX, width - ctxMenu.width - 4));
         ctxMenu.y = clickY;
+    }
+
+    function openSectionDialog(mode, name, app) {
+        sectionDialogMode = mode;
+        sectionDialogTarget = mode === "rename" ? name : "";
+        sectionDialogName = name ?? "";
+        sectionDialogApp = app ?? null;
+        sectionDialogOpen = true;
+        Qt.callLater(function () {
+            if (sectionDialogField) {
+                sectionDialogField.text = sectionDialogName;
+                sectionDialogField.forceActiveFocus();
+            }
+        });
+    }
+
+    function closeSectionDialog() {
+        sectionDialogOpen = false;
+        appLauncher.focusSearch();
+    }
+
+    function sectionDialogSubmit() {
+        if (!appLauncher.sectionDialogReady)
+            return;
+        const name = sectionDialogField.text.trim();
+        if (sectionDialogMode === "rename") {
+            renameSection(sectionDialogTarget, name);
+        } else {
+            createSection(name);
+            if (sectionDialogApp)
+                addAppToSection(sectionDialogApp, name);
+        }
+        closeSectionDialog();
     }
 
     function replayEntrance() {
@@ -383,6 +549,153 @@ Item {
                 if (appLauncher.searchField)
                     appLauncher.searchField.text = q;
                 appLauncher.focusSearch();
+            }
+        }
+
+        // ── Section dialog (create / rename) ─────────────────────────────────
+        Item {
+            id: sectionDialog
+            anchors.fill: parent
+            visible: appLauncher.sectionDialogOpen
+            z: 10
+            clip: true
+
+            Rectangle {
+                id: sectionDialogScrim
+                anchors.fill: parent
+                color: Qt.alpha(Colors.scrim, 0.35)
+                opacity: 0
+                EffectsAnim {
+                    target: sectionDialogScrim
+                    property: "opacity"
+                    from: 0
+                    to: 1
+                    speed: "fast"
+                    running: true
+                }
+
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: appLauncher.closeSectionDialog()
+                }
+            }
+
+            Rectangle {
+                id: sectionDialogCard
+                anchors.centerIn: parent
+                width: Math.min(parent.width - 40, 380)
+                implicitHeight: sectionDialogCol.implicitHeight + 40
+                radius: 24
+                color: Colors.surfaceContainerHigh
+                Behavior on color {
+                    EffectsColorAnim {}
+                }
+
+                ColumnLayout {
+                    id: sectionDialogCol
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.leftMargin: 20
+                    anchors.rightMargin: 20
+                    spacing: 14
+
+                    CustomText {
+                        Layout.fillWidth: true
+                        content: appLauncher.sectionDialogMode === "rename" ? "Rename section" : "New section"
+                        size: 16
+                        weight: 700
+                    }
+
+                    Rectangle {
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 52
+                        radius: 14
+                        color: Colors.surfaceContainerHighest
+                        border.width: 2
+                        border.color: sectionDialogField.activeFocus ? Colors.primary : Qt.alpha(Colors.primary, 0)
+                        Behavior on border.color {
+                            EffectsColorAnim {}
+                        }
+
+                        TextField {
+                            id: sectionDialogField
+                            anchors.fill: parent
+                            anchors.leftMargin: 14
+                            anchors.rightMargin: 14
+                            background: null
+                            padding: 0
+                            placeholderText: "Section name"
+                            placeholderTextColor: Colors.outline
+                            font.pixelSize: 15
+                            font.weight: 600
+                            font.family: SettingsConfig.general.defaultFont ?? "Rubik"
+                            color: Colors.surfaceText
+                            selectionColor: Qt.alpha(Colors.primary, 0.35)
+                            selectedTextColor: Colors.surfaceText
+                            verticalAlignment: TextInput.AlignVCenter
+                            onAccepted: appLauncher.sectionDialogSubmit()
+                            Keys.onEscapePressed: appLauncher.closeSectionDialog()
+                        }
+                    }
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 8
+
+                        Item {
+                            Layout.fillWidth: true
+                        }
+
+                        Rectangle {
+                            Layout.preferredHeight: 40
+                            Layout.preferredWidth: cancelLabel.implicitWidth + 36
+                            radius: 20
+                            color: "transparent"
+
+                            CustomText {
+                                id: cancelLabel
+                                anchors.centerIn: parent
+                                content: "Cancel"
+                                size: 13
+                                weight: 700
+                                customColor: Colors.primary
+                            }
+
+                            RippleEffect {
+                                anchors.fill: parent
+                                radius: parent.radius
+                                onClicked: appLauncher.closeSectionDialog()
+                            }
+                        }
+
+                        Rectangle {
+                            Layout.preferredHeight: 40
+                            Layout.preferredWidth: submitLabel.implicitWidth + 44
+                            radius: 20
+                            color: appLauncher.sectionDialogReady ? Colors.primary : Colors.surfaceContainerHighest
+                            Behavior on color {
+                                EffectsColorAnim {}
+                            }
+
+                            CustomText {
+                                id: submitLabel
+                                anchors.centerIn: parent
+                                content: appLauncher.sectionDialogMode === "rename" ? "Rename" : "Create"
+                                size: 13
+                                weight: 700
+                                customColor: appLauncher.sectionDialogReady ? Colors.primaryText : Colors.outline
+                            }
+
+                            RippleEffect {
+                                anchors.fill: parent
+                                radius: parent.radius
+                                hoverColor: Qt.alpha(Colors.primaryText, 0.1)
+                                rippleColor: Qt.alpha(Colors.primaryText, 0.2)
+                                onClicked: appLauncher.sectionDialogSubmit()
+                            }
+                        }
+                    }
+                }
             }
         }
     }
@@ -631,6 +944,125 @@ Item {
                             onClicked: {
                                 Quickshell.clipboardText = ctxMenu.targetApp?.name ?? "";
                                 ctxMenu.targetApp = null;
+                            }
+                        }
+                    }
+
+                    Rectangle {
+                        Layout.fillWidth: true
+                        implicitHeight: 1
+                        color: Colors.surfaceContainerHighest
+                        visible: appLauncher.customSections.length > 0
+                    }
+
+                    // Add to each existing custom section (where app is not yet added)
+                    Repeater {
+                        model: appLauncher.customSections
+
+                        delegate: Rectangle {
+                            Layout.fillWidth: true
+                            implicitHeight: visible ? 42 : 0
+                            visible: ctxMenu.targetApp ? !((modelData.items ?? modelData.apps ?? []).includes(ctxMenu.targetApp.id)) : false
+                            color: "transparent"
+
+                            RowLayout {
+                                anchors.fill: parent
+                                anchors.leftMargin: 12
+                                anchors.rightMargin: 12
+                                spacing: 10
+                                MaterialIconSymbol {
+                                    content: "folder"
+                                    iconSize: 16
+                                    customColor: Colors.outline
+                                }
+                                CustomText {
+                                    Layout.fillWidth: true
+                                    content: "Add to " + modelData.name
+                                    size: 13
+                                }
+                            }
+
+                            RippleEffect {
+                                anchors.fill: parent
+                                onClicked: {
+                                    appLauncher.addAppToSection(ctxMenu.targetApp, modelData.name);
+                                    ctxMenu.targetApp = null;
+                                }
+                            }
+                        }
+                    }
+
+                    // New section
+                    Rectangle {
+                        Layout.fillWidth: true
+                        implicitHeight: 42
+                        color: "transparent"
+
+                        RowLayout {
+                            anchors.fill: parent
+                            anchors.leftMargin: 12
+                            anchors.rightMargin: 12
+                            spacing: 10
+                            MaterialIconSymbol {
+                                content: "add_circle"
+                                iconSize: 16
+                                customColor: Colors.primary
+                            }
+                            CustomText {
+                                Layout.fillWidth: true
+                                content: "New section…"
+                                size: 13
+                            }
+                        }
+
+                        RippleEffect {
+                            anchors.fill: parent
+                            onClicked: {
+                                appLauncher.openSectionDialog("create", "", ctxMenu.targetApp);
+                                ctxMenu.targetApp = null;
+                            }
+                        }
+                    }
+
+                    Rectangle {
+                        Layout.fillWidth: true
+                        implicitHeight: 1
+                        color: Colors.surfaceContainerHighest
+                        visible: ctxMenu.targetApp ? appLauncher.sectionsOfApp(ctxMenu.targetApp).length > 0 : false
+                    }
+
+                    // Remove from custom sections
+                    Repeater {
+                        model: ctxMenu.targetApp ? appLauncher.sectionsOfApp(ctxMenu.targetApp) : []
+
+                        delegate: Rectangle {
+                            Layout.fillWidth: true
+                            implicitHeight: 42
+                            color: "transparent"
+
+                            RowLayout {
+                                anchors.fill: parent
+                                anchors.leftMargin: 12
+                                anchors.rightMargin: 12
+                                spacing: 10
+                                MaterialIconSymbol {
+                                    content: "remove"
+                                    iconSize: 16
+                                    customColor: Colors.outline
+                                }
+                                CustomText {
+                                    Layout.fillWidth: true
+                                    content: "Remove from " + modelData
+                                    size: 13
+                                }
+                            }
+
+                            RippleEffect {
+                                anchors.fill: parent
+                                onClicked: {
+                                    appLauncher.removeAppFromSection(ctxMenu.targetApp, modelData);
+                                    ctxMenu.targetApp = null;
+                                }
                             }
                         }
                     }

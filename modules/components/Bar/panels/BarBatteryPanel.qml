@@ -477,8 +477,9 @@ Item {
         }
 
         Item {
+            visible: ServiceUPower.ppdAvailable
             Layout.fillWidth: true
-            Layout.preferredHeight: 52
+            Layout.preferredHeight: visible ? 52 : 0
 
             M3ButtonGroup {
                 anchors.left: parent.left

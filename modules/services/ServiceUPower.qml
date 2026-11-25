@@ -29,10 +29,10 @@ Singleton{
     ]
     readonly property var availableProfiles: root.powerProfiles
         .map((p, i) => ({ id: i, name: p.name, icon: p.icon, description: p.description }))
-        .filter(p => p.id !== 2 || PowerProfiles.hasPerformanceProfile)
-    property var powerProfile: PowerProfiles.profile
+        .filter(p => p.id !== 2 || root.hasPerformanceProfile)
+    property var powerProfile: PowerProfiles.profile ?? 1
     property string powerProfileIcon: powerProfile === 0 ? "energy_savings_leaf" : powerProfile === 2 ? "rocket_launch" : "balance"
-    readonly property bool hasPerformanceProfile: PowerProfiles.hasPerformanceProfile
+    property bool hasPerformanceProfile: PowerProfiles.hasPerformanceProfile || false
 
     property bool ppdAvailable: false
 
@@ -69,10 +69,36 @@ Singleton{
 
     Process {
         id: ppdCheck
-        command: ["sh", "-c", "busctl get-property org.freedesktop.UPower.PowerProfiles /org/freedesktop/UPower/PowerProfiles org.freedesktop.UPower.PowerProfiles ActiveProfile >/dev/null 2>&1 || busctl get-property net.hadess.PowerProfiles /net/hadess/PowerProfiles net.hadess.PowerProfiles ActiveProfile >/dev/null 2>&1"]
+        command: ["sh", "-c", "act=$(busctl get-property org.freedesktop.UPower.PowerProfiles /org/freedesktop/UPower/PowerProfiles org.freedesktop.UPower.PowerProfiles ActiveProfile 2>/dev/null || busctl get-property net.hadess.PowerProfiles /net/hadess/PowerProfiles net.hadess.PowerProfiles ActiveProfile 2>/dev/null); profs=$(busctl get-property org.freedesktop.UPower.PowerProfiles /org/freedesktop/UPower/PowerProfiles org.freedesktop.UPower.PowerProfiles Profiles 2>/dev/null || busctl get-property net.hadess.PowerProfiles /net/hadess/PowerProfiles net.hadess.PowerProfiles Profiles 2>/dev/null); echo \"$act|$profs\""]
         running: true
+        stdout: SplitParser {
+            onRead: data => {
+                const parts = data.trim().split("|");
+                if (parts.length >= 2) {
+                    const actStr = parts[0];
+                    const profsStr = parts[1];
+                    root.ppdAvailable = actStr.length > 0;
+                    if (profsStr.includes("performance"))
+                        root.hasPerformanceProfile = true;
+                    if (actStr.includes("power-saver"))
+                        root.powerProfile = 0;
+                    else if (actStr.includes("performance"))
+                        root.powerProfile = 2;
+                    else if (actStr.includes("balanced"))
+                        root.powerProfile = 1;
+                }
+            }
+        }
         onExited: exitCode => {
-            root.ppdAvailable = (exitCode === 0);
+            if (exitCode !== 0)
+                root.ppdAvailable = false;
+        }
+    }
+
+    Process {
+        id: setProfileProc
+        onExited: {
+            ppdCheck.running = true;
         }
     }
 
@@ -88,9 +114,12 @@ Singleton{
         ignoreUnknownSignals: true
         function onProfileChanged() {
             root.ppdAvailable = true;
+            root.powerProfile = PowerProfiles.profile;
         }
         function onHasPerformanceProfileChanged() {
             root.ppdAvailable = true;
+            if (PowerProfiles.hasPerformanceProfile)
+                root.hasPerformanceProfile = true;
         }
         function onHoldsChanged() {
             root.ppdAvailable = true;
@@ -145,8 +174,18 @@ Singleton{
     }
     property string timeToFull: formatTime(UPower.displayDevice.timeToFull)
     property real changeRate: UPower.displayDevice.changeRate
-    function setPowerProfile(value){
-        PowerProfiles.profile = value
+    function setPowerProfile(value) {
+        root.powerProfile = value;
+        try {
+            PowerProfiles.profile = value;
+        } catch (e) {}
+
+        const name = value === 0 ? "power-saver" : value === 2 ? "performance" : "balanced";
+        setProfileProc.command = ["sh", "-c",
+            "busctl set-property org.freedesktop.UPower.PowerProfiles /org/freedesktop/UPower/PowerProfiles org.freedesktop.UPower.PowerProfiles ActiveProfile s " + name + " 2>/dev/null || " +
+            "busctl set-property net.hadess.PowerProfiles /net/hadess/PowerProfiles net.hadess.PowerProfiles ActiveProfile s " + name + " 2>/dev/null"
+        ];
+        setProfileProc.running = true;
     }
 
     function formatTime(seconds) {

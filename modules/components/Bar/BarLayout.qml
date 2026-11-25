@@ -102,7 +102,7 @@ Singleton {
         const right = ["rec", "tray"];
         if (g.barWeather ?? true)
             right.push("weather");
-        right.push("volume", "wifi", "bluetooth", "notifications", "battery");
+        right.push("volume", "wifi", "bluetooth", "keyboard", "notifications", "battery");
         return [
             {
                 id: "left",

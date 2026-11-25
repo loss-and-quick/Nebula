@@ -291,9 +291,7 @@ Item {
                     opacity: shelfIcon.entering ? Math.min(1, root.enterProgress * 1.6) : 1
                     readonly property real grow: shelfIcon.entering ? 0.55 + 0.45 * root.enterProgress : 1
 
-                    readonly property string symbol: shelfIcon.resolveSymbol(modelData.appIcon, modelData.appName)
-
-                    readonly property string symbol: IconUtil.notificationSymbol(shelf.latest?.appIcon, shelf.group?.appName)
+                    readonly property string symbol: IconUtil.notificationSymbol(shelfIcon.modelData.appIcon, shelfIcon.modelData.appName)
 
                     width: Math.round(22 * shelfIcon.grow)
                     height: width

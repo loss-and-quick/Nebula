@@ -57,6 +57,8 @@ def capture(only=None) -> dict:
     out = {}
     if "bar" in want and "bar" in s:
         out["bar"] = {"bar": s["bar"], "general": {k: g[k] for k in DOCK_KEYS if k in g}}
+        if "dock" in s:
+            out["bar"]["dock"] = s["dock"]
     if "widgets" in want and "widgets" in s:
         out["widgets"] = {k: v for k, v in s["widgets"].items() if k not in WIDGET_DATA}
     if "dashboard" in want and "dashboard" in s:
@@ -199,6 +201,8 @@ def _patch(sections: dict, want: set) -> tuple:
     if "bar" in want and "bar" in sections:
         if "bar" in sections["bar"]:
             patch["bar"] = sections["bar"]["bar"]
+        if "dock" in sections["bar"]:
+            patch["dock"] = sections["bar"]["dock"]
         general.update(sections["bar"].get("general") or {})
         applied.append("bar")
     if "widgets" in want and "widgets" in sections:

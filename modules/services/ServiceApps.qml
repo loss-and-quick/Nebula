@@ -105,15 +105,23 @@ Singleton {
         interval: 150
         onTriggered: root.rebuildList()
     }
+
+    readonly property var currentPinnedApps: {
+        const d = SettingsConfig.dock?.pinnedApps;
+        if (d && (Array.isArray(d) || typeof d.length === "number") && d.length > 0)
+            return Array.prototype.slice.call(d);
+        return SettingsConfig.general?.pinnedApps ?? [];
+    }
+
     readonly property list<DesktopEntry> pinnedApps: {
-        const pins = new Set(SettingsConfig.general.pinnedApps);
+        const pins = new Set(root.currentPinnedApps);
         return list.filter(app => pins.has(app.id));
     }
 
     readonly property var dockModel: {
         const map = new Map();
 
-        for (const id of SettingsConfig.general.pinnedApps) {
+        for (const id of root.currentPinnedApps) {
             map.set(id.toLowerCase(), {
                 appId: id,
                 pinned: true,
@@ -199,21 +207,28 @@ Singleton {
         return true;
     }
 
+    function _setPinned(nextList) {
+        SettingsConfig.general = Object.assign({}, SettingsConfig.general, {
+            pinnedApps: nextList
+        });
+        if (SettingsConfig.dock) {
+            SettingsConfig.dock = Object.assign({}, SettingsConfig.dock, {
+                pinnedApps: nextList
+            });
+        }
+    }
+
     function isPinned(app): bool {
-        return SettingsConfig.general.pinnedApps.includes(app.id);
+        return root.currentPinnedApps.includes(app.id);
     }
 
     function pin(app): void {
-        if (!SettingsConfig.general.pinnedApps.includes(app.id))
-            SettingsConfig.general = Object.assign({}, SettingsConfig.general, {
-                pinnedApps: [...SettingsConfig.general.pinnedApps, app.id]
-            });
+        if (!root.currentPinnedApps.includes(app.id))
+            root._setPinned([...root.currentPinnedApps, app.id]);
     }
 
     function unpin(app): void {
-        SettingsConfig.general = Object.assign({}, SettingsConfig.general, {
-            pinnedApps: SettingsConfig.general.pinnedApps.filter(id => id !== app.id)
-        });
+        root._setPinned(root.currentPinnedApps.filter(id => id !== app.id));
     }
 
     function togglePin(app): void {
@@ -224,24 +239,18 @@ Singleton {
     }
 
     function isPinnedById(appId: string): bool {
-        return SettingsConfig.general.pinnedApps.some(id => id.toLowerCase() === appId.toLowerCase());
+        return root.currentPinnedApps.some(id => id.toLowerCase() === appId.toLowerCase());
     }
 
     function togglePinById(appId: string): void {
         if (isPinnedById(appId))
-            SettingsConfig.general = Object.assign({}, SettingsConfig.general, {
-                pinnedApps: SettingsConfig.general.pinnedApps.filter(id => id.toLowerCase() !== appId.toLowerCase())
-            });
+            root._setPinned(root.currentPinnedApps.filter(id => id.toLowerCase() !== appId.toLowerCase()));
         else
-            SettingsConfig.general = Object.assign({}, SettingsConfig.general, {
-                pinnedApps: [...SettingsConfig.general.pinnedApps, appId]
-            });
+            root._setPinned([...root.currentPinnedApps, appId]);
     }
 
     function movePin(appId: string, index: int): void {
-        SettingsConfig.general = Object.assign({}, SettingsConfig.general, {
-            pinnedApps: BarOps.movePin(SettingsConfig.general.pinnedApps, appId, index)
-        });
+        root._setPinned(BarOps.movePin(root.currentPinnedApps, appId, index));
     }
 
     function pinById(appId: string): void {
@@ -294,8 +303,9 @@ Singleton {
     function spawn(command, workingDirectory): void {
         if (!command || command.length === 0)
             return;
+        const cleanCmd = Array.from(command).filter(arg => typeof arg === "string" && !arg.match(/^%[fFuUdDnNickvm]$/));
         Quickshell.execDetached({
-            command: Array.from(command),
+            command: cleanCmd.length > 0 ? cleanCmd : Array.from(command),
             environment: {
                 LD_PRELOAD: null
             },

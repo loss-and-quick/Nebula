@@ -46,9 +46,32 @@ function sanitize(blocks, legacy, entryOf, anchors) {
         })
     }
     const lg = legacy ?? {}
-    if (!lg.migrated && !out.some(b => b.edge === "bottom")) {
+    const dockIdx = out.findIndex(b => b.edge === "bottom" || b.id === "dock")
+    if (lg.dockItems && lg.dockItems.length > 0) {
         const items = []
-        for (const i of (lg.dockItems ?? defaultDock(lg.musicOn ?? true))) {
+        for (const i of lg.dockItems) {
+            if (seen[i] || !entryOf(i))
+                continue
+            seen[i] = true
+            items.push(i)
+        }
+        if (dockIdx >= 0) {
+            out[dockIdx].items = items
+            if (lg.dockAnchor && anchors.indexOf(lg.dockAnchor) >= 0)
+                out[dockIdx].anchor = lg.dockAnchor
+            if (lg.dockEdge)
+                out[dockIdx].edge = normSide(lg.dockEdge, "bottom")
+        } else {
+            out.push({
+                id: uniqueId(ids, "dock"),
+                anchor: (lg.dockAnchor && anchors.indexOf(lg.dockAnchor) >= 0) ? lg.dockAnchor : "center",
+                edge: lg.dockEdge ? normSide(lg.dockEdge, "bottom") : "bottom",
+                items: items
+            })
+        }
+    } else if (dockIdx < 0 && !lg.migrated) {
+        const items = []
+        for (const i of defaultDock(lg.musicOn ?? true)) {
             if (seen[i] || !entryOf(i))
                 continue
             seen[i] = true

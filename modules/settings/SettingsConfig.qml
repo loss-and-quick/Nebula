@@ -24,6 +24,7 @@ Singleton {
     property alias lockscreen: settingsAdapter.lockscreen
     property alias greeter: settingsAdapter.greeter
     property alias bar: settingsAdapter.bar
+    property alias dock: settingsAdapter.dock
     property alias hypr: settingsAdapter.hypr
     property alias features: settingsAdapter.features
 
@@ -1006,6 +1007,17 @@ Singleton {
                     itemGap: 6,
                     blockGap: -1,
                     radius: 18
+                })
+
+            property var dock: ({
+                    items: ["launcher", "separator#dock", "dockApps", "dockMusic"],
+                    anchor: "center",
+                    edge: "bottom",
+                    pinnedApps: [],
+                    height: 60,
+                    iconSize: 32,
+                    autoHide: true,
+                    dim: false
                 })
 
             property var hypr: ({

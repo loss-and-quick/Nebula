@@ -140,7 +140,7 @@ Singleton {
         return value;
     }
 
-    readonly property var dockConfig: root._stable("dockConfig", (SettingsConfig.bar ?? {}).dock ?? ({}))
+    readonly property var dockConfig: root._stable("dockConfig", Object.assign({}, (SettingsConfig.bar ?? {}).dock ?? ({}), SettingsConfig.dock ?? ({})))
 
     function _list(v) {
         return (v !== undefined && v !== null && typeof v.length === "number") ? Array.prototype.slice.call(v) : undefined;
@@ -349,6 +349,8 @@ Singleton {
         const clean = BarOps.sanitize((saved && saved.length) ? saved : root.defaultBlocks(), {
             migrated: root.edgeV2 || root.dockConfig.edgeModel === true,
             dockItems: root._list(root.dockConfig.items),
+            dockAnchor: root.dockConfig.anchor,
+            dockEdge: root.dockConfig.edge ?? root.dockConfig.side,
             musicOn: (SettingsConfig.general ?? {}).dockMusicPlayer ?? true
         }, id => root.entry(id), root.anchorNames);
         return root._stable("storedBlocks", BarOps.upgradeBlocks(clean, SettingsConfig.bar));
@@ -566,14 +568,20 @@ Singleton {
     }
 
     function _statePatch(list) {
+        const dockBlk = list.find(b => b.edge === "bottom" || b.id === "dock");
         const d = Object.assign({}, root.dockConfig, {
             edgeModel: true
         });
-        delete d.items;
+        if (dockBlk && dockBlk.items)
+            d.items = root._list(dockBlk.items);
         const patch = Object.assign(root._v2Base(), {
             blocks: list,
             dock: d
         });
+        if (SettingsConfig.dock && dockBlk && dockBlk.items)
+            SettingsConfig.dock = Object.assign({}, SettingsConfig.dock, {
+                items: root._list(dockBlk.items)
+            });
         const groups = root._prunedGroups(list);
         if (groups)
             patch.groups = groups;

@@ -40,10 +40,130 @@ Flickable {
         CustomText {
             Layout.fillWidth: true
             Layout.bottomMargin: 4
-            content: "Modes"
+            content: "Power Modes"
             size: 17
             weight: 700
             horizontalAlignment: Text.AlignHCenter
+        }
+
+        // Degradation warning banner (thermal throttling, lap detected)
+        Rectangle {
+            visible: ServiceUPower.isDegraded
+            Layout.fillWidth: true
+            implicitHeight: 44
+            radius: 14
+            color: Qt.alpha(Colors.error, 0.15)
+
+            RowLayout {
+                anchors.fill: parent
+                anchors.leftMargin: 12
+                anchors.rightMargin: 12
+                spacing: 10
+
+                MaterialIconSymbol {
+                    content: "warning"
+                    iconSize: 18
+                    customColor: Colors.error
+                }
+
+                CustomText {
+                    Layout.fillWidth: true
+                    content: ServiceUPower.degradationText
+                    size: 11
+                    weight: 600
+                    customColor: Colors.error
+                    elide: Text.ElideRight
+                }
+            }
+        }
+
+        // Active profile holds (e.g. Steam, game, render tool)
+        Repeater {
+            model: ServiceUPower.holds
+            delegate: Rectangle {
+                required property var modelData
+                Layout.fillWidth: true
+                implicitHeight: 44
+                radius: 14
+                color: Qt.alpha(Colors.primary, 0.12)
+
+                RowLayout {
+                    anchors.fill: parent
+                    anchors.leftMargin: 12
+                    anchors.rightMargin: 12
+                    spacing: 10
+
+                    MaterialIconSymbol {
+                        content: "lock"
+                        iconSize: 16
+                        customColor: Colors.primary
+                    }
+
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 1
+
+                        CustomText {
+                            Layout.fillWidth: true
+                            content: "Held by " + (modelData.applicationId || "Application")
+                            size: 11
+                            weight: 700
+                            customColor: Colors.primary
+                            elide: Text.ElideRight
+                        }
+
+                        CustomText {
+                            visible: modelData.reason.length > 0
+                            Layout.fillWidth: true
+                            content: modelData.reason
+                            size: 10
+                            customColor: Colors.outline
+                            elide: Text.ElideRight
+                        }
+                    }
+                }
+            }
+        }
+
+        // PPD not active warning
+        Rectangle {
+            visible: !ServiceUPower.ppdAvailable
+            Layout.fillWidth: true
+            implicitHeight: noPpdCol.implicitHeight + 20
+            radius: 16
+            color: Qt.alpha(Colors.outline, 0.1)
+
+            ColumnLayout {
+                id: noPpdCol
+                anchors.centerIn: parent
+                width: parent.width - 24
+                spacing: 4
+
+                MaterialIconSymbol {
+                    Layout.alignment: Qt.AlignHCenter
+                    content: "power_off"
+                    iconSize: 24
+                    customColor: Colors.outline
+                }
+
+                CustomText {
+                    Layout.fillWidth: true
+                    horizontalAlignment: Text.AlignHCenter
+                    content: "Power Profiles daemon is inactive"
+                    size: 12
+                    weight: 700
+                    customColor: Colors.surfaceText
+                }
+
+                CustomText {
+                    Layout.fillWidth: true
+                    horizontalAlignment: Text.AlignHCenter
+                    content: "Enable power-profiles-daemon service to switch power modes."
+                    size: 10
+                    customColor: Colors.outline
+                    wrapMode: Text.WordWrap
+                }
+            }
         }
 
         Repeater {
@@ -101,9 +221,9 @@ Flickable {
 
                         CustomText {
                             Layout.fillWidth: true
-                            content: modeRow.active ? "On" : (root.descriptions[modeRow.modelData.id] ?? "Off")
+                            content: modeRow.active ? "Active" : (modeRow.modelData.description || root.descriptions[modeRow.modelData.id] || "Off")
                             size: 11
-                            customColor: Colors.outline
+                            customColor: modeRow.active ? Colors.primary : Colors.outline
                             elide: Text.ElideRight
                         }
                     }

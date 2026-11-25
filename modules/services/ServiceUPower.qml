@@ -13,22 +13,89 @@ Singleton{
     property var powerProfiles:[
         {
             name: "Saver",
-            icon: "energy_savings_leaf"
+            icon: "energy_savings_leaf",
+            description: "Lowest power draw and battery saver"
         },
         {
             name: "Balanced",
-            icon: "balance"
+            icon: "balance",
+            description: "Default balance between power and battery"
         },
         {
             name: "Performance",
-            icon: "rocket_launch"
+            icon: "rocket_launch",
+            description: "Maximum performance and responsiveness"
         }
     ]
     readonly property var availableProfiles: root.powerProfiles
-        .map((p, i) => ({ id: i, name: p.name, icon: p.icon }))
+        .map((p, i) => ({ id: i, name: p.name, icon: p.icon, description: p.description }))
         .filter(p => p.id !== 2 || PowerProfiles.hasPerformanceProfile)
     property var powerProfile: PowerProfiles.profile
-    property string powerProfileIcon: powerProfile === 0 ? "leaf" : "balance" 
+    property string powerProfileIcon: powerProfile === 0 ? "energy_savings_leaf" : powerProfile === 2 ? "rocket_launch" : "balance"
+    readonly property bool hasPerformanceProfile: PowerProfiles.hasPerformanceProfile
+
+    property bool ppdAvailable: false
+
+    readonly property var holds: {
+        const raw = PowerProfiles.holds;
+        if (!raw || !raw.length)
+            return [];
+        const out = [];
+        for (let i = 0; i < raw.length; i++) {
+            const h = raw[i];
+            out.push({
+                applicationId: h.applicationId ?? "",
+                profile: h.profile,
+                reason: h.reason ?? "",
+                profileName: root.powerProfiles[h.profile]?.name ?? "Unknown"
+            });
+        }
+        return out;
+    }
+    readonly property bool hasHolds: root.holds.length > 0
+
+    readonly property int degradationReason: PowerProfiles.degradationReason
+    readonly property bool isDegraded: root.degradationReason !== 0
+    readonly property string degradationText: {
+        switch (root.degradationReason) {
+        case 1:
+            return "Lap detected — performance reduced for skin safety";
+        case 2:
+            return "High temperature — performance throttled";
+        default:
+            return "";
+        }
+    }
+
+    Process {
+        id: ppdCheck
+        command: ["sh", "-c", "busctl get-property org.freedesktop.UPower.PowerProfiles /org/freedesktop/UPower/PowerProfiles org.freedesktop.UPower.PowerProfiles ActiveProfile >/dev/null 2>&1 || busctl get-property net.hadess.PowerProfiles /net/hadess/PowerProfiles net.hadess.PowerProfiles ActiveProfile >/dev/null 2>&1"]
+        running: true
+        onExited: exitCode => {
+            root.ppdAvailable = (exitCode === 0);
+        }
+    }
+
+    Timer {
+        interval: 10000
+        repeat: true
+        running: true
+        onTriggered: ppdCheck.running = true
+    }
+
+    Connections {
+        target: PowerProfiles
+        ignoreUnknownSignals: true
+        function onProfileChanged() {
+            root.ppdAvailable = true;
+        }
+        function onHasPerformanceProfileChanged() {
+            root.ppdAvailable = true;
+        }
+        function onHoldsChanged() {
+            root.ppdAvailable = true;
+        }
+    } 
     property real powerLevel: UPower.displayDevice.percentage
     property bool isCharging: UPowerDeviceState.Charging === UPower.displayDevice.state
     property real health: 0

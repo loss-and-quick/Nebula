@@ -10,7 +10,7 @@ Item {
 
     property Item host: null
     property string itemId: ""
-    readonly property bool shown: true
+    readonly property bool shown: ServiceUPower.ppdAvailable
     readonly property bool iconSizable: true
     readonly property real box: BarLayout.boxFor(root.itemId, root.host)
     readonly property real iconPx: BarLayout.iconPxFor(root.itemId, root.box, 18)
@@ -89,6 +89,8 @@ Item {
 
         CustomToolTip {
             content: root.entry.name + " mode"
+                     + (ServiceUPower.isDegraded ? " (" + ServiceUPower.degradationText + ")" : "")
+                     + (ServiceUPower.hasHolds ? " · Held by " + ServiceUPower.holds[0].applicationId : "")
             visible: hov.containsMouse && !root.showLabel
         }
     }

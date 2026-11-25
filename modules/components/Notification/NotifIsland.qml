@@ -245,26 +245,40 @@ Item {
         }
 
         Rectangle {
+            id: iconRect
             anchors.fill: parent
             visible: av.img === ""
             radius: av.box / 2
             color: av.tile
+
+            readonly property string symbol: {
+                const ic = (av.notif?.appIcon || "").toLowerCase();
+                const ap = (av.notif?.appName || "").toLowerCase();
+                if (ic.includes("camera-photo") || ap.includes("screenshot")) return "photo_camera";
+                if (ic.includes("camera-video") || ap.includes("record")) return "screen_record";
+                if (ic.includes("dialog-error") || ic.includes("error")) return "error_outline";
+                if (ic.includes("bluetooth")) return "bluetooth";
+                if (ic.includes("network") || ic.includes("wifi")) return "wifi";
+                if (ic.includes("battery")) return "battery_std";
+                if (ic.includes("volume") || ic.includes("audio")) return "volume_up";
+                return "";
+            }
 
             Image {
                 id: appIcon
                 anchors.centerIn: parent
                 width: av.box * 0.62
                 height: width
-                source: (av.notif?.appIcon || av.notif?.appName) ? IconUtil.getIconPath(av.notif.appIcon || av.notif.appName, "") : ""
+                source: iconRect.symbol !== "" ? "" : ((av.notif?.appIcon || av.notif?.appName) ? IconUtil.getIconPath(av.notif.appIcon || av.notif.appName, "") : "")
                 sourceSize: Qt.size(av.box * 2, av.box * 2)
                 fillMode: Image.PreserveAspectFit
-                visible: status === Image.Ready
+                visible: iconRect.symbol === "" && status === Image.Ready
             }
 
             MaterialIconSymbol {
                 anchors.centerIn: parent
-                visible: appIcon.status !== Image.Ready
-                content: av.notif?.isCritical ? "priority_high" : "notifications"
+                visible: iconRect.symbol !== "" || appIcon.status !== Image.Ready
+                content: iconRect.symbol !== "" ? iconRect.symbol : (av.notif?.isCritical ? "priority_high" : "notifications")
                 iconSize: av.box * 0.52
                 customColor: av.tileInk
             }

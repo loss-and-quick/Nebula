@@ -120,7 +120,7 @@ Singleton{
                 "Battery",
                 "Charging - " + Math.round(powerLevel * 100) + "%",
                 "Battery",
-                "battery_charging_full"
+                "battery"
             )
         } else {
             //Quickshell.execDetached(["notify-send", "-i", "battery_full", "Battery", "Unplugged — " + Math.round(powerLevel) + "%"])
@@ -128,7 +128,7 @@ Singleton{
                 "Battery",
                 "Unplugged - " + Math.round(powerLevel * 100) + "%",
                 "Battery",
-                "battery_full"
+                "battery"
             )
         }
     }

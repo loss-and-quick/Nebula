@@ -57,7 +57,11 @@ Item {
     }
 
     function themeIcon(name, fallback) {
-        const file = KindleMode.recolorIcons ? greyIndex[name ?? ""] : colourIndex[name ?? ""]
+        if (!name)
+            return ""
+        if (name.startsWith("file://") || name.startsWith("/"))
+            return name
+        const file = KindleMode.recolorIcons ? greyIndex[name] : colourIndex[name]
         if (file)
             return "file://" + file
         return fallback === undefined ? Quickshell.iconPath(name) : Quickshell.iconPath(name, fallback)
@@ -82,7 +86,6 @@ Item {
             "zen": "zen-browser",
             "emblem-mail": "telegram",
             "quickshell": "Quickshell"
-
         }
 
         if (!windowClass) return ""
@@ -96,7 +99,10 @@ Item {
     }
 
     function getIconPath(windowClass, fallback = "application-x-executable") {
-        return themeIcon(getIconName(windowClass), fallback)
+        const icon = windowClass ?? ""
+        if (icon.startsWith("file://") || icon.startsWith("/"))
+            return icon
+        return themeIcon(getIconName(icon), fallback)
     }
 
     function getDesktopIconPath(iconName, fallback = "application-x-executable") {

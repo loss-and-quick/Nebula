@@ -250,20 +250,45 @@ Item {
                         Keys.onEnterPressed: popup.choose(listView.currentIndex)
                         Keys.onEscapePressed: popup.close()
 
-                        delegate: M3ItemDelegate {
+                        delegate: Rectangle {
                             id: row
                             required property var modelData
                             required property int index
                             readonly property bool selected: row.index === root.selectedIndex
+                            readonly property bool keyboardFocused: listView.activeFocus && row.index === listView.currentIndex
                             width: ListView.view.width
                             height: popup.itemH
-                            padding: 6
-                            icon: row.modelData?.icon ?? ""
-                            label: row.modelData?.name ?? ""
-                            highlighted: row.selected || (listView.activeFocus && row.index === listView.currentIndex)
+                            radius: 10
+                            color: row.selected ? Qt.alpha(Colors.primary, 0.16)
+                                 : rowArea.containsMouse || row.keyboardFocused ? Qt.alpha(Colors.surfaceText, 0.08)
+                                 : "transparent"
+                            Behavior on color { EffectsColorAnim {} }
+
                             readonly property real delay: Math.min(8, Math.max(0, (row.y - listView.contentY) / (popup.itemH + popup.gap))) * 0.06
                             opacity: Math.max(0, Math.min(1, (popup.reveal - row.delay) / 0.5))
-                            trailingComponent: Component {
+
+                            RowLayout {
+                                anchors.fill: parent
+                                anchors.leftMargin: 12
+                                anchors.rightMargin: 12
+                                spacing: 10
+
+                                MaterialIconSymbol {
+                                    visible: !!row.modelData?.icon
+                                    content: row.modelData?.icon ?? ""
+                                    iconSize: 18
+                                    customColor: row.selected ? Colors.primary : Colors.surfaceText
+                                }
+
+                                CustomText {
+                                    Layout.fillWidth: true
+                                    content: row.modelData?.name ?? ""
+                                    size: 13
+                                    weight: row.selected ? 600 : 400
+                                    elide: Text.ElideRight
+                                    customColor: row.selected ? Colors.primary : Colors.surfaceText
+                                }
+
                                 MaterialIconSymbol {
                                     visible: row.selected
                                     content: "check"
@@ -271,8 +296,15 @@ Item {
                                     customColor: Colors.primary
                                 }
                             }
-                            onHoveredChanged: if (hovered) listView.currentIndex = row.index
-                            onClicked: popup.choose(row.index)
+
+                            MouseArea {
+                                id: rowArea
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onEntered: listView.currentIndex = row.index
+                                onClicked: popup.choose(row.index)
+                            }
                         }
                     }
                 }

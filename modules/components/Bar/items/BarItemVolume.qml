@@ -42,13 +42,25 @@ Item {
     readonly property bool sideNum: root.vertical && !root.sideCompact && BarLayout.opt(root.itemId, "showPercent") !== false && !ServicePipewire.muted && !root.cookie
     readonly property bool verticalReady: root.vertical
 
+    readonly property bool isPanelOpen: !!root.host && (root.host.panelKind === "sound" || root.host.shownKind === "sound")
+    property real lockedWidth: 0
+
+    onIsPanelOpenChanged: {
+        if (isPanelOpen)
+            root.lockedWidth = volPill.width;
+        else
+            root.lockedWidth = 0;
+    }
+
     implicitWidth: volPill.width
     implicitHeight: volPill.height
 
     Rectangle {
         id: volPill
         anchors.verticalCenter: parent.verticalCenter
-        width: root.bigCookie ? root.host.barH : root.vertical ? Math.max(root.plate, volRow.implicitWidth + 8) : volRow.implicitWidth + root.padPx
+        width: root.isPanelOpen && root.lockedWidth > 0
+            ? root.lockedWidth
+            : (root.bigCookie ? root.host.barH : root.vertical ? Math.max(root.plate, volRow.implicitWidth + 8) : volRow.implicitWidth + root.padPx)
         height: root.bigCookie ? root.host.barH : root.sideNum ? volRow.implicitHeight + 8 : root.plate
         radius: Math.min(width, height) / 2
         color: root.plateless || root.cookie ? Qt.alpha(root.plateColor, 0) : root.plateColor
@@ -102,6 +114,8 @@ Item {
             CustomText {
                 visible: BarLayout.opt(root.itemId, "showPercent") !== false && !root.vertical && !root.cookie
                 Layout.alignment: Qt.AlignHCenter
+                Layout.preferredWidth: Math.max(implicitWidth, Math.round(root.labelPx * 2.8))
+                horizontalAlignment: Text.AlignHCenter
                 content: ServicePipewire.muted ? "Muted" : Math.round(ServicePipewire.volume * 100) + (root.vertical ? "" : "%")
                 size: root.vertical ? root.labelPx - 2 : root.labelPx
                 weight: 700

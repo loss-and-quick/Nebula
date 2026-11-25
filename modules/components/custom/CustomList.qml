@@ -109,18 +109,33 @@ Rectangle {
 
                     delegate: Rectangle {
                         implicitWidth: ListView.view.width
-                        implicitHeight: 20
-                        radius: 5
-                        color: root.shownVal === modelData.description ? Colors.primary : area.containsMouse ? Qt.alpha(Colors.primary, 0.5) : "transparent"
-                        CustomText {
-                            anchors.left: parent.left
-                            anchors.verticalCenter: parent.verticalCenter
-                            anchors.leftMargin: 5
-                            content: modelData.description
-                            width: parent.width
-                            size: 12
-                            weight: 600
-                            color: root.shownVal === modelData.description ? Colors.primaryText : Colors.surfaceVariantText
+                        implicitHeight: 32
+                        radius: 8
+                        readonly property bool isSelected: root.shownVal === modelData.description
+                        color: isSelected ? Qt.alpha(Colors.primary, 0.16) : area.containsMouse ? Qt.alpha(Colors.surfaceText, 0.08) : "transparent"
+                        Behavior on color { EffectsColorAnim {} }
+
+                        RowLayout {
+                            anchors.fill: parent
+                            anchors.leftMargin: 8
+                            anchors.rightMargin: 8
+                            spacing: 8
+
+                            CustomText {
+                                Layout.fillWidth: true
+                                content: modelData.description
+                                size: 12
+                                weight: isSelected ? 600 : 400
+                                elide: Text.ElideRight
+                                customColor: isSelected ? Colors.primary : Colors.surfaceText
+                            }
+
+                            MaterialIconSymbol {
+                                visible: isSelected
+                                content: "check"
+                                iconSize: 16
+                                customColor: Colors.primary
+                            }
                         }
 
                         MouseArea {

@@ -687,9 +687,8 @@ Item {
                                 id: sectionHeader
                                 visible: entry.modelData.header !== ""
                                 width: parent.width
-                                leftPadding: 6
-                                bottomPadding: 6
                                 implicitHeight: 26
+                                radius: 8
                                 color: entry.modelData.isCustomSection && sectionHeaderHover.hovered ? Qt.alpha(Colors.primary, 0.08) : "transparent"
                                 Behavior on color {
                                     EffectsColorAnim {}
@@ -697,6 +696,7 @@ Item {
 
                                 CustomText {
                                     anchors.left: parent.left
+                                    anchors.leftMargin: 6
                                     anchors.right: moreIcon.left
                                     anchors.verticalCenter: parent.verticalCenter
                                     content: entry.modelData.header

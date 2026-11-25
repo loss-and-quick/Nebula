@@ -9,7 +9,7 @@ Rectangle {
 
     property Item host: null
     property string itemId: ""
-    readonly property bool shown: true
+    readonly property bool shown: ServiceBluetooth.hasAdapter
     readonly property bool iconSizable: true
     readonly property real box: BarLayout.boxFor(root.itemId, root.host)
     readonly property real iconPx: BarLayout.iconPxFor(root.itemId, root.box, 18)

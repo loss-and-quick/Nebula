@@ -21,6 +21,7 @@ Singleton {
     property bool state: Bluetooth.defaultAdapter && Bluetooth.defaultAdapter.state === 1 ? true : false
 
     readonly property var adapter: Bluetooth.defaultAdapter
+    readonly property bool hasAdapter: !!Bluetooth.defaultAdapter
     property bool scanning: false
     property var pendingPair: null
 

@@ -10,29 +10,64 @@ import qs.modules.utils
 
 Singleton{
     id: root
-    property var powerProfiles:[
-        {
+    readonly property var profileMetadata: ({
+        "power-saver": {
+            id: 0,
             name: "Saver",
             icon: "energy_savings_leaf",
             description: "Lowest power draw and battery saver"
         },
-        {
+        "balanced": {
+            id: 1,
             name: "Balanced",
             icon: "balance",
             description: "Default balance between power and battery"
         },
-        {
+        "performance": {
+            id: 2,
             name: "Performance",
             icon: "rocket_launch",
             description: "Maximum performance and responsiveness"
+        },
+        "quiet": {
+            id: 3,
+            name: "Quiet",
+            icon: "volume_mute",
+            description: "Low noise, silent fan operation"
         }
-    ]
-    readonly property var availableProfiles: root.powerProfiles
-        .map((p, i) => ({ id: i, name: p.name, icon: p.icon, description: p.description }))
-        .filter(p => p.id !== 2 || root.hasPerformanceProfile)
-    property var powerProfile: PowerProfiles.profile ?? 1
-    property string powerProfileIcon: powerProfile === 0 ? "energy_savings_leaf" : powerProfile === 2 ? "rocket_launch" : "balance"
-    property bool hasPerformanceProfile: PowerProfiles.hasPerformanceProfile || false
+    })
+
+    function profileEntry(name, index) {
+        const key = (name || "").toLowerCase();
+        const meta = root.profileMetadata[key];
+        if (meta) {
+            return {
+                id: meta.id,
+                profileKey: key,
+                name: meta.name,
+                icon: meta.icon,
+                description: meta.description
+            };
+        }
+        const title = key.split(/[-_]/).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+        return {
+            id: 10 + index,
+            profileKey: key,
+            name: title,
+            icon: "speed",
+            description: title + " mode"
+        };
+    }
+
+    property var rawProfileList: ["power-saver", "balanced", "performance"]
+
+    readonly property var availableProfiles: root.rawProfileList.map((p, i) => root.profileEntry(p, i))
+    readonly property var currentProfileEntry: root.availableProfiles.find(p => p.profileKey === root.activeProfileKey || p.id === root.powerProfile) ?? root.profileEntry("balanced", 1)
+
+    property string activeProfileKey: "balanced"
+    property int powerProfile: 1
+    property string powerProfileIcon: root.currentProfileEntry.icon
+    readonly property bool hasPerformanceProfile: root.rawProfileList.includes("performance")
 
     property bool ppdAvailable: false
 
@@ -78,14 +113,20 @@ Singleton{
                     const actStr = parts[0];
                     const profsStr = parts[1];
                     root.ppdAvailable = actStr.length > 0;
-                    if (profsStr.includes("performance"))
-                        root.hasPerformanceProfile = true;
-                    if (actStr.includes("power-saver"))
-                        root.powerProfile = 0;
-                    else if (actStr.includes("performance"))
-                        root.powerProfile = 2;
-                    else if (actStr.includes("balanced"))
-                        root.powerProfile = 1;
+
+                    // Parse dynamic profiles list from D-Bus
+                    const matches = [...profsStr.matchAll(/"Profile"\s+s\s+"([^"]+)"/g)].map(m => m[1]);
+                    if (matches.length > 0)
+                        root.rawProfileList = matches;
+
+                    const activeMatch = actStr.match(/"([^"]+)"/);
+                    if (activeMatch && activeMatch[1]) {
+                        const key = activeMatch[1];
+                        root.activeProfileKey = key;
+                        const entry = root.profileMetadata[key];
+                        if (entry)
+                            root.powerProfile = entry.id;
+                    }
                 }
             }
         }
@@ -175,15 +216,27 @@ Singleton{
     property string timeToFull: formatTime(UPower.displayDevice.timeToFull)
     property real changeRate: UPower.displayDevice.changeRate
     function setPowerProfile(value) {
-        root.powerProfile = value;
+        let key = "";
+        if (typeof value === "string") {
+            key = value;
+        } else {
+            const found = root.availableProfiles.find(p => p.id === value);
+            key = found ? found.profileKey : (value === 0 ? "power-saver" : value === 2 ? "performance" : "balanced");
+        }
+
+        root.activeProfileKey = key;
+        const entry = root.profileMetadata[key];
+        if (entry)
+            root.powerProfile = entry.id;
+
         try {
-            PowerProfiles.profile = value;
+            if (entry)
+                PowerProfiles.profile = entry.id;
         } catch (e) {}
 
-        const name = value === 0 ? "power-saver" : value === 2 ? "performance" : "balanced";
         setProfileProc.command = ["sh", "-c",
-            "busctl set-property org.freedesktop.UPower.PowerProfiles /org/freedesktop/UPower/PowerProfiles org.freedesktop.UPower.PowerProfiles ActiveProfile s " + name + " 2>/dev/null || " +
-            "busctl set-property net.hadess.PowerProfiles /net/hadess/PowerProfiles net.hadess.PowerProfiles ActiveProfile s " + name + " 2>/dev/null"
+            "busctl set-property org.freedesktop.UPower.PowerProfiles /org/freedesktop/UPower/PowerProfiles org.freedesktop.UPower.PowerProfiles ActiveProfile s " + key + " 2>/dev/null || " +
+            "busctl set-property net.hadess.PowerProfiles /net/hadess/PowerProfiles net.hadess.PowerProfiles ActiveProfile s " + key + " 2>/dev/null"
         ];
         setProfileProc.running = true;
     }

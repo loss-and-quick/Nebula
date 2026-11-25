@@ -24,7 +24,7 @@ Item {
     readonly property bool showLabel: BarLayout.opt(root.itemId, "showLabel") === true
 
     readonly property int profile: ServiceUPower.powerProfile ?? 1
-    readonly property var entry: ServiceUPower.powerProfiles[root.profile] ?? ServiceUPower.powerProfiles[1]
+    readonly property var entry: ServiceUPower.currentProfileEntry
 
     implicitWidth: pill.width
     implicitHeight: root.plate

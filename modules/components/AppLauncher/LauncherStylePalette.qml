@@ -26,28 +26,23 @@ Item {
     readonly property var filters: [
         {
             value: "all",
-            label: "All",
-            icon: "dashboard"
+            label: "All"
         },
         {
             value: "apps",
-            label: "Apps",
-            icon: "grid_view"
+            label: "Apps"
         },
         {
             value: "actions",
-            label: "Actions",
-            icon: "bolt"
+            label: "Actions"
         },
         {
             value: "windows",
-            label: "Windows",
-            icon: "select_window"
+            label: "Windows"
         },
         {
             value: "shell",
-            label: "Shell",
-            icon: "tune"
+            label: "Shell"
         }
     ]
 
@@ -576,7 +571,6 @@ Item {
             Layout.preferredHeight: 36
             height: 36
             textSize: 13
-            fillWidth: true
             inactiveColor: Colors.surfaceContainerHigh
             model: root.filters
             activeCheck: value => root.filter === value

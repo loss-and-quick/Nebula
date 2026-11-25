@@ -251,18 +251,7 @@ Item {
             radius: av.box / 2
             color: av.tile
 
-            readonly property string symbol: {
-                const ic = (av.notif?.appIcon || "").toLowerCase();
-                const ap = (av.notif?.appName || "").toLowerCase();
-                if (ic.includes("camera-photo") || ap.includes("screenshot")) return "photo_camera";
-                if (ic.includes("camera-video") || ap.includes("record")) return "screen_record";
-                if (ic.includes("dialog-error") || ic.includes("error")) return "error_outline";
-                if (ic.includes("bluetooth")) return "bluetooth";
-                if (ic.includes("network") || ic.includes("wifi")) return "wifi";
-                if (ic.includes("battery")) return "battery_std";
-                if (ic.includes("volume") || ic.includes("audio")) return "volume_up";
-                return "";
-            }
+            readonly property string symbol: IconUtil.notificationSymbol(av.notif?.appIcon, av.notif?.appName)
 
             Image {
                 id: appIcon

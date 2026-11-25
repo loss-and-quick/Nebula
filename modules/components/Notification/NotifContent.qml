@@ -32,16 +32,7 @@ ColumnLayout {
     }
 
     function symbolFor(appIcon, appName) {
-        const ic = (appIcon || "").toLowerCase()
-        const ap = (appName || "").toLowerCase()
-        if (ic.includes("camera-photo") || ap.includes("screenshot")) return "photo_camera"
-        if (ic.includes("camera-video") || ap.includes("record")) return "screen_record"
-        if (ic.includes("dialog-error") || ic.includes("error")) return "error_outline"
-        if (ic.includes("bluetooth")) return "bluetooth"
-        if (ic.includes("network") || ic.includes("wifi")) return "wifi"
-        if (ic.includes("battery")) return "battery_std"
-        if (ic.includes("volume") || ic.includes("audio")) return "volume_up"
-        return ""
+        return IconUtil.notificationSymbol(appIcon, appName)
     }
 
     function ago(ts) {

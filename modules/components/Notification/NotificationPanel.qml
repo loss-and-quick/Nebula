@@ -247,20 +247,7 @@ Item {
                             Layout.alignment: Qt.AlignTop
                             radius: 12
 
-                            function resolveSymbol(appIcon, appName) {
-                                const ic = (appIcon || "").toLowerCase()
-                                const ap = (appName || "").toLowerCase()
-                                if (ic.includes("camera-photo") || ap.includes("screenshot")) return "photo_camera"
-                                if (ic.includes("camera-video") || ap.includes("record"))     return "screen_record"
-                                if (ic.includes("dialog-error") || ic.includes("error"))      return "error_outline"
-                                if (ic.includes("bluetooth"))                                  return "bluetooth"
-                                if (ic.includes("network") || ic.includes("wifi"))            return "wifi"
-                                if (ic.includes("battery"))                                    return "battery_std"
-                                if (ic.includes("volume") || ic.includes("audio"))            return "volume_up"
-                                return ""
-                            }
-
-                            readonly property string symbol: iconRect.resolveSymbol(slot.notif?.appIcon, slot.notif?.appName)
+                            readonly property string symbol: IconUtil.notificationSymbol(slot.notif?.appIcon, slot.notif?.appName)
                             readonly property bool usesSymbol: iconRect.symbol !== ""
 
                             color: iconRect.usesSymbol ? Colors.primaryContainer : Qt.alpha(Colors.primary, 0.12)

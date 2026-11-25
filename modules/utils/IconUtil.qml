@@ -56,6 +56,38 @@ Item {
         }
     }
 
+    function notificationSymbol(appIcon, appName) {
+        const ic = (appIcon || "").toLowerCase();
+        const ap = (appName || "").toLowerCase();
+
+        // Battery
+        if (ic.includes("battery") || ap.includes("battery") || ic.includes("charging") || ap.includes("charging")) {
+            if (ic.includes("charging") || ap.includes("charging") || ic.includes("bolt") || ic.includes("ac"))
+                return "battery_android_bolt";
+            if (ic.includes("alert") || ic.includes("warn") || ic.includes("critical") || ic.includes("low"))
+                return "battery_alert";
+            return "battery_android_full";
+        }
+
+        // Media & Hardware
+        if (ic.includes("camera-photo") || ap.includes("screenshot") || ic.includes("screenshot"))
+            return "photo_camera";
+        if (ic.includes("camera-video") || ap.includes("record") || ic.includes("record"))
+            return "screen_record";
+        if (ic.includes("dialog-error") || ic.includes("error"))
+            return "error_outline";
+        if (ic.includes("bluetooth"))
+            return "bluetooth";
+        if (ic.includes("network") || ic.includes("wifi"))
+            return "wifi";
+        if (ic.includes("volume") || ic.includes("audio") || ic.includes("sound"))
+            return "volume_up";
+        if (ic.includes("brightness") || ap.includes("brightness"))
+            return "brightness_6";
+
+        return "";
+    }
+
     function themeIcon(name, fallback) {
         if (!name)
             return ""

@@ -7,3 +7,9 @@ hl.layer_rule({ name = "nebula-session",    match = { namespace = "quickshell:se
 hl.layer_rule({ name = "nebula-widgets",    match = { namespace = "quickshell:backgroundWidgets" }, blur = true,  no_anim = true, ignore_alpha = 0.05 })
 hl.layer_rule({ name = "nebula-edgelight",  match = { namespace = "quickshell:edgelight"         }, blur = false, no_anim = true })
 hl.layer_rule({ name = "nebula-spotlight",  match = { namespace = "quickshell:spotlight"         }, blur = true,  no_anim = true, ignore_alpha = 0.3  })
+
+hl.config({
+    misc = {
+        allow_session_lock_restore = true,
+    },
+})

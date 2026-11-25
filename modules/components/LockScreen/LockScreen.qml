@@ -50,6 +50,12 @@ Scope {
     WlSessionLock {
         id: lock
         locked: root.screenLocked
+        onLockedChanged: {
+            if (!lock.locked && root.screenLocked && !timer.running) {
+                root.screenLocked = false;
+                root.startAnimation = false;
+            }
+        }
 
         WlSessionLockSurface {
             id: lockSurface

@@ -664,6 +664,7 @@ Singleton {
     }
 
     Component.onCompleted: {
+        root._eval("hl.config({ misc = { allow_session_lock_restore = true } })")
         root.refresh()
         if (root._settingsReady)
             root._migrate()

@@ -1,4 +1,5 @@
 import QtQuick
+import Nebula
 import qs.modules.utils
 import qs.modules.settings
 import qs.modules.components.custom
@@ -78,7 +79,7 @@ Item {
 
     onAwakeChanged: if (root.awake) appear.stop()
 
-    component Pair: CutGlyphs {
+    component Pair: CutText {
         id: pair
 
         property int first: 0
@@ -99,6 +100,7 @@ Item {
         family: root.family
         px: root.px
         ring: root.ring
+        round: 0
         glyphs: [
             { ch: root.digits[pair.first], x: root.pad, y: pair.by, color: pair.tintA },
             { ch: root.digits[pair.first + 1], x: root.pad + pair.gap, y: pair.by, color: pair.tintB }

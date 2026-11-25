@@ -11,8 +11,24 @@ Item {
     id: root
 
     property var appEntry: null
+    readonly property var desktopApp: ServiceApps.resolveApp(root.appEntry?.appId ?? "")
+    readonly property string appName: root.desktopApp?.name
+                                     ?? DesktopEntries.heuristicLookup(root.appEntry?.appId ?? "")?.name
+                                     ?? root.appEntry?.appId ?? ""
+    readonly property string appIcon: root.desktopApp?.icon
+                                     ?? DesktopEntries.heuristicLookup(root.appEntry?.appId ?? "")?.icon ?? ""
 
-    implicitWidth: 210
+    readonly property var appActions: {
+        const out = [];
+        const acts = root.desktopApp?.actions ?? [];
+        for (let i = 0; i < acts.length; i++) {
+            if (acts[i] && acts[i].name)
+                out.push(acts[i]);
+        }
+        return out;
+    }
+
+    implicitWidth: 230
     implicitHeight: menuCol.implicitHeight + 16
 
     signal close
@@ -24,7 +40,9 @@ Item {
         ColumnLayout {
             id: menuCol
             anchors {
-                top: parent.top; left: parent.left; right: parent.right
+                top: parent.top
+                left: parent.left
+                right: parent.right
                 margins: 8
             }
             spacing: 6
@@ -43,15 +61,11 @@ Item {
                     spacing: 10
 
                     Image {
-                        // Request the icon at the dock's larger source size:
-                        // icon themes serve different (padded, legacy) art at
-                        // 32px, which renders off-centre inside the tile.
-                        width: 32; height: 32
+                        width: 32
+                        height: 32
                         Layout.preferredWidth: 32
                         Layout.preferredHeight: 32
-                        source: IconUtil.themeIcon(
-                            DesktopEntries.heuristicLookup(root.appEntry?.appId ?? "")?.icon,
-                            "image-missing")
+                        source: IconUtil.themeIcon(root.appIcon, "image-missing")
                         sourceSize.width: 96
                         sourceSize.height: 96
                         fillMode: Image.PreserveAspectFit
@@ -64,16 +78,15 @@ Item {
                         spacing: 1
                         CustomText {
                             Layout.fillWidth: true
-                            content: DesktopEntries.heuristicLookup(root.appEntry?.appId ?? "")?.name
-                                     ?? root.appEntry?.appId ?? ""
+                            content: root.appName
                             size: 13
                             weight: 700
                             elide: Text.ElideRight
                         }
                         CustomText {
                             content: {
-                                var n = root.appEntry?.toplevels.length ?? 0
-                                return n > 0 ? n + " window" + (n > 1 ? "s open" : " open") : "Not running"
+                                var n = root.appEntry?.toplevels.length ?? 0;
+                                return n > 0 ? n + " window" + (n > 1 ? "s open" : " open") : "Not running";
                             }
                             size: 10
                             customColor: Colors.outline
@@ -82,7 +95,114 @@ Item {
                 }
             }
 
-            // ── Actions group ────────────────────────────────────────────
+            // ── App context actions (desktop actions & launch) ───────────
+            Rectangle {
+                visible: root.appActions.length > 0 || (root.appEntry?.toplevels.length ?? 0) > 0
+                Layout.fillWidth: true
+                implicitHeight: desktopActionsCol.implicitHeight
+                radius: 14
+                color: Colors.surfaceContainerHigh
+                clip: true
+
+                ColumnLayout {
+                    id: desktopActionsCol
+                    anchors {
+                        left: parent.left
+                        right: parent.right
+                    }
+                    spacing: 0
+
+                    // "New window" action if already running
+                    Rectangle {
+                        Layout.fillWidth: true
+                        implicitHeight: 38
+                        color: "transparent"
+                        visible: (root.appEntry?.toplevels.length ?? 0) > 0
+
+                        RowLayout {
+                            anchors.fill: parent
+                            anchors.leftMargin: 12
+                            anchors.rightMargin: 12
+                            spacing: 10
+
+                            MaterialIconSymbol {
+                                content: "add_to_photos"
+                                iconSize: 16
+                                customColor: Colors.primary
+                            }
+                            CustomText {
+                                Layout.fillWidth: true
+                                content: "New window"
+                                size: 12
+                            }
+                        }
+
+                        RippleEffect {
+                            anchors.fill: parent
+                            onClicked: {
+                                if (root.desktopApp)
+                                    ServiceApps.run(root.desktopApp);
+                                else if (root.appEntry?.appId)
+                                    ServiceApps.launch(root.appEntry.appId);
+                                root.close();
+                            }
+                        }
+                    }
+
+                    // Desktop actions from .desktop file
+                    Repeater {
+                        model: root.appActions
+                        delegate: Rectangle {
+                            required property var modelData
+                            Layout.fillWidth: true
+                            implicitHeight: 38
+                            color: "transparent"
+
+                            RowLayout {
+                                anchors.fill: parent
+                                anchors.leftMargin: 12
+                                anchors.rightMargin: 12
+                                spacing: 10
+
+                                Image {
+                                    visible: !!modelData.icon && modelData.icon.length > 0
+                                    Layout.preferredWidth: 16
+                                    Layout.preferredHeight: 16
+                                    source: modelData.icon ? IconUtil.themeIcon(modelData.icon, "image-missing") : ""
+                                    sourceSize.width: 16
+                                    sourceSize.height: 16
+                                    fillMode: Image.PreserveAspectFit
+                                    smooth: true
+                                }
+
+                                MaterialIconSymbol {
+                                    visible: !modelData.icon || modelData.icon.length === 0
+                                    content: "play_arrow"
+                                    iconSize: 16
+                                    customColor: Colors.outline
+                                }
+
+                                CustomText {
+                                    Layout.fillWidth: true
+                                    content: modelData.name
+                                    size: 12
+                                    elide: Text.ElideRight
+                                }
+                            }
+
+                            RippleEffect {
+                                anchors.fill: parent
+                                onClicked: {
+                                    ServiceApps.spawn(modelData.command, root.desktopApp?.workingDirectory ?? "");
+                                    root.close();
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // ── System / Management actions group ────────────────────────
             Rectangle {
                 Layout.fillWidth: true
                 implicitHeight: actionsCol.implicitHeight
@@ -92,7 +212,10 @@ Item {
 
                 ColumnLayout {
                     id: actionsCol
-                    anchors { left: parent.left; right: parent.right }
+                    anchors {
+                        left: parent.left
+                        right: parent.right
+                    }
                     spacing: 0
 
                     // Pin / Unpin
@@ -115,8 +238,7 @@ Item {
                             }
                             CustomText {
                                 Layout.fillWidth: true
-                                content: ServiceApps.isPinnedById(root.appEntry?.appId ?? "")
-                                         ? "Unpin from dock" : "Pin to dock"
+                                content: ServiceApps.isPinnedById(root.appEntry?.appId ?? "") ? "Unpin from dock" : "Pin to dock"
                                 size: 12
                             }
                         }
@@ -124,13 +246,13 @@ Item {
                         RippleEffect {
                             anchors.fill: parent
                             onClicked: {
-                                ServiceApps.togglePinById(root.appEntry?.appId ?? "")
-                                root.close()
+                                ServiceApps.togglePinById(root.appEntry?.appId ?? "");
+                                root.close();
                             }
                         }
                     }
 
-                    // Close / Close all  (only when running)
+                    // Close / Close all (only when running)
                     Rectangle {
                         Layout.fillWidth: true
                         implicitHeight: 40
@@ -160,8 +282,8 @@ Item {
                             anchors.fill: parent
                             onClicked: {
                                 for (const t of root.appEntry?.toplevels ?? [])
-                                    t.close()
-                                root.close()
+                                    t.close();
+                                root.close();
                             }
                         }
                     }

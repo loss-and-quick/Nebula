@@ -125,6 +125,7 @@ Item {
             readonly property bool pinned: !!dockItem.modelData.pinned
             readonly property bool offer: root.editing && !dockItem.pinned
             readonly property string appKey: (dockItem.modelData.appId ?? "").toLowerCase()
+            readonly property bool isMenuOpen: !!root.host && (root.host.clickedKind === "dockMenu" || (root.host.panelKind === "dockMenu" && root.host.clickedKind !== "")) && (root.host.dockAppId ?? "").toLowerCase() === dockItem.appKey
             readonly property bool notifLift: GlobalStates.notifLiftApp !== "" && GlobalStates.notifLiftApp === dockItem.appKey
             readonly property int notifCount: GlobalStates.notifBadges[dockItem.appKey] ?? 0
 
@@ -179,11 +180,33 @@ Item {
                 smooth: true
                 mipmap: true
                 fillMode: Image.PreserveAspectFit
-                opacity: dockItem.offer ? 0.5 : 1
+                opacity: dockItem.isMenuOpen ? 0 : dockItem.offer ? 0.5 : 1
                 Behavior on opacity {
                     EffectsAnim {
                         speed: "fast"
                     }
+                }
+            }
+
+            Rectangle {
+                visible: dockItem.isMenuOpen
+                anchors.centerIn: parent
+                width: root.icon + 4
+                height: width
+                radius: width / 2
+                color: dockIconArea.containsMouse ? Colors.primary : Colors.primaryContainer
+                opacity: dockItem.isMenuOpen ? 1 : 0
+                Behavior on opacity {
+                    EffectsAnim {
+                        speed: "fast"
+                    }
+                }
+
+                MaterialIconSymbol {
+                    anchors.centerIn: parent
+                    content: "close"
+                    iconSize: 18
+                    customColor: dockIconArea.containsMouse ? Colors.primaryText : Colors.primaryContainerText
                 }
             }
 
@@ -271,6 +294,11 @@ Item {
                 Component.onDestruction: iconHover.enabled = false
 
                 onClicked: mouse => {
+                    if (dockItem.isMenuOpen) {
+                        if (root.host && root.host.closePanel)
+                            root.host.closePanel();
+                        return;
+                    }
                     if (mouse.button === Qt.LeftButton) {
                         if (root.host && root.host.closePanel)
                             root.host.closePanel();

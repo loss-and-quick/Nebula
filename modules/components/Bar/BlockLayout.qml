@@ -430,7 +430,7 @@ Item {
                 readonly property real innerWidth: Math.max(slot.contentWidth, slot.chipWidth)
                 readonly property real revealT: GlobalStates.barRevealAt(block.absX + slot.x + slot.width / 2, block.frameW)
                 readonly property bool selected: block.editing && !!block.editor && block.editor.selectedItem === slot.itemId
-                readonly property bool isOpener: block.clickedKind !== "" && !!revealer && revealer.openerId === slot.itemId
+                readonly property bool isOpener: block.clickedKind !== "" && !!revealer && revealer.openerId === slot.itemId && BarLayout.baseId(slot.itemId) !== "dockApps"
 
                 readonly property bool wanted: !slot.leaving && (slot.itemShown || block.editing)
                 property real presence: 0

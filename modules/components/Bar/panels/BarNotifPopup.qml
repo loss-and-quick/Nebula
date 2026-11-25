@@ -482,31 +482,38 @@ Item {
                     spacing: 12
 
                     Item {
+                        id: iconItem
                         Layout.preferredWidth: 36
                         Layout.preferredHeight: 36
                         Layout.alignment: Qt.AlignTop
 
-                        Image {
-                            id: appIcon
-                            anchors.fill: parent
-                            anchors.margins: 1
-                            source: IconUtil.getIconPath(pc.lead?.appIcon || pc.lead?.appName || "", "")
-                            sourceSize: Qt.size(72, 72)
-                            fillMode: Image.PreserveAspectFit
-                            visible: status === Image.Ready
-                        }
+                        readonly property string symbol: IconUtil.notificationSymbol(pc.lead?.appIcon, pc.lead?.appName)
 
                         Rectangle {
                             anchors.fill: parent
-                            visible: appIcon.status !== Image.Ready
                             radius: 18
-                            color: pc.critical ? Qt.alpha(Colors.errorContainerText, 0.16) : Qt.alpha(Colors.primary, 0.14)
+                            color: iconItem.symbol !== "" ? Colors.primaryContainer
+                                 : pc.critical ? Qt.alpha(Colors.errorContainerText, 0.16)
+                                 : Qt.alpha(Colors.primary, 0.14)
 
                             MaterialIconSymbol {
                                 anchors.centerIn: parent
-                                content: pc.critical ? "priority_high" : "notifications"
+                                content: iconItem.symbol !== "" ? iconItem.symbol
+                                       : pc.critical ? "priority_high" : "notifications"
                                 iconSize: 18
-                                customColor: pc.critical ? Colors.errorContainerText : Colors.primary
+                                customColor: iconItem.symbol !== "" ? Colors.primaryContainerText
+                                            : pc.critical ? Colors.errorContainerText : Colors.primary
+                                visible: iconItem.symbol !== "" || appIcon.status !== Image.Ready
+                            }
+
+                            Image {
+                                id: appIcon
+                                anchors.fill: parent
+                                anchors.margins: 4
+                                source: iconItem.symbol !== "" ? "" : IconUtil.getIconPath(pc.lead?.appIcon || pc.lead?.appName || "", "")
+                                sourceSize: Qt.size(72, 72)
+                                fillMode: Image.PreserveAspectFit
+                                visible: iconItem.symbol === "" && status === Image.Ready
                             }
                         }
                     }

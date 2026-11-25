@@ -226,7 +226,24 @@ function legacyEdges(barCfg, general) {
 }
 
 function storedEdges(barCfg, general) {
-    return isEdgeV2(barCfg) ? (barCfg.edges ?? {}) : legacyEdges(barCfg, general)
+    if (isEdgeV2(barCfg)) {
+        const edges = Object.assign({}, barCfg.edges ?? {})
+        const d = barCfg.dock ?? {}
+        const dockSide = normSide(d.side, "bottom")
+        if (edges[dockSide]) {
+            const dockOverrides = {}
+            if (d.height !== undefined) dockOverrides.height = d.height
+            if (d.iconSize !== undefined) dockOverrides.iconSize = d.iconSize
+            if (d.itemGap !== undefined) dockOverrides.itemGap = d.itemGap
+            if (d.blockGap !== undefined) dockOverrides.blockGap = d.blockGap
+            if (d.radius !== undefined) dockOverrides.radius = d.radius
+            if (d.autoHide !== undefined) dockOverrides.autoHide = d.autoHide
+            if (d.hidden !== undefined) dockOverrides.hidden = d.hidden
+            edges[dockSide] = Object.assign({}, edges[dockSide], dockOverrides)
+        }
+        return edges
+    }
+    return legacyEdges(barCfg, general)
 }
 
 function edgeCfg(barCfg, general, side) {

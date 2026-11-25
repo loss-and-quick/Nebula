@@ -65,7 +65,7 @@ Item {
                         height: 32
                         Layout.preferredWidth: 32
                         Layout.preferredHeight: 32
-                        source: IconUtil.themeIcon(root.appIcon, "image-missing")
+                        source: IconUtil.getDesktopIconPath(root.appIcon, "image-missing")
                         sourceSize.width: 96
                         sourceSize.height: 96
                         fillMode: Image.PreserveAspectFit
@@ -85,7 +85,7 @@ Item {
                         }
                         CustomText {
                             content: {
-                                var n = root.appEntry?.toplevels.length ?? 0;
+                                var n = root.appEntry?.toplevels?.length ?? 0;
                                 return n > 0 ? n + " window" + (n > 1 ? "s open" : " open") : "Not running";
                             }
                             size: 10
@@ -97,7 +97,7 @@ Item {
 
             // ── App context actions (desktop actions & launch) ───────────
             Rectangle {
-                visible: root.appActions.length > 0 || (root.appEntry?.toplevels.length ?? 0) > 0
+                visible: root.appActions.length > 0 || (root.appEntry?.toplevels?.length ?? 0) > 0
                 Layout.fillWidth: true
                 implicitHeight: desktopActionsCol.implicitHeight
                 radius: 14
@@ -117,7 +117,7 @@ Item {
                         Layout.fillWidth: true
                         implicitHeight: 38
                         color: "transparent"
-                        visible: (root.appEntry?.toplevels.length ?? 0) > 0
+                        visible: (root.appEntry?.toplevels?.length ?? 0) > 0
 
                         RowLayout {
                             anchors.fill: parent
@@ -168,7 +168,7 @@ Item {
                                     visible: !!modelData.icon && modelData.icon.length > 0
                                     Layout.preferredWidth: 16
                                     Layout.preferredHeight: 16
-                                    source: modelData.icon ? IconUtil.themeIcon(modelData.icon, "image-missing") : ""
+                                    source: modelData.icon ? IconUtil.getDesktopIconPath(modelData.icon, "image-missing") : ""
                                     sourceSize.width: 16
                                     sourceSize.height: 16
                                     fillMode: Image.PreserveAspectFit
@@ -257,7 +257,7 @@ Item {
                         Layout.fillWidth: true
                         implicitHeight: 40
                         color: "transparent"
-                        visible: (root.appEntry?.toplevels.length ?? 0) > 0
+                        visible: (root.appEntry?.toplevels?.length ?? 0) > 0
 
                         RowLayout {
                             anchors.fill: parent
@@ -272,7 +272,7 @@ Item {
                             }
                             CustomText {
                                 Layout.fillWidth: true
-                                content: (root.appEntry?.toplevels.length ?? 0) > 1 ? "Close all" : "Close"
+                                content: (root.appEntry?.toplevels?.length ?? 0) > 1 ? "Close all" : "Close"
                                 size: 12
                                 customColor: Colors.error
                             }

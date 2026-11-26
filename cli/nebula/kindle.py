@@ -401,7 +401,7 @@ def build_assets(out_dir):
         lines.append(f'S_{name}="{round(x)} {round(r["y"])} {round(r["h"])} {round(r["size"])} '
                      f'{font_file(r["family"], r["weight"])} {hex_color(r["color"])} {align}"')
     lines += ["BAR_BASE=14", "BAR_SPAN=70", "BAR_GAP=6"]
-    from nebula import kindle_ac
+    import importlib
     rotate = "ccw"
     try:
         for line in (out_dir / "config.sh").read_text().splitlines():
@@ -409,10 +409,11 @@ def build_assets(out_dir):
                 rotate = line.split("=", 1)[1].strip().strip('"')
     except OSError:
         pass
-    kindle_ac.build(out_dir / "ac", rotate)
-    kindle_ac.build_sys(out_dir / "sys", rotate)
-    from nebula import kindle_clock
-    kindle_clock.build(out_dir / "clock", rotate, weather_data(load_settings()).get("location") or "")
+    k_ac = importlib.import_module("nebula.kindle_ac")
+    _ = k_ac.build(out_dir / "ac", rotate)
+    _ = k_ac.build_sys(out_dir / "sys", rotate)
+    k_clock = importlib.import_module("nebula.kindle_clock")
+    _ = k_clock.build(out_dir / "clock", rotate, weather_data(load_settings()).get("location") or "")
     (out_dir / "layout.sh").write_text("\n".join(lines) + "\n")
     write_place(out_dir / "place.sh")
     return out_dir

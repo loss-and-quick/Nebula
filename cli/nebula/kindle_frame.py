@@ -3,7 +3,14 @@ import shutil
 import subprocess
 from pathlib import Path
 
-from nebula.kindle import KINDLE_DIR, OUT_DIR, snap
+from nebula.paths import CACHE_DIR
+
+OUT_DIR = CACHE_DIR / "kindle"
+KINDLE_DIR = Path(__file__).resolve().parents[2] / "config" / "kindle" / "nebula-dash"
+
+
+def snap(img):
+    return img.convert("L").point(lambda v: round(v / 17) * 17)
 
 SOURCE = OUT_DIR / "frame-src"
 PREVIEW = OUT_DIR / "frame-preview.png"

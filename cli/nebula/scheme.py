@@ -31,41 +31,50 @@ import subprocess
 import sys
 import tempfile
 import time
+from collections.abc import Callable, Sequence
 from pathlib import Path
+from typing import Any, cast
 
 try:
-    from materialyoucolor.dislike.dislike_analyzer import DislikeAnalyzer
-    from materialyoucolor.dynamiccolor.material_dynamic_colors import MaterialDynamicColors
-    from materialyoucolor.hct import Hct
-    from materialyoucolor.quantize import ImageQuantizeCelebi, QuantizeCelebi
-    from materialyoucolor.scheme.scheme_content import SchemeContent
-    from materialyoucolor.score.score import Score, ScoreOptions
-    from materialyoucolor.scheme.scheme_expressive import SchemeExpressive
-    from materialyoucolor.scheme.scheme_fidelity import SchemeFidelity
-    from materialyoucolor.scheme.scheme_fruit_salad import SchemeFruitSalad
-    from materialyoucolor.scheme.scheme_monochrome import SchemeMonochrome
-    from materialyoucolor.scheme.scheme_neutral import SchemeNeutral
-    from materialyoucolor.scheme.scheme_rainbow import SchemeRainbow
-    from materialyoucolor.scheme.scheme_tonal_spot import SchemeTonalSpot
-    from materialyoucolor.scheme.scheme_vibrant import SchemeVibrant
-    from materialyoucolor.utils.math_utils import sanitize_degrees_int
+    from materialyoucolor.dislike.dislike_analyzer import DislikeAnalyzer  # pyright: ignore[reportMissingTypeStubs]
+    from materialyoucolor.dynamiccolor.material_dynamic_colors import MaterialDynamicColors  # pyright: ignore[reportMissingTypeStubs]
+    from materialyoucolor.hct import Hct  # pyright: ignore[reportMissingTypeStubs]
+    from materialyoucolor.quantize import ImageQuantizeCelebi, QuantizeCelebi  # pyright: ignore[reportMissingTypeStubs,reportUnknownVariableType]
+    from materialyoucolor.scheme.scheme_content import SchemeContent  # pyright: ignore[reportMissingTypeStubs]
+    from materialyoucolor.score.score import Score, ScoreOptions  # pyright: ignore[reportMissingTypeStubs]
+    from materialyoucolor.scheme.scheme_expressive import SchemeExpressive  # pyright: ignore[reportMissingTypeStubs]
+    from materialyoucolor.scheme.scheme_fidelity import SchemeFidelity  # pyright: ignore[reportMissingTypeStubs]
+    from materialyoucolor.scheme.scheme_fruit_salad import SchemeFruitSalad  # pyright: ignore[reportMissingTypeStubs]
+    from materialyoucolor.scheme.scheme_monochrome import SchemeMonochrome  # pyright: ignore[reportMissingTypeStubs]
+    from materialyoucolor.scheme.scheme_neutral import SchemeNeutral  # pyright: ignore[reportMissingTypeStubs]
+    from materialyoucolor.scheme.scheme_rainbow import SchemeRainbow  # pyright: ignore[reportMissingTypeStubs]
+    from materialyoucolor.scheme.scheme_tonal_spot import SchemeTonalSpot  # pyright: ignore[reportMissingTypeStubs]
+    from materialyoucolor.scheme.scheme_vibrant import SchemeVibrant  # pyright: ignore[reportMissingTypeStubs]
+    from materialyoucolor.utils.math_utils import sanitize_degrees_int  # pyright: ignore[reportMissingTypeStubs]
 except ImportError as e:
     raise SystemExit(f"nebula: materialyoucolor is unavailable ({e}); install the materialyoucolor Python package") from None
 
 from nebula import apps as theme_apps, settings
 from nebula.paths import CUSTOM_COLORS
 
-_HOME       = Path.home()
-CACHE_DIR   = Path.home() / ".cache" / "quickshell"
-OUTPUT_PATH = CACHE_DIR / "colors.json"
+_load_manifest: Callable[[], dict[str, object]] = getattr(theme_apps, "load_manifest")
+_save_manifest: Callable[[dict[str, object]], None] = getattr(theme_apps, "save_manifest")
+_is_installed: Callable[[object], bool] = getattr(theme_apps, "is_installed")
+_targets: Callable[[object], list[tuple[Path, Path]]] = getattr(theme_apps, "targets")
+_backup_if_user_file: Callable[[object, Path, dict[str, object]], bool] = getattr(theme_apps, "backup_if_user_file")
+_record: Callable[[Path, str, dict[str, object]], None] = getattr(theme_apps, "record")
+
+_HOME: Path       = Path.home()
+CACHE_DIR: Path   = Path.home() / ".cache" / "quickshell"
+OUTPUT_PATH: Path = CACHE_DIR / "colors.json"
 
 # Extra plain-copy targets: apps that just want the raw colors.json (same
 # format as OUTPUT_PATH) rather than a matugen-style rendered template.
-_EXTRA_COPY_PATHS = [
+_EXTRA_COPY_PATHS: list[Path] = [
     Path.home() / ".config" / "orbit" / "colors.json",
 ]
 
-_SCHEMES = {
+_SCHEMES: dict[str, Any] = {
     "content":    SchemeContent,
     "expressive": SchemeExpressive,
     "fidelity":   SchemeFidelity,
@@ -77,7 +86,7 @@ _SCHEMES = {
     "vibrant":    SchemeVibrant,
 }
 
-_KINDLE_FIXED = {
+_KINDLE_FIXED: dict[str, str] = {
     "primaryFixed": "#dddddd", "primaryFixedDim": "#bbbbbb",
     "onPrimaryFixed": "#000000", "onPrimaryFixedVariant": "#222222",
     "secondaryFixed": "#dddddd", "secondaryFixedDim": "#bbbbbb",
@@ -86,7 +95,7 @@ _KINDLE_FIXED = {
     "onTertiaryFixed": "#000000", "onTertiaryFixedVariant": "#222222",
 }
 
-_KINDLE = {
+_KINDLE: dict[str, dict[str, str]] = {
     "light": {
         "primary": "#000000", "primaryText": "#ffffff",
         "primaryContainer": "#000000", "primaryContainerText": "#ffffff",
@@ -127,7 +136,7 @@ _KINDLE = {
     },
 }
 
-_KINDLE_ANSI = {
+_KINDLE_ANSI: dict[str, dict[str, str]] = {
     "light": {"red": "#555555", "green": "#333333", "yellow": "#4a4a4a",
               "blue": "#222222", "magenta": "#3d3d3d", "cyan": "#2d2d2d"},
     "dark":  {"red": "#aaaaaa", "green": "#cccccc", "yellow": "#e6e6e6",
@@ -135,24 +144,24 @@ _KINDLE_ANSI = {
 }
 
 
-def _build_kindle_scheme(is_dark: bool) -> dict:
+def _build_kindle_scheme(is_dark: bool) -> dict[str, str]:
     out = dict(_KINDLE["dark" if is_dark else "light"])
     out.update(_KINDLE_FIXED)
     out["scheme"] = "kindle"
     return out
 
 
-def _build_custom_scheme(is_dark: bool) -> dict:
+def _build_custom_scheme(is_dark: bool) -> dict[str, str]:
     from nebula import settings
 
-    path = None
-    custom = settings.section("general").get("palettePath")
+    path: Path | None = None
+    custom: object = settings.section("general").get("palettePath")
     if not custom:
-        pal = settings.section("general").get("palette")
-        if pal and pal != "custom" and (os.path.isabs(pal) or pal.startswith("~") or pal.startswith(".")):
+        pal: object = settings.section("general").get("palette")
+        if isinstance(pal, str) and pal != "custom" and (os.path.isabs(pal) or pal.startswith("~") or pal.startswith(".")):
             custom = pal
-    if custom:
-        path = Path(os.path.expanduser(str(custom)))
+    if custom and isinstance(custom, str):
+        path = Path(os.path.expanduser(custom))
     else:
         path = CUSTOM_COLORS
 
@@ -165,7 +174,7 @@ def _build_custom_scheme(is_dark: bool) -> dict:
         return fallback
 
     try:
-        raw = json.loads(path.read_text())
+        raw: object = json.loads(path.read_text())
     except Exception as e:
         print(f"[gen_colors] ERROR: failed to parse custom palette {path}: {e} — falling back to fixed scheme",
               file=sys.stderr)
@@ -176,11 +185,12 @@ def _build_custom_scheme(is_dark: bool) -> dict:
               file=sys.stderr)
         return fallback
 
-    data = raw
-    if is_dark and "dark" in raw and isinstance(raw["dark"], dict):
-        data = raw["dark"]
-    elif not is_dark and "light" in raw and isinstance(raw["light"], dict):
-        data = raw["light"]
+    raw_dict = cast(dict[str, object], raw)
+    data: dict[str, object] = raw_dict
+    if is_dark and "dark" in raw_dict and isinstance(raw_dict["dark"], dict):
+        data = cast(dict[str, object], raw_dict["dark"])
+    elif not is_dark and "light" in raw_dict and isinstance(raw_dict["light"], dict):
+        data = cast(dict[str, object], raw_dict["light"])
 
     out = dict(fallback)
     matugen_to_key = {v: k for k, v in _KEY_TO_MATUGEN.items()}
@@ -200,7 +210,7 @@ def _build_custom_scheme(is_dark: bool) -> dict:
     return out
 
 
-def _fixed_scheme(variant: str, is_dark: bool):
+def fixed_scheme(variant: str, is_dark: bool) -> dict[str, str] | None:
     if variant == "kindle":
         return _build_kindle_scheme(is_dark)
     if variant == "custom":
@@ -220,7 +230,7 @@ def _kindle_grey_ansi() -> bool:
     return _kindle_setting("kindleGreyAnsi", False)
 
 # MaterialDynamicColors attr name → our JSON key (for quickshell colors.json)
-_COLOR_MAP = {
+_COLOR_MAP: dict[str, str] = {
     "primary":                    "primary",
     "onPrimary":                  "primaryText",
     "primaryContainer":           "primaryContainer",
@@ -270,7 +280,7 @@ _COLOR_MAP = {
 }
 
 # Our JSON key → matugen snake_case name (for app templates)
-_KEY_TO_MATUGEN = {
+_KEY_TO_MATUGEN: dict[str, str] = {
     "primary":                  "primary",
     "primaryText":              "on_primary",
     "primaryContainer":         "primary_container",
@@ -322,7 +332,7 @@ _KEY_TO_MATUGEN = {
 
 # ── Color utilities ────────────────────────────────────────────────────────────
 
-def _hex_to_rgb(hex_color: str) -> tuple:
+def _hex_to_rgb(hex_color: str) -> tuple[int, int, int]:
     h = hex_color.lstrip("#")
     return int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
 
@@ -347,9 +357,9 @@ def _set_alpha(hex_color: str, alpha: str) -> str:
 
 # ── Matugen-name dict ──────────────────────────────────────────────────────────
 
-def _build_matugen_dict(our_colors: dict) -> dict:
+def _build_matugen_dict(our_colors: dict[str, str]) -> dict[str, str]:
     """Build sorted dict of matugen snake_case names → hex values."""
-    result = {}
+    result: dict[str, str] = {}
     for our_key, matugen_name in _KEY_TO_MATUGEN.items():
         if our_key in our_colors:
             result[matugen_name] = our_colors[our_key]
@@ -361,16 +371,16 @@ def _build_matugen_dict(our_colors: dict) -> dict:
     if all(k in our_colors for k in _DERIVED_NEEDS):
         result.update(_derived_colors(our_colors))
     for k, v in our_colors.items():
-        if isinstance(v, str) and (k.startswith(_DERIVED_PREFIXES) or k in _KEY_TO_MATUGEN.values()):
+        if k.startswith(_DERIVED_PREFIXES) or k in _KEY_TO_MATUGEN.values():
             result[k] = v
     return dict(sorted(result.items()))
 
 
-_DERIVED_NEEDS = ("surface", "surfaceContainerLowest", "surfaceContainer", "surfaceContainerHigh",
+_DERIVED_NEEDS: tuple[str, ...] = ("surface", "surfaceContainerLowest", "surfaceContainer", "surfaceContainerHigh",
                   "surfaceVariant", "surfaceText", "primary")
-_DERIVED_PREFIXES = ("term_", "success", "on_success", "warning", "on_warning", "qt_", "pywal_")
+_DERIVED_PREFIXES: tuple[str, ...] = ("term_", "success", "on_success", "warning", "on_warning", "qt_", "pywal_")
 
-_ANSI_REFS = {"red": "#e5484d", "green": "#46a758", "yellow": "#e5b600",
+_ANSI_REFS: dict[str, str] = {"red": "#e5484d", "green": "#46a758", "yellow": "#e5b600",
               "blue": "#3e7bf0", "magenta": "#c254d6", "cyan": "#12a5b8"}
 
 
@@ -379,7 +389,7 @@ def _hct_of(hex_color: str) -> Hct:
 
 
 def _rel_lum(hex_color: str) -> float:
-    def ch(v):
+    def ch(v: float) -> float:
         v /= 255
         return v / 12.92 if v <= 0.03928 else ((v + 0.055) / 1.055) ** 2.4
     r, g, b = _hex_to_rgb(hex_color)
@@ -407,7 +417,7 @@ def _legible(hue: float, chroma: float, tone: float, bg: str, dark: bool, need: 
     return hex_color
 
 
-def _is_dark(c: dict) -> bool:
+def _is_dark(c: dict[str, str]) -> bool:
     return _hct_of(c["surface"]).tone < 50
 
 
@@ -417,7 +427,7 @@ def _mix(a: str, b: str, t: float) -> str:
     return _rgb_to_hex(round(ra * t + rb * (1 - t)), round(ga * t + gb * (1 - t)), round(ba * t + bb * (1 - t)))
 
 
-def _derived_colors(c: dict) -> dict:
+def _derived_colors(c: dict[str, str]) -> dict[str, str]:
     out = _terminal_colors(c)
     dark = _is_dark(c)
     kindle = c.get("scheme") == "kindle"
@@ -437,7 +447,7 @@ def _derived_colors(c: dict) -> dict:
     return out
 
 
-def _terminal_colors(c: dict) -> dict:
+def _terminal_colors(c: dict[str, str]) -> dict[str, str]:
     dark = _is_dark(c)
     kindle = c.get("scheme") == "kindle"
     seed = _hct_of(c["primary"]).hue
@@ -502,7 +512,7 @@ def _terminal_colors(c: dict) -> dict:
 
 # ── Template engine ────────────────────────────────────────────────────────────
 
-def _render_template(template: str, matugen: dict, wallpaper: str) -> str:
+def _render_template(template: str, matugen: dict[str, str], wallpaper: str) -> str:
     """Render a matugen-style template string with Material You colors."""
     result = template
 
@@ -511,9 +521,9 @@ def _render_template(template: str, matugen: dict, wallpaper: str) -> str:
         r"<\*\s*for\s+name,\s*value\s+in\s+colors\s*\*>(.*?)<\*\s*endfor\s*\*>",
         re.DOTALL,
     )
-    def _expand_loop(m: re.Match) -> str:
+    def _expand_loop(m: re.Match[str]) -> str:
         inner = m.group(1)
-        lines = []
+        lines: list[str] = []
         for name, hex_val in matugen.items():
             if name.startswith(_DERIVED_PREFIXES):
                 continue
@@ -534,7 +544,7 @@ def _render_template(template: str, matugen: dict, wallpaper: str) -> str:
     # Templates may use {{ spaces }} or {{nospaces}} — \s* handles both forms.
 
     # {{ colors.X.Y.rgba | set_alpha: N }}
-    def _repl_alpha(m: re.Match) -> str:
+    def _repl_alpha(m: re.Match[str]) -> str:
         hex_val = matugen.get(m.group(1), "#000000")
         return _set_alpha(hex_val, m.group(2))
     result = re.sub(
@@ -543,7 +553,7 @@ def _render_template(template: str, matugen: dict, wallpaper: str) -> str:
     )
 
     # {{ colors.X.Y.hex | lighten: N }}
-    def _repl_lighten(m: re.Match) -> str:
+    def _repl_lighten(m: re.Match[str]) -> str:
         hex_val = matugen.get(m.group(1), "#000000")
         return _lighten(hex_val, float(m.group(2)))
     result = re.sub(
@@ -552,7 +562,7 @@ def _render_template(template: str, matugen: dict, wallpaper: str) -> str:
     )
 
     # {{ base16.base08.Y.hex | lighten: N }}  → use error color
-    def _repl_base16_lighten(m: re.Match) -> str:
+    def _repl_base16_lighten(m: re.Match[str]) -> str:
         hex_val = matugen.get("error", "#ff0000")
         return _lighten(hex_val, float(m.group(1)))
     result = re.sub(
@@ -561,7 +571,7 @@ def _render_template(template: str, matugen: dict, wallpaper: str) -> str:
     )
 
     # {{ colors.X.Y.hex_stripped }}
-    def _repl_stripped(m: re.Match) -> str:
+    def _repl_stripped(m: re.Match[str]) -> str:
         return matugen.get(m.group(1), "#000000").lstrip("#")
     result = re.sub(
         r"\{\{\s*colors\.([a-z0-9_]+)\.[a-z]+\.hex_stripped\s*\}\}",
@@ -569,14 +579,14 @@ def _render_template(template: str, matugen: dict, wallpaper: str) -> str:
     )
 
     # {{ colors.X.Y.hex }}
-    def _repl_hex(m: re.Match) -> str:
+    def _repl_hex(m: re.Match[str]) -> str:
         return matugen.get(m.group(1), "#000000")
     result = re.sub(
         r"\{\{\s*colors\.([a-z0-9_]+)\.[a-z]+\.hex\s*\}\}",
         _repl_hex, result,
     )
 
-    def _repl_hsl(m: re.Match) -> str:
+    def _repl_hsl(m: re.Match[str]) -> str:
         r, g, b = _hex_to_rgb(matugen.get(m.group(1), "#000000"))
         h, l, sat = colorsys.rgb_to_hls(r / 255, g / 255, b / 255)
         return {"hue": f"{h * 360:.1f}", "saturation": f"{sat * 100:.1f}", "lightness": f"{l * 100:.1f}"}[m.group(2)]
@@ -586,7 +596,7 @@ def _render_template(template: str, matugen: dict, wallpaper: str) -> str:
     )
 
     # {{ colors.X.Y.rgba }}  (standalone, without filter)
-    def _repl_rgba(m: re.Match) -> str:
+    def _repl_rgba(m: re.Match[str]) -> str:
         hex_val = matugen.get(m.group(1), "#000000")
         r, g, b = _hex_to_rgb(hex_val)
         return f"rgba({r}, {g}, {b}, 1.0)"
@@ -605,26 +615,27 @@ def _report(app_id: str, status: str, message: str = "", backups: int = 0) -> No
                                        "message": message, "backups": backups}), flush=True)
 
 
-def _apply_app_templates(our_colors: dict, wallpaper: str, enabled=None) -> None:
+def _apply_app_templates(our_colors: dict[str, str], wallpaper: str, enabled: set[str] | None = None) -> None:
     matugen = _build_matugen_dict(our_colors)
     t0 = time.time()
-    manifest = theme_apps.load_manifest()
+    manifest = _load_manifest()
     explicit = enabled is not None
     mode = "dark" if "surface" not in our_colors or _is_dark(our_colors) else "light"
-    hook_env = {**os.environ, "NEBULA_MODE": mode}
+    hook_env: dict[str, str] = {**os.environ, "NEBULA_MODE": mode}
 
     for app in theme_apps.APPS:
-        name = app["id"]
+        name = str(app["id"])
         if app.get("papirus"):
             continue
         if explicit and name not in enabled:
             continue
-        if explicit and not theme_apps.is_installed(app):
+        if explicit and not _is_installed(app):
             _report(name, "missing", "Not installed")
             continue
 
-        written, backups, errors = 0, 0, []
-        for input_path, output_path in theme_apps.targets(app):
+        written, backups = 0, 0
+        errors: list[str] = []
+        for input_path, output_path in _targets(app):
             if not input_path.exists():
                 print(f"[gen_colors] skip {name}: template not found ({input_path})", flush=True)
                 errors.append(f"Template {input_path.name} is missing")
@@ -634,11 +645,11 @@ def _apply_app_templates(our_colors: dict, wallpaper: str, enabled=None) -> None
                 continue
             try:
                 rendered = _render_template(input_path.read_text(), matugen, wallpaper)
-                if theme_apps.backup_if_user_file(app, output_path, manifest):
+                if _backup_if_user_file(app, output_path, manifest):
                     backups += 1
                     print(f"[gen_colors] backup {name}: {output_path}.bak", flush=True)
                 _atomic_write(output_path, rendered)
-                theme_apps.record(output_path, rendered, manifest)
+                _record(output_path, rendered, manifest)
                 written += 1
                 print(f"[gen_colors] wrote {name} → {output_path}", flush=True)
             except Exception as e:
@@ -646,11 +657,11 @@ def _apply_app_templates(our_colors: dict, wallpaper: str, enabled=None) -> None
                 errors.append(str(e))
 
         hook = app.get("hook")
-        if hook and written:
+        if isinstance(hook, str) and written:
             try:
-                subprocess.Popen(hook, shell=True, env=hook_env,
-                                 stdout=subprocess.DEVNULL,
-                                 stderr=subprocess.DEVNULL)
+                _ = subprocess.Popen(hook, shell=True, env=hook_env,
+                                     stdout=subprocess.DEVNULL,
+                                     stderr=subprocess.DEVNULL)
                 print(f"[gen_colors] hook {name}: {hook}", flush=True)
             except Exception as e:
                 print(f"[gen_colors] hook ERROR {name}: {e}", file=sys.stderr)
@@ -664,13 +675,13 @@ def _apply_app_templates(our_colors: dict, wallpaper: str, enabled=None) -> None
             else:
                 _report(name, "skipped", "Nothing to write")
 
-    theme_apps.save_manifest(manifest)
+    _save_manifest(manifest)
     print(f"[gen_colors] app templates done in {(time.time()-t0)*1000:.0f}ms", flush=True)
 
 
 # ── Papirus folder color sync ─────────────────────────────────────────────────
 
-_PAPIRUS_PATHS = [
+_PAPIRUS_PATHS: list[Path] = [
     Path("/usr/share/icons/Papirus"),
     Path("/usr/share/icons/Papirus-Dark"),
     Path("/usr/share/icons/Papirus-Light"),
@@ -737,7 +748,7 @@ def _map_to_papirus_color(hex_color: str) -> str:
         return _determine_papirus_hue(r, g, b, brightness, use_pale=False)
 
 
-def _sync_papirus_colors(primary_hex: str, mode: str, keep_icon_theme: bool = False, enabled=None) -> None:
+def _sync_papirus_colors(primary_hex: str, mode: str, keep_icon_theme: bool = False, enabled: set[str] | None = None) -> None:
     """Recolor Papirus folder icons and switch GTK icon theme to Papirus."""
     if enabled is not None and "papirus" not in enabled:
         return
@@ -765,13 +776,13 @@ def _sync_papirus_colors(primary_hex: str, mode: str, keep_icon_theme: bool = Fa
         for theme in ("Papirus", "Papirus-Dark", "Papirus-Light"):
             if not any(p.name == theme and p.exists() for p in _PAPIRUS_PATHS):
                 continue
-            subprocess.Popen(
+            _ = subprocess.Popen(
                 ["sudo", "-n", "papirus-folders", "-C", color, "--theme", theme, "-u"],
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
                 start_new_session=True,
             )
-        subprocess.Popen(
+        _ = subprocess.Popen(
             ["gsettings", "set", "org.gnome.desktop.interface", "icon-theme", icon_theme],
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
@@ -783,7 +794,7 @@ def _sync_papirus_colors(primary_hex: str, mode: str, keep_icon_theme: bool = Fa
 # ── Font sync ──────────────────────────────────────────────────────────────────
 
 # Body font → monospace equivalent (for terminal)
-_FONT_TO_MONO = {
+_FONT_TO_MONO: dict[str, str] = {
     "Adwaita Sans":    "Adwaita Mono",
     "Cantarell":       "Source Code Pro",
     "DejaVu Sans":     "DejaVu Sans Mono",
@@ -795,7 +806,7 @@ _FONT_TO_MONO = {
 }
 
 # Font size multiplier per fontScale setting
-_FONT_SCALE_PT = {
+_FONT_SCALE_PT: dict[str, int] = {
     "small":      10,
     "normal":     12,
     "large":      13,
@@ -803,7 +814,7 @@ _FONT_SCALE_PT = {
 }
 
 # Nerd font PUA ranges → FiraCode NF for nerd font icons in kitty
-_NF_SYMBOL_MAP = (
+_NF_SYMBOL_MAP: str = (
     "U+23FB-U+23FE,U+2665,U+26A1,U+2B58,"
     "U+E000-U+E00A,U+E0A0-U+E0C8,U+E0CA,U+E0CC-U+E0D4,"
     "U+E200-U+E2A9,U+E300-U+E3E3,U+E5FA-U+E6B1,"
@@ -811,12 +822,12 @@ _NF_SYMBOL_MAP = (
     "U+F000-U+F2E0,U+F300-U+F372,U+F400-U+F532,"
     "U+F0001-U+F1AF0"
 )
-_NF_SYMBOL_FONT = "FiraCode Nerd Font"
+_NF_SYMBOL_FONT: str = "FiraCode Nerd Font"
 
-_KITTY_CUSTOM = _HOME / ".config" / "kitty" / "custom.conf"
+_KITTY_CUSTOM: Path = _HOME / ".config" / "kitty" / "custom.conf"
 
 
-def _apply_fonts(enabled=None) -> None:
+def _apply_fonts(enabled: set[str] | None = None) -> None:
     if enabled is not None and not enabled:
         return
     try:
@@ -825,8 +836,8 @@ def _apply_fonts(enabled=None) -> None:
         print(f"[gen_colors] font sync: cannot read settings.json: {e}", file=sys.stderr)
         return
 
-    body_font  = general.get("defaultFont", "Adwaita Sans")
-    font_scale = general.get("fontScale", "normal")
+    body_font  = str(general.get("defaultFont", "Adwaita Sans"))
+    font_scale = str(general.get("fontScale", "normal"))
     font_size  = _FONT_SCALE_PT.get(font_scale, 11)
     mono_font  = _FONT_TO_MONO.get(body_font, "Source Code Pro")
 
@@ -844,11 +855,11 @@ def _apply_fonts(enabled=None) -> None:
     )
     if (enabled is None or "kitty" in enabled) and _KITTY_CUSTOM.parent.is_dir():
         try:
-            manifest = theme_apps.load_manifest()
-            theme_apps.backup_if_user_file({"id": "kitty", "whole": True}, _KITTY_CUSTOM, manifest)
+            manifest = _load_manifest()
+            _ = _backup_if_user_file({"id": "kitty", "whole": True}, _KITTY_CUSTOM, manifest)
             _atomic_write(_KITTY_CUSTOM, kitty_conf)
-            theme_apps.record(_KITTY_CUSTOM, kitty_conf, manifest)
-            theme_apps.save_manifest(manifest)
+            _record(_KITTY_CUSTOM, kitty_conf, manifest)
+            _save_manifest(manifest)
             print(f"[gen_colors] font sync: kitty → {mono_font} {font_size}pt", flush=True)
         except Exception as e:
             print(f"[gen_colors] font sync ERROR kitty: {e}", file=sys.stderr)
@@ -870,7 +881,7 @@ def _apply_fonts(enabled=None) -> None:
 
 # ── Core color generation ──────────────────────────────────────────────────────
 
-def _image_hash(path: str) -> str:
+def image_hash(path: str) -> str:
     h = hashlib.sha256()
     with open(path, "rb") as f:
         while chunk := f.read(65536):
@@ -878,30 +889,31 @@ def _image_hash(path: str) -> str:
     return h.hexdigest()[:24]
 
 
-_QUANTIZE_AREA = 384 * 384
+_QUANTIZE_AREA: int = 384 * 384
 
 
-def _quantize(image_path: str) -> dict:
+def _quantize(image_path: str) -> dict[int, int]:
     try:
         from PIL import Image
         with Image.open(image_path) as im:
             w, h = im.size
             s = min(1.0, (_QUANTIZE_AREA / (w * h)) ** 0.5)
             nw, nh = max(1, round(w * s)), max(1, round(h * s))
-            im.draft("RGB", (nw * 2, nh * 2))
-            small = im.convert("RGB").resize((nw, nh), Image.Resampling.BOX)
-            pixels = getattr(small, "get_flattened_data", small.getdata)()
-            return QuantizeCelebi(list(pixels), 128)
+            _ = im.draft("RGB", (nw * 2, nh * 2))
+            resize_fn: Callable[[tuple[int, int], Image.Resampling], Image.Image] = getattr(im.convert("RGB"), "resize")
+            small = resize_fn((nw, nh), Image.Resampling.BOX)
+            pixels = cast(Sequence[int], getattr(small, "get_flattened_data", small.getdata)())
+            return cast(dict[int, int], QuantizeCelebi(list(pixels), 128))
     except Exception as e:
         print(f"[gen_colors] downsample failed ({e}) — quantizing full image", file=sys.stderr)
-        return ImageQuantizeCelebi(image_path, 1, 128)
+        return cast(dict[int, int], ImageQuantizeCelebi(image_path, 1, 128))
 
 
-def _quantize_and_score(image_path: str) -> Hct:
+def quantize_and_score(image_path: str) -> Hct:
     quantized = _quantize(image_path)
 
-    colors_hct = []
-    hue_population = [0] * 360
+    colors_hct: list[Hct] = []
+    hue_population: list[int] = [0] * 360
     population_sum = 0
     for rgb, population in quantized.items():
         hct = Hct.from_int(rgb)
@@ -909,13 +921,13 @@ def _quantize_and_score(image_path: str) -> Hct:
         hue_population[int(hct.hue)] += population
         population_sum += population
 
-    hue_excited = [0.0] * 360
+    hue_excited: list[float] = [0.0] * 360
     for hue in range(360):
         prop = hue_population[hue] / population_sum
         for i in range(hue - 14, hue + 16):
             hue_excited[int(sanitize_degrees_int(i))] += prop
 
-    scored = []
+    scored: list[tuple[float, Hct]] = []
     for hct in colors_hct:
         hue  = int(sanitize_degrees_int(round(hct.hue)))
         prop = hue_excited[hue]
@@ -930,15 +942,15 @@ def _quantize_and_score(image_path: str) -> Hct:
     return DislikeAnalyzer.fix_if_disliked(scored[0][1])
 
 
-_FALLBACK_SEED = 0xFF4285F4
-_MAX_SEEDS = 4
+_FALLBACK_SEED: int = 0xFF4285F4
+_MAX_SEEDS: int = 4
 
 
 def _cache_base(img_hash: str) -> Path:
     return CACHE_DIR / "color_cache" / img_hash
 
 
-def _chosen_seed(img_hash: str) -> int:
+def chosen_seed(img_hash: str) -> int:
     try:
         return max(0, int((_cache_base(img_hash) / "seed.txt").read_text().strip()))
     except Exception:
@@ -951,19 +963,21 @@ def _auto_primary(image_path: str, img_hash: str) -> Hct:
         return Hct.from_int(int(score_cache.read_text()))
     except Exception:
         pass
-    primary = _quantize_and_score(image_path)
+    primary = quantize_and_score(image_path)
     score_cache.parent.mkdir(parents=True, exist_ok=True)
     _atomic_write(score_cache, str(primary.to_int()))
     return primary
 
 
-def _seeds(image_path: str, img_hash: str) -> list:
+def _seeds(image_path: str, img_hash: str) -> list[int]:
     seeds_cache = _cache_base(img_hash) / "seeds.json"
     try:
-        return [int(x) for x in json.loads(seeds_cache.read_text())]
+        seeds_raw: object = json.loads(seeds_cache.read_text())
+        if isinstance(seeds_raw, list):
+            return [int(str(x)) for x in cast(list[object], seeds_raw)]
     except Exception:
         pass
-    out = [_auto_primary(image_path, img_hash).to_int()]
+    out: list[int] = [_auto_primary(image_path, img_hash).to_int()]
     for argb in Score.score(_quantize(image_path), ScoreOptions(desired=8)):
         if argb == _FALLBACK_SEED:
             continue
@@ -979,38 +993,38 @@ def _seeds(image_path: str, img_hash: str) -> list:
     return out
 
 
-def seed_primary(image_path: str, img_hash: str, idx: int):
+def seed_primary(image_path: str, img_hash: str, idx: int) -> Hct | None:
     if idx <= 0:
         return None
     seeds = _seeds(image_path, img_hash)
     return Hct.from_int(seeds[idx]) if idx < len(seeds) else None
 
 
-def seeds_report(image_path: str, variant: str, mode: str) -> dict:
+def seeds_report(image_path: str, variant: str, mode: str) -> dict[str, object]:
     variant = variant.removeprefix("scheme-").replace("-", "")
-    img_hash = _image_hash(image_path)
+    img_hash = image_hash(image_path)
     seeds = _seeds(image_path, img_hash)
-    chosen = _chosen_seed(img_hash)
+    chosen = chosen_seed(img_hash)
     is_dark = mode.lower() != "light"
-    rows = []
+    rows: list[dict[str, str]] = []
     for argb in seeds:
-        sc = _build_scheme(Hct.from_int(argb), variant, is_dark)
+        sc = build_scheme(Hct.from_int(argb), variant, is_dark)
         rows.append({"seed": "#%06x" % (argb & 0xFFFFFF), "primary": sc["primary"],
                      "secondaryContainer": sc["secondaryContainer"], "tertiary": sc["tertiary"]})
     return {"chosen": chosen if chosen < len(seeds) else 0, "seeds": rows}
 
 
 def set_seed(image_path: str, idx: int) -> None:
-    f = _cache_base(_image_hash(image_path)) / "seed.txt"
+    f = _cache_base(image_hash(image_path)) / "seed.txt"
     if idx <= 0:
         f.unlink(missing_ok=True)
         return
     f.parent.mkdir(parents=True, exist_ok=True)
-    f.write_text(str(idx))
+    _ = f.write_text(str(idx))
 
 
-def _build_scheme(primary: Hct, variant: str, is_dark: bool) -> dict:
-    fixed = _fixed_scheme(variant, is_dark)
+def build_scheme(primary: Hct, variant: str, is_dark: bool) -> dict[str, str]:
+    fixed = fixed_scheme(variant, is_dark)
     if fixed is not None:
         return fixed
     SchemeClass = _SCHEMES.get(variant.replace("-", ""), SchemeVibrant)
@@ -1018,18 +1032,22 @@ def _build_scheme(primary: Hct, variant: str, is_dark: bool) -> dict:
 
     dyn = MaterialDynamicColors()
     if hasattr(dyn, "all_colors"):
-        raw = {c.name: c.get_hct(scheme).to_int() for c in dyn.all_colors}
+        raw: dict[str, int] = {}
+        for c in dyn.all_colors:
+            fn: Callable[[Any], Any] = getattr(c, "get_hct")
+            raw[c.name] = int(fn(scheme).to_int())
     else:
         raw = {}
         for attr in vars(MaterialDynamicColors):
-            obj = getattr(MaterialDynamicColors, attr)
+            obj: Any = getattr(MaterialDynamicColors, attr)
             if hasattr(obj, "get_hct"):
-                raw[attr] = obj.get_hct(scheme).to_int()
+                fn2: Callable[[Any], Any] = getattr(obj, "get_hct")
+                raw[attr] = int(fn2(scheme).to_int())
 
-    output = {}
+    output: dict[str, str] = {}
     for src, dst in _COLOR_MAP.items():
         if src in raw:
-            argb = raw[src] if isinstance(raw[src], int) else raw[src].to_int()
+            argb = raw[src]
             output[dst] = f"#{argb & 0xFFFFFF:06x}"
     return output
 
@@ -1043,7 +1061,7 @@ def _build_scheme(primary: Hct, variant: str, is_dark: bool) -> dict:
 # holds even for a palette with only three greys, and nothing is hand-mapped
 # per theme.
 
-def _neutral_cutoff(chromas: list) -> float:
+def _neutral_cutoff(chromas: list[float]) -> float:
     """Where a palette stops being grey. No fixed threshold works across themes —
     catppuccin's greys reach chroma 20 while gruvbox's accents start at 30 — but
     every palette has a visible gap between the two families, so split at the
@@ -1056,7 +1074,7 @@ def _neutral_cutoff(chromas: list) -> float:
     return cutoff
 
 # role → (dark tone, light tone), M3's own values
-_SURFACE_TONES = {
+_SURFACE_TONES: dict[str, tuple[int, int]] = {
     "surfaceContainerLowest":  (4, 100),
     "surface":                 (6, 98),
     "surfaceDim":              (6, 87),
@@ -1075,7 +1093,7 @@ _SURFACE_TONES = {
 }
 
 # accent family → (role suffix, dark tone, light tone)
-_ACCENT_TONES = [
+_ACCENT_TONES: list[tuple[str, int, int]] = [
     ("",               80, 40),
     ("Text",           20, 100),
     ("Container",      30, 90),
@@ -1083,7 +1101,7 @@ _ACCENT_TONES = [
     ("Fixed",          90, 90),
     ("FixedDim",       80, 80),
 ]
-_ON_FIXED_TONES = [("onFIXED", 10, 10), ("onFIXEDVariant", 30, 30)]
+_ON_FIXED_TONES: list[tuple[str, int, int]] = [("onFIXED", 10, 10), ("onFIXEDVariant", 30, 30)]
 
 
 def _hex(hct: Hct) -> str:
@@ -1094,7 +1112,7 @@ def _at_tone(source: Hct, tone: float) -> Hct:
     return Hct.from_hct(source.hue, source.chroma, tone)
 
 
-def _nearest_tone(pool: list, tone: float) -> Hct:
+def nearest_tone(pool: list[Hct], tone: float) -> Hct:
     return min(pool, key=lambda h: abs(h.tone - tone))
 
 
@@ -1103,13 +1121,13 @@ def _hue_gap(a: float, b: float) -> float:
     return min(d, 360 - d)
 
 
-def _pick_accent(accents: list, neutrals: list, prefer_tone: float) -> Hct:
+def _pick_accent(accents: list[Hct], neutrals: list[Hct], prefer_tone: float) -> Hct:
     """A theme's signature color is the hue it spends the most colors on — nord's
     four frost blues, gruvbox's yellow-greens — not simply its most saturated one.
     Ties break toward the hue the palette also tinted its greys with, which is how
     a theme signs its neutrals. Then take the member already closest to the tone
     the role needs, so it lands in the UI as itself."""
-    def cluster(seed):
+    def cluster(seed: Hct) -> list[Hct]:
         return [h for h in accents if _hue_gap(h.hue, seed.hue) <= 40.0]
 
     tint = neutrals[len(neutrals) // 2].hue if neutrals else 0.0
@@ -1117,7 +1135,7 @@ def _pick_accent(accents: list, neutrals: list, prefer_tone: float) -> Hct:
     return min(cluster(biggest), key=lambda h: abs(h.tone - prefer_tone))
 
 
-def _build_palette_scheme(palette: list, is_dark: bool) -> dict:
+def _build_palette_scheme(palette: list[str], is_dark: bool) -> dict[str, str]:
     hcts = [Hct.from_int(0xFF000000 | int(h.lstrip("#"), 16)) for h in palette]
     cutoff = _neutral_cutoff([h.chroma for h in hcts])
     neutrals = sorted([h for h in hcts if h.chroma < cutoff], key=lambda h: h.tone)
@@ -1127,7 +1145,7 @@ def _build_palette_scheme(palette: list, is_dark: bool) -> dict:
     if not accents:
         accents = sorted(hcts, key=lambda h: -h.chroma)[:3]
 
-    out = {"shadow": "#000000", "scrim": "#000000"}
+    out: dict[str, str] = {"shadow": "#000000", "scrim": "#000000"}
 
     # Surfaces. The container ladder is rank-mapped onto the palette's own dark
     # neutrals rather than nearest-tone matched: nord's four greys all sit near
@@ -1191,7 +1209,7 @@ def _atomic_write(path: Path, content: str) -> None:
     fd, tmp = tempfile.mkstemp(dir=path.parent, suffix=".tmp")
     try:
         with os.fdopen(fd, "w") as f:
-            f.write(content)
+            _ = f.write(content)
         os.chmod(tmp, 0o644)
         os.replace(tmp, path)
     except Exception:
@@ -1229,22 +1247,23 @@ def _flag(name: str, default: str) -> str:
     return default
 
 
-def _apps_arg():
+def _apps_arg() -> set[str] | None:
     if "--apps" not in sys.argv:
         return None
     idx = sys.argv.index("--apps")
-    return theme_apps.parse_ids(sys.argv[idx + 1] if idx + 1 < len(sys.argv) else "")
+    return cast(set[str], theme_apps.parse_ids(sys.argv[idx + 1] if idx + 1 < len(sys.argv) else ""))
 
 
 def _apps_only() -> None:
     try:
-        our_colors = json.loads(OUTPUT_PATH.read_text())
+        raw_colors: object = json.loads(OUTPUT_PATH.read_text())
+        our_colors: dict[str, str] = cast(dict[str, str], raw_colors if isinstance(raw_colors, dict) else {})
     except Exception as e:
         print(f"[gen_colors] ERROR: cannot read {OUTPUT_PATH}: {e}", file=sys.stderr)
         sys.exit(1)
     enabled = _apps_arg()
     if enabled is None:
-        enabled = theme_apps.enabled_ids()
+        enabled = cast(set[str], theme_apps.enabled_ids())
     mode = sys.argv[sys.argv.index("--mode") + 1] if "--mode" in sys.argv[:-1] else "dark"
     _apply_app_templates(our_colors, our_colors.get("wallpaper", ""), enabled)
     _sync_papirus_colors(our_colors.get("primary", ""), mode, "--keep-icon-theme" in sys.argv, enabled)
@@ -1272,9 +1291,9 @@ def main() -> None:
     source_path  = _flag("--source", image_path)
     display_path = _flag("--display", image_path)
     keep_icons   = "--keep-icon-theme" in sys.argv
-    enabled      = _apps_arg()
+    enabled = _apps_arg()
     if enabled is None:
-        enabled = theme_apps.enabled_ids()
+        enabled = cast(set[str], theme_apps.enabled_ids())
 
     from nebula import settings
     gen_palette = settings.section("general").get("palette")
@@ -1283,7 +1302,7 @@ def main() -> None:
 
     if variant in ("kindle", "custom"):
         t_start = time.time()
-        our_colors = _fixed_scheme(variant, is_dark) or _build_kindle_scheme(is_dark)
+        our_colors = fixed_scheme(variant, is_dark) or _build_kindle_scheme(is_dark)
         our_colors["wallpaper"]       = display_path
         our_colors["sourceWallpaper"] = source_path
         _write_colors_json(json.dumps(our_colors, indent=4))
@@ -1294,11 +1313,14 @@ def main() -> None:
                              keep_icons or (variant == "kindle" and _kindle_setting("kindleGreyIcons", True)), enabled)
         return
 
-    palette = None
+    palette: list[str] | None = None
     palette_file = _flag("--palette-file", "")
     if palette_file:
         try:
-            palette = [c for c in json.loads(Path(palette_file).read_text()) if isinstance(c, str)]
+            raw_palette: object = json.loads(Path(palette_file).read_text())
+            if isinstance(raw_palette, list):
+                raw_list = cast(list[object], raw_palette)
+                palette = [c for c in raw_list if isinstance(c, str)]
         except Exception as e:
             print(f"[gen_colors] ERROR reading palette {palette_file}: {e}", file=sys.stderr)
             palette = None
@@ -1314,8 +1336,8 @@ def main() -> None:
         img_hash = "palette-" + hashlib.sha256(",".join(palette).encode()).hexdigest()[:16]
         variant = "palette"
     else:
-        img_hash = _image_hash(image_path)
-    seed_idx    = 0 if palette else _chosen_seed(img_hash)
+        img_hash = image_hash(image_path)
+    seed_idx    = 0 if palette else chosen_seed(img_hash)
     cache_base  = CACHE_DIR / "color_cache" / img_hash
     score_cache = cache_base / "score.txt"
     color_cache = cache_base / (f"{variant}_{mode}_s{seed_idx}.json" if seed_idx else f"{variant}_{mode}.json")
@@ -1323,7 +1345,8 @@ def main() -> None:
     # ── Fast path: full colors cached ─────────────────────────────────────
     if color_cache.exists():
         cached = color_cache.read_text()
-        our_colors = json.loads(cached)
+        raw_cached: object = json.loads(cached)
+        our_colors = cast(dict[str, str], raw_cached if isinstance(raw_cached, dict) else {})
         our_colors["wallpaper"]       = display_path
         our_colors["sourceWallpaper"] = source_path
         _write_colors_json(json.dumps(our_colors, indent=4))
@@ -1337,7 +1360,7 @@ def main() -> None:
         t0 = time.time()
         our_colors = _build_palette_scheme(palette, is_dark)
         print(f"[gen_colors] palette scheme ({len(palette)} colors): "
-              f"{(time.time()-t0)*1000:.0f}ms", flush=True)
+              + f"{(time.time()-t0)*1000:.0f}ms", flush=True)
         our_colors["wallpaper"] = image_path
         cache_base.mkdir(parents=True, exist_ok=True)
         _atomic_write(color_cache, json.dumps(our_colors, indent=4))
@@ -1347,7 +1370,7 @@ def main() -> None:
         content = json.dumps(our_colors, indent=4)
         _write_colors_json(content)
         print(f"[gen_colors] done in {(time.time()-t_start)*1000:.0f}ms — "
-              f"primary: {our_colors.get('primary', '?')}")
+              + f"primary: {our_colors.get('primary', '?')}")
         _apply_app_templates(our_colors, display_path, enabled)
         _apply_fonts(enabled)
         _sync_papirus_colors(our_colors.get("primary", ""), mode, keep_icons, enabled)
@@ -1365,7 +1388,7 @@ def main() -> None:
     # ── Slow path: quantize image ──────────────────────────────────────────
     if primary is None:
         t0 = time.time()
-        primary = _quantize_and_score(image_path)
+        primary = quantize_and_score(image_path)
         print(f"[gen_colors] quantize+score: {(time.time()-t0)*1000:.0f}ms", flush=True)
         cache_base.mkdir(parents=True, exist_ok=True)
         _atomic_write(score_cache, str(primary.to_int()))
@@ -1377,7 +1400,7 @@ def main() -> None:
 
     # ── Generate scheme ────────────────────────────────────────────────────
     t0 = time.time()
-    our_colors = _build_scheme(primary, variant, is_dark)
+    our_colors = build_scheme(primary, variant, is_dark)
     print(f"[gen_colors] scheme gen: {(time.time()-t0)*1000:.0f}ms", flush=True)
 
     our_colors["wallpaper"] = image_path

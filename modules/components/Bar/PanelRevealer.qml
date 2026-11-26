@@ -301,7 +301,17 @@ Item {
         return BarLayout.panelItemHost(k) ? layout.isPrimary && !block.leaving && block.hasItem(k) : revealer.sysHost;
     }
 
-    readonly property string sysKind: GlobalStates.clipboardOpen && (SettingsConfig.general.clipboardPanelMode ?? "dock") !== "center" && revealer.hostsSys("clipboard") ? "clipboard" : GlobalStates.wallpaperOpen && (SettingsConfig.general.wallpaperPanelMode ?? "dock") !== "center" && revealer.hostsSys("wallpaper") ? "wallpaper" : revealer.sysHost && GlobalStates.osdOpen && BarLayout.osdHostItem === "" ? "osd" : ""
+    readonly property string sysKind: revealer.resolveSysKind()
+
+    function resolveSysKind() {
+        if (GlobalStates.clipboardOpen && (SettingsConfig.general.clipboardPanelMode ?? "dock") !== "center" && revealer.hostsSys("clipboard"))
+            return "clipboard";
+        if (GlobalStates.wallpaperOpen && (SettingsConfig.general.wallpaperPanelMode ?? "dock") !== "center" && revealer.hostsSys("wallpaper"))
+            return "wallpaper";
+        if (revealer.sysHost && GlobalStates.osdOpen && BarLayout.osdHostItem === "")
+            return "osd";
+        return "";
+    }
 
     readonly property string panelKind: revealer.resolvePanelKind()
 
@@ -875,7 +885,15 @@ Item {
         };
     }
 
-    readonly property int spanDuration: revealer.shownKind === "dockPreview" ? MotionRegistry.durationFor("dock.preview", "default") : revealer.panelMotion && revealer.motionClosing && !revealer.quickMotion && !revealer.drawer && !revealer.caeMotion ? M3Motion.panel.closeDuration : revealer.sizeDuration
+    readonly property int spanDuration: revealer.resolveSpanDuration()
+
+    function resolveSpanDuration() {
+        if (revealer.shownKind === "dockPreview")
+            return MotionRegistry.durationFor("dock.preview", "default");
+        if (revealer.panelMotion && revealer.motionClosing && !revealer.quickMotion && !revealer.drawer && !revealer.caeMotion)
+            return M3Motion.panel.closeDuration;
+        return revealer.sizeDuration;
+    }
     readonly property var spanCurve: revealer.shownKind === "dockPreview" ? MotionRegistry.curveFor("dock.preview", "default") : revealer.sizeCurve
     readonly property int dropDuration: revealer.spanDuration
     readonly property var dropCurve: revealer.spanCurve

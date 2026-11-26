@@ -15,7 +15,17 @@ Item {
 
     property bool resizing: false
     property string resizeKind: ""
-    readonly property string sizeKind: !block.editing ? "" : block.launchHost && GlobalStates.launcherPreview && block.shownKind === "launcher" ? "launcher" : block.previewHost && block.shownKind === GlobalStates.panelPreview && !!BarLayout.panelSpecs[block.shownKind] && !BarLayout.panelSpecs[block.shownKind].fitOnly ? block.shownKind : ""
+    readonly property string sizeKind: blockEditor.resolveSizeKind()
+
+    function resolveSizeKind() {
+        if (!block.editing)
+            return "";
+        if (block.launchHost && GlobalStates.launcherPreview && block.shownKind === "launcher")
+            return "launcher";
+        if (block.previewHost && block.shownKind === GlobalStates.panelPreview && !!BarLayout.panelSpecs[block.shownKind] && !BarLayout.panelSpecs[block.shownKind].fitOnly)
+            return block.shownKind;
+        return "";
+    }
     readonly property bool sizeHandles: blockEditor.sizeKind !== "" && (blockEditor.resizing || (!revealer || !revealer.tabMoving))
     readonly property real tabContentTop: block.far ? block.barH - (revealer ? revealer.tabH : 0) - block.floatGap : block.barH + block.floatGap
     readonly property real tabContentH: revealer ? Math.max(0, revealer.tabH - block.barH) : 0
@@ -65,6 +75,18 @@ Item {
         preventStealing: true
         cursorShape: handle.vertical !== block.vertical ? Qt.SizeHorCursor : Qt.SizeVerCursor
 
+        function handleBarExtent() {
+            return handle.containsMouse || handle.pressed ? 56 : 44;
+        }
+
+        function resolveHandleColor() {
+            if (handle.pressed)
+                return Colors.primary;
+            if (handle.containsMouse)
+                return Qt.alpha(Colors.primary, 0.85);
+            return Qt.alpha(Colors.outline, 0.9);
+        }
+
         onPressed: mouse => {
             blockEditor.beginResize();
             handle.centred = !blockEditor.flushL && !blockEditor.flushR;
@@ -94,10 +116,10 @@ Item {
 
         Rectangle {
             anchors.centerIn: parent
-            width: handle.vertical ? 5 : (handle.containsMouse || handle.pressed ? 56 : 44)
-            height: handle.vertical ? (handle.containsMouse || handle.pressed ? 56 : 44) : 5
+            width: handle.vertical ? 5 : handleBarExtent()
+            height: handle.vertical ? handleBarExtent() : 5
             radius: 2.5
-            color: handle.pressed ? Colors.primary : handle.containsMouse ? Qt.alpha(Colors.primary, 0.85) : Qt.alpha(Colors.outline, 0.9)
+            color: handle.resolveHandleColor()
             Behavior on width {
                 SpatialAnim {
                     speed: "fast"

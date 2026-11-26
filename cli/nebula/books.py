@@ -223,7 +223,9 @@ def asura_chapter(slug, number):
             err = e
             time.sleep(1 + attempt)
     else:
-        raise err
+        if err is not None:
+            raise err
+        raise RuntimeError("failed to fetch chapter %d" % number)
     paras = []
     for inner in ASURA_PARA.findall(raw):
         text = asura_text(inner)

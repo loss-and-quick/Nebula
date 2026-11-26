@@ -12,29 +12,30 @@ import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as ET
 import zipfile
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from html.parser import HTMLParser
-from typing import NoReturn
+from typing import Any, NoReturn, cast, final, override
 
-CACHE = os.path.expanduser("~/.cache/quickshell/books")
-LOCAL_DIRS = [os.path.expanduser("~/Books")]
-GUTENDEX = "https://gutendex.com/books/?"
-ASURA_SITE = "https://asurascans.com"
-ASURA_API = "https://api.asurascans.com/api/"
-ASURA_PAGE = 20
-ASURA_REFRESH = 6 * 3600
-ASURA_SLUG = re.compile(r"^[a-z0-9][a-z0-9-]*$")
-ASURA_PARA = re.compile(r'<p data-para="\d+"[^>]*>(.*?)</p>', re.S)
-ASURA_INLINE = {"em": "i", "i": "i", "strong": "b", "b": "b"}
-UA = {"User-Agent": "nebula-reading/1.0 (+https://github.com/iamSt3el)"}
-TIMEOUT = 40
-LIST_TTL = 24 * 3600
-SKIP_TITLES = re.compile(r"project gutenberg|license|^contents$|table of contents|^the full project", re.I)
+CACHE: str = os.path.expanduser("~/.cache/quickshell/books")
+LOCAL_DIRS: list[str] = [os.path.expanduser("~/Books")]
+GUTENDEX: str = "https://gutendex.com/books/?"
+ASURA_SITE: str = "https://asurascans.com"
+ASURA_API: str = "https://api.asurascans.com/api/"
+ASURA_PAGE: int = 20
+ASURA_REFRESH: int = 6 * 3600
+ASURA_SLUG: re.Pattern[str] = re.compile(r"^[a-z0-9][a-z0-9-]*$")
+ASURA_PARA: re.Pattern[str] = re.compile(r'<p data-para="\d+"[^>]*>(.*?)</p>', re.S)
+ASURA_INLINE: dict[str, str] = {"em": "i", "i": "i", "strong": "b", "b": "b"}
+UA: dict[str, str] = {"User-Agent": "nebula-reading/1.0 (+https://github.com/iamSt3el)"}
+TIMEOUT: int = 40
+LIST_TTL: int = 24 * 3600
+SKIP_TITLES: re.Pattern[str] = re.compile(r"project gutenberg|license|^contents$|table of contents|^the full project", re.I)
 
 
-def out(obj):
-    sys.stdout.write(json.dumps(obj, ensure_ascii=False))
-    sys.stdout.flush()
+def out(obj: object) -> None:
+    _ = sys.stdout.write(json.dumps(obj, ensure_ascii=False))
+    _ = sys.stdout.flush()
 
 
 def fail(msg: str) -> NoReturn:
@@ -42,7 +43,7 @@ def fail(msg: str) -> NoReturn:
     sys.exit(0)
 
 
-def write_json(path, obj):
+def write_json(path: str, obj: object) -> None:
     os.makedirs(os.path.dirname(path), exist_ok=True)
     fd, tmp = tempfile.mkstemp(dir=os.path.dirname(path))
     with os.fdopen(fd, "w") as f:
@@ -50,53 +51,66 @@ def write_json(path, obj):
     os.replace(tmp, path)
 
 
-def fetch(url, dest=None):
+def fetch(url: str, dest: str | None = None) -> bytes:
     req = urllib.request.Request(url, headers=UA)
     with urllib.request.urlopen(req, timeout=TIMEOUT) as r:
-        data = r.read()
+        data: bytes = r.read()
     if dest:
         os.makedirs(os.path.dirname(dest), exist_ok=True)
         with open(dest + ".part", "wb") as f:
-            f.write(data)
+            _ = f.write(data)
         os.replace(dest + ".part", dest)
     return data
 
 
-def person(name):
+def person(name: str) -> str:
     if "," in name:
         last, first = name.split(",", 1)
         return (first.strip() + " " + last.strip()).strip()
     return name.strip()
 
 
-def gutendex_item(r):
-    authors = r.get("authors") or []
-    fmt = r.get("formats") or {}
+def gutendex_item(r: dict[str, Any]) -> dict[str, Any]:
+    authors: list[dict[str, Any]] = r.get("authors") or []
+    fmt: dict[str, Any] = r.get("formats") or {}
+    raw_title = str(r.get("title") or "")
+    title_part = raw_title.split(";")[0]
+    title = re.sub(r"\s+", " ", title_part).strip()
+    author_name = str(authors[0]["name"]) if authors else ""
+    raw_subjects: list[Any] = r.get("subjects") or []
+    subjects: list[str] = [str(s).split(" -- ")[0] for s in raw_subjects][:3]
     return {
         "source": "gutenberg",
         "id": str(r["id"]),
-        "title": re.sub(r"\s+", " ", (r.get("title") or "").split(";")[0]).strip(),
-        "author": person(authors[0]["name"]) if authors else "",
-        "cover": fmt.get("image/jpeg", ""),
-        "subjects": [s.split(" -- ")[0] for s in (r.get("subjects") or [])][:3],
+        "title": title,
+        "author": person(author_name) if author_name else "",
+        "cover": str(fmt.get("image/jpeg", "")),
+        "subjects": subjects,
         "epub": bool(fmt.get("application/epub+zip")),
     }
 
 
-def cached_list(url, cache_name, build, site):
+def cached_list(
+    url: str,
+    cache_name: str,
+    build: Callable[[Any], dict[str, Any]],
+    site: str,
+) -> dict[str, Any]:
     path = os.path.join(CACHE, "lists", cache_name + ".json")
     try:
         if time.time() - os.path.getmtime(path) < LIST_TTL:
             with open(path) as f:
-                return json.load(f)
+                cached: dict[str, Any] = json.load(f)
+                return cached
     except OSError:
         pass
     try:
-        data = json.loads(fetch(url))
+        data: Any = json.loads(fetch(url))
     except Exception as e:
         try:
             with open(path) as f:
-                return json.load(f)
+                fallback: dict[str, Any] = json.load(f)
+                return fallback
         except OSError:
             fail("Could not reach " + site + ": " + str(e))
     res = build(data)
@@ -104,19 +118,26 @@ def cached_list(url, cache_name, build, site):
     return res
 
 
-def gutendex(params, cache_name):
-    def build(data):
-        return {"ok": True, "count": data.get("count", 0), "next": bool(data.get("next")),
-                "items": [gutendex_item(r) for r in data.get("results", []) if r.get("media_type") == "Text"]}
+def gutendex(params: dict[str, Any], cache_name: str) -> dict[str, Any]:
+    def build(data: Any) -> dict[str, Any]:
+        data_dict: dict[str, Any] = cast(dict[str, Any], data) if isinstance(data, dict) else {}
+        results_raw = data_dict.get("results")
+        results: list[dict[str, Any]] = cast(list[dict[str, Any]], results_raw) if isinstance(results_raw, list) else []
+        return {
+            "ok": True,
+            "count": int(data_dict.get("count", 0)),
+            "next": bool(data_dict.get("next")),
+            "items": [gutendex_item(r) for r in results if r.get("media_type") == "Text"],
+        }
     return cached_list(GUTENDEX + urllib.parse.urlencode(params), cache_name, build, "Project Gutenberg")
 
 
-def cmd_popular(args):
+def cmd_popular(args: list[str]) -> None:
     page = int(args[0]) if args else 1
     out(gutendex({"languages": "en", "page": page}, "popular-%d" % page))
 
 
-def cmd_search(args):
+def cmd_search(args: list[str]) -> None:
     if not args:
         fail("search needs a query")
     q = " ".join(args[:-1]) if len(args) > 1 and args[-1].isdigit() else " ".join(args)
@@ -125,36 +146,42 @@ def cmd_search(args):
     out(gutendex({"search": q, "languages": "en", "page": page}, key))
 
 
-def asura_cover(url):
+def asura_cover(url: str) -> str:
     return re.sub(r"\.webp$", "-400.webp", url)
 
 
-def asura_item(r):
+def asura_item(r: dict[str, Any]) -> dict[str, Any]:
+    slug = str(r["slug"])
+    genres_raw: list[Any] = r.get("genres") or []
     return {
         "source": "asura",
-        "id": r["slug"],
-        "title": r.get("title") or r["slug"],
-        "author": r.get("author") or "",
-        "cover": asura_cover(r.get("cover_url") or ""),
-        "subjects": (r.get("genres") or [])[:3],
-        "chapters": r.get("chapter_count") or 0,
-        "status": r.get("status") or "",
+        "id": slug,
+        "title": str(r.get("title") or slug),
+        "author": str(r.get("author") or ""),
+        "cover": asura_cover(str(r.get("cover_url") or "")),
+        "subjects": [str(s) for s in genres_raw][:3],
+        "chapters": int(r.get("chapter_count") or 0),
+        "status": str(r.get("status") or ""),
     }
 
 
-def asura_list(params, cache_name):
-    def build(data):
-        items = [asura_item(r) for r in data.get("data") or []]
-        return {"ok": True, "next": len(items) >= params["limit"], "items": items}
+def asura_list(params: dict[str, Any], cache_name: str) -> dict[str, Any]:
+    def build(data: Any) -> dict[str, Any]:
+        data_dict: dict[str, Any] = cast(dict[str, Any], data) if isinstance(data, dict) else {}
+        data_raw = data_dict.get("data")
+        data_list: list[dict[str, Any]] = cast(list[dict[str, Any]], data_raw) if isinstance(data_raw, list) else []
+        items = [asura_item(r) for r in data_list]
+        limit = int(params["limit"])
+        return {"ok": True, "next": len(items) >= limit, "items": items}
     return cached_list(ASURA_API + "novel-series?" + urllib.parse.urlencode(params), cache_name, build, "the novel library")
 
 
-def cmd_asura(args):
+def cmd_asura(args: list[str]) -> None:
     page = int(args[0]) if args else 1
     out(asura_list({"sort": "popular", "limit": ASURA_PAGE, "offset": (page - 1) * ASURA_PAGE}, "asura-popular-%d" % page))
 
 
-def cmd_asura_search(args):
+def cmd_asura_search(args: list[str]) -> None:
     if not args:
         fail("asura-search needs a query")
     q = " ".join(args[:-1]) if len(args) > 1 and args[-1].isdigit() else " ".join(args)
@@ -163,7 +190,7 @@ def cmd_asura_search(args):
     out(asura_list({"search": q, "limit": ASURA_PAGE, "offset": (page - 1) * ASURA_PAGE}, key))
 
 
-def asura_cover_file(url, folder):
+def asura_cover_file(url: str, folder: str) -> str:
     if not url:
         return ""
     dest = os.path.join(folder, "cover" + (os.path.splitext(urllib.parse.urlparse(url).path)[1] or ".webp"))
@@ -171,16 +198,16 @@ def asura_cover_file(url, folder):
         return dest
     for candidate in (asura_cover(url), url):
         try:
-            fetch(candidate, dest)
+            _ = fetch(candidate, dest)
             return dest
         except Exception:
             continue
     return ""
 
 
-def asura_text(raw):
-    parts = []
-    open_tags = []
+def asura_text(raw: str) -> str:
+    parts: list[str] = []
+    open_tags: list[str] = []
     for tok in re.split(r"(<[^>]+>)", raw):
         if not tok.startswith("<"):
             parts.append(html.escape(html.unescape(tok), quote=False))
@@ -206,14 +233,15 @@ def asura_text(raw):
     return re.sub(r"^(<br>)+|(<br>)+$", "", text).strip()
 
 
-def asura_chapter(slug, number):
+def asura_chapter(slug: str, number: int) -> list[dict[str, Any]]:
     path = os.path.join(CACHE, "asura-" + slug, "ch", "%d.json" % number)
     try:
         with open(path) as f:
-            return json.load(f)
+            cached_paras: list[dict[str, Any]] = json.load(f)
+            return cached_paras
     except (OSError, ValueError):
         pass
-    err = None
+    err: Exception | None = None
     raw = ""
     for attempt in range(3):
         try:
@@ -226,7 +254,7 @@ def asura_chapter(slug, number):
         if err is not None:
             raise err
         raise RuntimeError("failed to fetch chapter %d" % number)
-    paras = []
+    paras: list[dict[str, Any]] = []
     for inner in ASURA_PARA.findall(raw):
         text = asura_text(inner)
         if re.sub(r"<[^>]+>", "", text).strip():
@@ -237,7 +265,7 @@ def asura_chapter(slug, number):
     return paras
 
 
-def open_asura(slug):
+def open_asura(slug: str) -> None:
     if not ASURA_SLUG.match(slug):
         fail("bad novel id")
     key = "asura-" + slug
@@ -250,35 +278,43 @@ def open_asura(slug):
     except OSError:
         pass
     try:
-        meta = json.loads(fetch(ASURA_API + "novel-series/" + slug))
+        raw_meta: Any = json.loads(fetch(ASURA_API + "novel-series/" + slug))
+        meta: dict[str, Any] = cast(dict[str, Any], raw_meta) if isinstance(raw_meta, dict) else {}
     except Exception as e:
         if os.path.exists(book_path):
             out({"ok": True, "key": key, "path": book_path})
             return
         fail("Could not reach the novel library: " + str(e))
-    series = meta.get("series") or {}
-    free = sorted((c for c in meta.get("chapters") or [] if not c.get("is_locked")), key=lambda c: c["number"])
+    series: dict[str, Any] = meta.get("series") or {}
+    chapters_raw: list[dict[str, Any]] = meta.get("chapters") or []
+    free: list[dict[str, Any]] = sorted(
+        [c for c in chapters_raw if not c.get("is_locked")],
+        key=lambda c: int(c["number"]),
+    )
     if not free:
         fail("This novel has no free chapters")
+    def fetch_chapter(c: dict[str, Any]) -> list[dict[str, Any]]:
+        return asura_chapter(slug, int(c["number"]))
+
     try:
         with ThreadPoolExecutor(max_workers=6) as pool:
-            bodies = list(pool.map(lambda c: asura_chapter(slug, c["number"]), free))
+            bodies: list[list[dict[str, Any]]] = list(pool.map(fetch_chapter, free))
     except Exception as e:
         fail("Download failed: " + str(e))
-    chapters = []
+    chapters: list[dict[str, Any]] = []
     for c, paras in zip(free, bodies):
-        title = "Chapter %d" % c["number"] + (" - " + c["title"].strip() if c.get("title") else "")
-        chapters.append({"title": title, "paras": paras, "words": sum(words(p["t"]) for p in paras)})
-    cover = asura_cover_file(series.get("cover_url") or "", folder)
-    book = {"v": 1, "key": key, "source": "asura", "id": slug,
-            "title": series.get("title") or slug, "author": series.get("author") or "",
+        title = "Chapter %d" % int(c["number"]) + (" - " + str(c["title"]).strip() if c.get("title") else "")
+        chapters.append({"title": title, "paras": paras, "words": sum(words(str(p["t"])) for p in paras)})
+    cover = asura_cover_file(str(series.get("cover_url") or ""), folder)
+    book: dict[str, Any] = {"v": 1, "key": key, "source": "asura", "id": slug,
+            "title": str(series.get("title") or slug), "author": str(series.get("author") or ""),
             "cover": cover, "start": 0, "chapters": chapters,
-            "words": sum(c["words"] for c in chapters)}
+            "words": sum(int(c["words"]) for c in chapters)}
     write_json(book_path, book)
     out({"ok": True, "key": key, "path": book_path})
 
 
-NS = {
+NS: dict[str, str] = {
     "c": "urn:oasis:names:tc:opendocument:xmlns:container",
     "opf": "http://www.idpf.org/2007/opf",
     "dc": "http://purl.org/dc/elements/1.1/",
@@ -288,8 +324,17 @@ NS = {
 }
 
 
+@final
 class Package:
-    def __init__(self, path):
+    z: zipfile.ZipFile
+    opf_path: str
+    base: str
+    opf: ET.Element
+    manifest: dict[str, dict[str, Any]]
+    spine_toc: str | None
+    spine: list[str]
+
+    def __init__(self, path: str) -> None:
         self.z = zipfile.ZipFile(path)
         cont = ET.fromstring(self.z.read("META-INF/container.xml"))
         rf = cont.find(".//c:rootfile", NS)
@@ -301,56 +346,66 @@ class Package:
         self.opf = ET.fromstring(self.z.read(self.opf_path))
         self.manifest = {}
         for it in self.opf.findall(".//opf:manifest/opf:item", NS):
-            self.manifest[it.get("id")] = {
-                "href": self.join(self.base, it.get("href")),
-                "type": it.get("media-type", ""),
-                "props": (it.get("properties") or "").split(),
-            }
+            item_id = it.get("id")
+            if item_id:
+                self.manifest[item_id] = {
+                    "href": self.join(self.base, it.get("href") or ""),
+                    "type": it.get("media-type", ""),
+                    "props": (it.get("properties") or "").split(),
+                }
         spine = self.opf.find(".//opf:spine", NS)
         self.spine_toc = spine.get("toc") if spine is not None else None
-        self.spine = [self.manifest[i.get("idref")]["href"] for i in self.opf.findall(".//opf:spine/opf:itemref", NS)
-                      if i.get("idref") in self.manifest]
+        self.spine = [
+            str(self.manifest[idref]["href"])
+            for i in self.opf.findall(".//opf:spine/opf:itemref", NS)
+            if (idref := i.get("idref")) is not None and idref in self.manifest
+        ]
 
     @staticmethod
-    def join(base, href):
-        href = urllib.parse.unquote(href.split("#")[0])
-        return posixpath.normpath(posixpath.join(base, href)) if base else posixpath.normpath(href)
+    def join(base: str, href: str) -> str:
+        href_unquoted = urllib.parse.unquote(href.split("#")[0])
+        return posixpath.normpath(posixpath.join(base, href_unquoted)) if base else posixpath.normpath(href_unquoted)
 
-    def meta(self, tag):
+    def meta(self, tag: str) -> str:
         el = self.opf.find(".//dc:" + tag, NS)
         return re.sub(r"\s+", " ", el.text).strip() if el is not None and el.text else ""
 
-    def cover(self):
+    def cover(self) -> str:
         for it in self.manifest.values():
-            if "cover-image" in it["props"]:
-                return it["href"]
+            props: list[str] = it.get("props") or []
+            if "cover-image" in props:
+                return str(it["href"])
         for m in self.opf.findall(".//opf:metadata/opf:meta", NS):
-            if m.get("name") == "cover" and m.get("content") in self.manifest:
-                return self.manifest[m.get("content")]["href"]
+            content = m.get("content")
+            if m.get("name") == "cover" and content and content in self.manifest:
+                return str(self.manifest[content]["href"])
         for it in self.manifest.values():
-            if it["type"].startswith("image/") and "cover" in it["href"].lower():
-                return it["href"]
+            it_type = str(it.get("type", ""))
+            it_href = str(it.get("href", ""))
+            if it_type.startswith("image/") and "cover" in it_href.lower():
+                return it_href
         return ""
 
-    def toc(self):
-        entries = []
-        nav = next((it for it in self.manifest.values() if "nav" in it["props"]), None)
+    def toc(self) -> list[tuple[str, str, str]]:
+        entries: list[tuple[str, str, str]] = []
+        nav = next((it for it in self.manifest.values() if "nav" in (it.get("props") or [])), None)
         if nav:
             try:
-                root = ET.fromstring(self.z.read(nav["href"]))
+                root = ET.fromstring(self.z.read(str(nav["href"])))
                 navs = root.findall(".//x:nav", NS)
                 toc = next((n for n in navs if n.get("{%s}type" % NS["epub"]) == "toc"), navs[0] if navs else None)
                 if toc is not None:
-                    base = posixpath.dirname(nav["href"])
+                    base = posixpath.dirname(str(nav["href"]))
                     for a in toc.iter("{%s}a" % NS["x"]):
                         href = a.get("href") or ""
                         title = re.sub(r"\s+", " ", "".join(a.itertext())).strip()
                         if href and title:
-                            entries.append((title, self.join(base, href), urllib.parse.unquote(href.split("#", 1)[1]) if "#" in href else ""))
+                            frag = urllib.parse.unquote(href.split("#", 1)[1]) if "#" in href else ""
+                            entries.append((title, self.join(base, href), frag))
             except (KeyError, ET.ParseError):
                 entries = []
         if not entries and self.spine_toc in self.manifest:
-            ncx = self.manifest[self.spine_toc]["href"]
+            ncx = str(self.manifest[self.spine_toc]["href"])
             try:
                 root = ET.fromstring(self.z.read(ncx))
                 base = posixpath.dirname(ncx)
@@ -360,23 +415,34 @@ class Package:
                     if lab is None or con is None:
                         continue
                     src = con.get("src") or ""
-                    entries.append((re.sub(r"\s+", " ", lab.text or "").strip(), self.join(base, src),
-                                    urllib.parse.unquote(src.split("#", 1)[1]) if "#" in src else ""))
+                    frag = urllib.parse.unquote(src.split("#", 1)[1]) if "#" in src else ""
+                    entries.append((re.sub(r"\s+", " ", lab.text or "").strip(), self.join(base, src), frag))
             except (KeyError, ET.ParseError):
                 pass
         return entries
 
 
-BLOCKS = {"p", "h1", "h2", "h3", "h4", "h5", "h6", "li", "dt", "dd", "pre", "blockquote", "div", "tr"}
-HEADS = {"h1", "h2", "h3", "h4", "h5", "h6"}
-SKIP = {"script", "style", "head", "title", "svg", "math"}
-SKIP_CLASS = re.compile(r"\b(fig\w*|illus\w*|caption|image|img\w*|pg-boilerplate|pgheader|pg-header|tnote|transnote)\b", re.I)
-VOID = {"br", "img", "hr", "meta", "link", "input", "col", "area", "base", "wbr", "source"}
-INLINE = {"i": "i", "em": "i", "cite": "i", "b": "b", "strong": "b"}
+BLOCKS: set[str] = {"p", "h1", "h2", "h3", "h4", "h5", "h6", "li", "dt", "dd", "pre", "blockquote", "div", "tr"}
+HEADS: set[str] = {"h1", "h2", "h3", "h4", "h5", "h6"}
+SKIP: set[str] = {"script", "style", "head", "title", "svg", "math"}
+SKIP_CLASS: re.Pattern[str] = re.compile(r"\b(fig\w*|illus\w*|caption|image|img\w*|pg-boilerplate|pgheader|pg-header|tnote|transnote)\b", re.I)
+VOID: set[str] = {"br", "img", "hr", "meta", "link", "input", "col", "area", "base", "wbr", "source"}
+INLINE: dict[str, str] = {"i": "i", "em": "i", "cite": "i", "b": "b", "strong": "b"}
 
 
+@final
 class Blocks(HTMLParser):
-    def __init__(self, file):
+    file: str
+    blocks: list[dict[str, Any]]
+    buf: list[str]
+    kind: str | None
+    depth: int
+    skip: int
+    ids: list[str]
+    open_inline: list[str]
+    stack: list[tuple[str, bool]]
+
+    def __init__(self, file: str) -> None:
         super().__init__(convert_charrefs=True)
         self.file = file
         self.blocks = []
@@ -388,7 +454,7 @@ class Blocks(HTMLParser):
         self.open_inline = []
         self.stack = []
 
-    def flush(self):
+    def flush(self) -> None:
         text = "".join(self.buf)
         text = re.sub(r"[ \t\r\n\f]+", " ", text)
         text = re.sub(r" ?<br> ?", "<br>", text).strip()
@@ -400,7 +466,8 @@ class Blocks(HTMLParser):
         self.buf = []
         self.open_inline = []
 
-    def handle_starttag(self, tag, attrs):
+    @override
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         a = dict(attrs)
         if tag not in VOID:
             hidden = tag in SKIP or bool(SKIP_CLASS.search(a.get("class") or ""))
@@ -413,7 +480,7 @@ class Blocks(HTMLParser):
         if self.skip:
             return
         if a.get("id"):
-            self.ids.append(a["id"])
+            self.ids.append(str(a["id"]))
         if tag in BLOCKS:
             if self.buf:
                 self.flush()
@@ -424,16 +491,18 @@ class Blocks(HTMLParser):
             self.buf.append("<%s>" % INLINE[tag])
             self.open_inline.append(INLINE[tag])
         elif tag == "a" and a.get("name"):
-            self.ids.append(a["name"])
+            self.ids.append(str(a["name"]))
 
-    def handle_startendtag(self, tag, attrs):
+    @override
+    def handle_startendtag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         a = dict(attrs)
         if a.get("id") and not self.skip:
-            self.ids.append(a["id"])
+            self.ids.append(str(a["id"]))
         if tag == "br" and not self.skip:
             self.buf.append("<br>")
 
-    def handle_endtag(self, tag):
+    @override
+    def handle_endtag(self, tag: str) -> None:
         if tag not in VOID and any(t == tag for t, _ in self.stack):
             while self.stack:
                 t, hidden = self.stack.pop()
@@ -454,21 +523,23 @@ class Blocks(HTMLParser):
             self.flush()
             self.kind = None
 
-    def handle_data(self, data):
+    @override
+    def handle_data(self, data: str) -> None:
         if not self.skip:
             self.buf.append(html.escape(data, quote=False))
 
-    def close(self):
+    @override
+    def close(self) -> None:
         super().close()
         if self.buf:
             self.flush()
 
 
-HEAD_WORD = re.compile(r"\b(chapter|letter|book|part|volume|stave|canto|act)\b.*$", re.I)
-ROMAN = re.compile(r"^[IVXLCDM]+[.:]?$")
+HEAD_WORD: re.Pattern[str] = re.compile(r"\b(chapter|letter|book|part|volume|stave|canto|act)\b.*$", re.I)
+ROMAN: re.Pattern[str] = re.compile(r"^[IVXLCDM]+[.:]?$")
 
 
-def clean_title(t):
+def clean_title(t: str) -> str:
     t = re.sub(r"\s+", " ", t).strip()
     m = HEAD_WORD.search(t)
     if m and m.start() > 0:
@@ -481,13 +552,13 @@ def clean_title(t):
     return t
 
 
-def words(text):
+def words(text: str) -> int:
     return len(re.sub(r"<[^>]+>", " ", text).split())
 
 
-def parse_epub(path):
+def parse_epub(path: str) -> tuple[Package, list[dict[str, Any]]]:
     pkg = Package(path)
-    stream = []
+    stream: list[dict[str, Any]] = []
     for href in pkg.spine:
         try:
             raw = pkg.z.read(href).decode("utf-8", "replace")
@@ -500,67 +571,72 @@ def parse_epub(path):
             p.blocks[0]["start"] = True
         stream.extend(p.blocks)
 
-    starts = []
+    starts: list[tuple[str, int]] = []
     for title, file, frag in pkg.toc():
-        idx = None
+        idx: int | None = None
         for i, b in enumerate(stream):
-            if b["file"] != file:
+            if b.get("file") != file:
                 continue
             if not frag and b.get("start"):
                 idx = i
                 break
-            if frag and frag in b["ids"]:
+            ids_list: list[str] = b.get("ids") or []
+            if frag and frag in ids_list:
                 idx = i
                 break
         if idx is None and frag:
-            idx = next((i for i, b in enumerate(stream) if b["file"] == file), None)
+            idx = next((i for i, b in enumerate(stream) if b.get("file") == file), None)
         if idx is not None and all(s[1] != idx for s in starts):
             starts.append((title, idx))
     starts.sort(key=lambda s: s[1])
 
-    chapters = []
+    chapters: list[tuple[str, list[dict[str, Any]]]] = []
     if len(starts) >= 2:
         for n, (title, idx) in enumerate(starts):
             end = starts[n + 1][1] if n + 1 < len(starts) else len(stream)
             chapters.append((title, stream[idx:end]))
     else:
-        cur = None
+        cur: tuple[str, list[dict[str, Any]]] | None = None
         for b in stream:
-            if b["h"] or cur is None:
-                cur = (re.sub(r"<[^>]+>", "", b["t"]) if b["h"] else "Beginning", [])
+            is_head = bool(b.get("h"))
+            b_text = str(b.get("t", ""))
+            if is_head or cur is None:
+                cur = (re.sub(r"<[^>]+>", "", b_text) if is_head else "Beginning", [])
                 chapters.append(cur)
             cur[1].append(b)
 
-    book = []
+    book: list[dict[str, Any]] = []
     for title, blocks in chapters:
         if SKIP_TITLES.search(title):
             continue
-        paras = []
+        paras: list[dict[str, Any]] = []
         for k, b in enumerate(blocks):
-            if k == 0 and b["h"]:
+            is_head = bool(b.get("h"))
+            b_text = str(b.get("t", ""))
+            if k == 0 and is_head:
                 continue
-            paras.append({"h": 1, "t": b["t"]} if b["h"] else {"t": b["t"]})
+            paras.append({"h": 1, "t": b_text} if is_head else {"t": b_text})
         if not any(not p.get("h") for p in paras):
             continue
-        book.append({"title": clean_title(title), "paras": paras, "words": sum(words(p["t"]) for p in paras)})
+        book.append({"title": clean_title(title), "paras": paras, "words": sum(words(str(p["t"])) for p in paras)})
     if not book:
         raise ValueError("no readable chapters")
     return pkg, book
 
 
-def start_chapter(chapters):
+def start_chapter(chapters: list[dict[str, Any]]) -> int:
     for i, c in enumerate(chapters):
-        if re.match(r"^(chapter|letter|book|part|stave|canto|volume)\b", c["title"], re.I):
+        if re.match(r"^(chapter|letter|book|part|stave|canto|volume)\b", str(c.get("title", "")), re.I):
             return i
     return 0
 
 
-def local_key(path):
+def local_key(path: str) -> str:
     st = os.stat(path)
     return "local-" + hashlib.sha1(("%s|%d|%d" % (path, st.st_size, int(st.st_mtime))).encode()).hexdigest()[:16]
 
 
-def extract_cover(pkg, dest_dir):
+def extract_cover(pkg: Package, dest_dir: str) -> str:
     href = pkg.cover()
     if not href:
         return ""
@@ -573,12 +649,13 @@ def extract_cover(pkg, dest_dir):
             return ""
         os.makedirs(dest_dir, exist_ok=True)
         with open(dest, "wb") as f:
-            f.write(data)
+            _ = f.write(data)
     return dest
 
 
-def cmd_local(args):
-    items = []
+def cmd_local(args: list[str]) -> None:
+    _ = args
+    items: list[dict[str, Any]] = []
     for d in LOCAL_DIRS:
         if not os.path.isdir(d):
             continue
@@ -592,10 +669,11 @@ def cmd_local(args):
                     meta_path = os.path.join(CACHE, key, "meta.json")
                     if os.path.exists(meta_path):
                         with open(meta_path) as f:
-                            items.append(json.load(f))
+                            cached_meta: dict[str, Any] = json.load(f)
+                            items.append(cached_meta)
                         continue
                     pkg = Package(path)
-                    meta = {"source": "local", "id": path, "key": key,
+                    meta: dict[str, Any] = {"source": "local", "id": path, "key": key,
                             "title": pkg.meta("title") or os.path.splitext(name)[0],
                             "author": pkg.meta("creator"),
                             "cover": extract_cover(pkg, os.path.join(CACHE, key))}
@@ -606,7 +684,7 @@ def cmd_local(args):
     out({"ok": True, "dirs": LOCAL_DIRS, "items": items})
 
 
-def cmd_open(args):
+def cmd_open(args: list[str]) -> None:
     if len(args) < 2:
         fail("open needs <source> <id>")
     source, ident = args[0], " ".join(args[1:])
@@ -621,10 +699,10 @@ def cmd_open(args):
             return
         epub = os.path.join(folder, "book.epub")
         if not os.path.exists(epub):
-            last = None
+            last: Exception | None = None
             for suffix in ("epub3.images", "epub.noimages", "epub.images"):
                 try:
-                    fetch("https://www.gutenberg.org/ebooks/%s.%s" % (ident, suffix), epub)
+                    _ = fetch("https://www.gutenberg.org/ebooks/%s.%s" % (ident, suffix), epub)
                     last = None
                     break
                 except Exception as e:
@@ -657,24 +735,31 @@ def cmd_open(args):
     if not cover and cover_url:
         try:
             cover = os.path.join(folder, "cover.jpg")
-            fetch(cover_url, cover)
+            _ = fetch(cover_url, cover)
         except Exception:
             cover = ""
-    book = {"v": 1, "key": key, "source": source, "id": ident,
+    book: dict[str, Any] = {"v": 1, "key": key, "source": source, "id": ident,
             "title": re.split(r";|:", pkg.meta("title"))[0].strip(), "author": person(pkg.meta("creator")),
             "cover": cover, "start": start_chapter(chapters), "chapters": chapters,
-            "words": sum(c["words"] for c in chapters)}
+            "words": sum(int(c.get("words", 0)) for c in chapters)}
     write_json(book_path, book)
     out({"ok": True, "key": key, "path": book_path})
 
 
-def main():
+def main() -> None:
     if len(sys.argv) < 2:
         fail("usage: books popular [page] | search <query> [page] | asura [page] | asura-search <query> [page] | local | open <gutenberg|asura|local> <id|path>")
     cmd, args = sys.argv[1], sys.argv[2:]
-    {"popular": cmd_popular, "search": cmd_search, "asura": cmd_asura, "asura-search": cmd_asura_search,
-     "local": cmd_local, "open": cmd_open}.get(
-        cmd, lambda a: fail("unknown command " + cmd))(args)
+    handlers: dict[str, Callable[[list[str]], None]] = {
+        "popular": cmd_popular,
+        "search": cmd_search,
+        "asura": cmd_asura,
+        "asura-search": cmd_asura_search,
+        "local": cmd_local,
+        "open": cmd_open,
+    }
+    handler = handlers.get(cmd, lambda a: fail("unknown command " + cmd))
+    handler(args)
 
 
 if __name__ == "__main__":

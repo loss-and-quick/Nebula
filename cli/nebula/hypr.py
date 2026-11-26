@@ -4,6 +4,7 @@ import re
 import sys
 import tempfile
 from pathlib import Path
+from typing import Any
 
 from nebula.paths import HOME
 
@@ -45,7 +46,7 @@ def write_atomic(path: Path, text: str) -> None:
     fd, tmp = tempfile.mkstemp(dir=target.parent, prefix="." + target.name + ".")
     try:
         with os.fdopen(fd, "w") as f:
-            f.write(text)
+            _ = f.write(text)
         os.chmod(tmp, mode)
         os.replace(tmp, target)
     except BaseException:
@@ -65,7 +66,7 @@ def splice(text: str, area: str, body: str) -> str:
 
 
 def all_lua_text() -> str:
-    out = []
+    out: list[str] = []
     for p in HYPR.rglob("*.lua"):
         try:
             out.append(p.read_text())
@@ -92,7 +93,7 @@ def ensure_require(module: str) -> bool:
     return True
 
 
-def status(path: Path) -> dict:
+def status(path: Path) -> dict[str, Any]:
     module = module_of(path)
     return {"file": str(path), "module": module, "exists": path.exists(),
             "required": path == MAIN.resolve() or path == MAIN or is_required(module)}
@@ -103,7 +104,7 @@ def cmd_write(area: str, mode: str, file: str) -> int:
     if mode == "nebula":
         path = nebula_file(area)
         write_atomic(path, HEADER.format(area=area) + ("\n" + body.rstrip() + "\n" if body.strip() else ""))
-        ensure_require(module_of(path))
+        _ = ensure_require(module_of(path))
     else:
         path = Path(os.path.expanduser(file))
         text = path.read_text() if path.exists() else ""
@@ -129,7 +130,7 @@ def cmd_require(file: str) -> int:
     path = Path(os.path.expanduser(file))
     module = module_of(path)
     if module:
-        ensure_require(module)
+        _ = ensure_require(module)
     print(json.dumps(status(path)))
     return 0
 
@@ -142,7 +143,7 @@ def cmd_retire_legacy() -> int:
     return 0
 
 
-def main(argv=None) -> None:
+def main(argv: list[str] | None = None) -> None:
     a = list(sys.argv[1:] if argv is None else argv)
     usage = "usage: nebula hypr write AREA nebula|own [FILE] < body | remove AREA FILE | status FILE | require FILE | retire-legacy"
     if not a:

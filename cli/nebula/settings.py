@@ -5,7 +5,7 @@ import tempfile
 import time
 from contextlib import suppress
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from nebula.paths import CONFIG_DIR, dropin_files
 
@@ -30,7 +30,7 @@ def write_atomic(path: Path, text: str) -> None:
     fd, tmp = tempfile.mkstemp(dir=target.parent, prefix=f".{target.name}.")
     try:
         with os.fdopen(fd, "w") as f:
-            f.write(text)
+            _ = f.write(text)
         os.chmod(tmp, mode)
         os.replace(tmp, target)
     except BaseException:
@@ -41,10 +41,10 @@ def write_atomic(path: Path, text: str) -> None:
 
 def _read_json(path: Path) -> Settings:
     try:
-        data = json.loads(path.read_text())
+        data: Any = json.loads(path.read_text())
     except (OSError, ValueError):
         return {}
-    return data if isinstance(data, dict) else {}
+    return cast(Settings, data) if isinstance(data, dict) else {}
 
 
 def _backup_corrupt(path: Path) -> Path | None:
@@ -52,7 +52,7 @@ def _backup_corrupt(path: Path) -> Path | None:
     try:
         fd, tmp = tempfile.mkstemp(prefix=f"{path.name}.corrupt-{ts}-", dir=path.parent)
         with os.fdopen(fd, "wb") as out:
-            out.write(path.read_bytes())
+            _ = out.write(path.read_bytes())
     except OSError:
         return None
     return Path(tmp)
@@ -67,14 +67,14 @@ def load_user() -> Settings:
     except OSError as e:
         raise CorruptSettingsError(f"Settings file '{path}' is unreadable ({e}).") from e
     try:
-        data = json.loads(raw)
+        data: Any = json.loads(raw)
         if not isinstance(data, dict):
             raise ValueError("root of settings must be a JSON object")
     except ValueError as e:
         backup = _backup_corrupt(path)
         where = f" Backed up to '{backup}'." if backup else ""
         raise CorruptSettingsError(f"Settings file '{path}' is corrupt ({e}).{where}") from e
-    return data
+    return cast(Settings, data)
 
 
 def is_path_locked(locks: set[str], path: str) -> bool:
@@ -90,9 +90,11 @@ def is_key_locked(section_name: str, key: str = "") -> bool:
 def get_locks() -> set[str]:
     locks: set[str] = set()
     for f in dropin_files():
-        for item in _read_json(f).get("locked") or []:
-            if isinstance(item, str) and item.strip():
-                locks.add(item.strip())
+        locked_items = _read_json(f).get("locked")
+        if isinstance(locked_items, list):
+            for item in cast(list[Any], locked_items):
+                if isinstance(item, str) and item.strip():
+                    locks.add(item.strip())
     return locks
 
 
@@ -112,9 +114,10 @@ def _merge_layer(
         if enforce_locks and is_path_locked(locks, path):
             continue
         if isinstance(v, dict):
-            if not isinstance(target.get(k), dict):
+            target_entry = target.get(k)
+            if not isinstance(target_entry, dict):
                 target[k] = {}
-            _merge_layer(target[k], v, path, locks, source_name, sources, enforce_locks)
+            _merge_layer(cast(Settings, target[k]), cast(Settings, v), path, locks, source_name, sources, enforce_locks)
         else:
             target[k] = v
             sources[path] = source_name
@@ -143,15 +146,15 @@ def load() -> Settings:
 
 def section(name: str) -> Settings:
     sec = load().get(name)
-    return dict(sec) if isinstance(sec, dict) else {}
+    return dict(cast(Settings, sec)) if isinstance(sec, dict) else {}
 
 
 def update(name: str, patch: Settings, replace: bool = False) -> None:
     locks = get_locks()
     user_data = load_user()
-    original = user_data.get(name)
-    original = original if isinstance(original, dict) else {}
-    sec = {
+    orig = user_data.get(name)
+    original: Settings = cast(Settings, orig) if isinstance(orig, dict) else {}
+    sec: Settings = {
         k: v
         for k, v in original.items()
         if not is_path_locked(locks, f"{name}.{k}") and (not replace or k in patch)
@@ -161,7 +164,7 @@ def update(name: str, patch: Settings, replace: bool = False) -> None:
             print(f"nebula: warning: setting '{name}.{k}' is locked by administrator; ignoring update", file=sys.stderr)
             continue
         if v is None:
-            sec.pop(k, None)
+            _ = sec.pop(k, None)
         else:
             sec[k] = v
     if sec == original:
@@ -181,7 +184,7 @@ def get_source(key: str) -> Settings:
     found = True
     for part in key.split("."):
         if isinstance(val, dict) and part in val:
-            val = val[part]
+            val = cast(Settings, val)[part]
         else:
             found = False
             val = None
@@ -217,7 +220,7 @@ def get_all_sources() -> Settings:
                 continue
             path = f"{prefix}.{k}" if prefix else k
             if isinstance(v, dict):
-                flatten(v, path)
+                flatten(cast(Settings, v), path)
             else:
                 src = sources.get(path, "default")
                 flat.append({

@@ -1539,7 +1539,13 @@ Item {
 
     readonly property bool hoverMode: surface.cfg.hoverMode === true || surface.cfg.overlay === true
     readonly property bool autoHide: surface.cfg.autoHide
-    readonly property bool dockActive: !surface.autoHide || revealHover.hovered || GlobalStates.barEditMode || (surface.autoHide && GlobalStates.dockPeek) || BarLayout.sysPanelOpen || surface.visibleBlocks.some(b => b.tabOpen || (b.revealer && b.revealer.tabHovered))
+    readonly property bool dockActive: !surface.autoHide
+        || revealHover.hovered
+        || dockAreaHover.hovered
+        || GlobalStates.barEditMode
+        || (surface.autoHide && GlobalStates.dockPeek)
+        || BarLayout.sysPanelOpen
+        || surface.visibleBlocks.some(b => b.hovering || b.dockHovered || b.tabOpen || (b.revealer && (b.revealer.tabHovered || b.revealer.panelOpen)))
     property bool dockHidden: false
     property real revealGoal: 1
     onDockHiddenChanged: {
@@ -2096,6 +2102,18 @@ Item {
         height: 8
         HoverHandler {
             id: revealHover
+        }
+    }
+
+    Item {
+        id: dockArea
+        visible: surface.autoHide && !surface.dockHidden
+        x: surface.span.x
+        y: surface.far ? surface.height - height : 0
+        width: surface.span.w
+        height: surface.barH + surface.edgeInset + 8
+        HoverHandler {
+            id: dockAreaHover
         }
     }
 }

@@ -5,6 +5,8 @@ import socket
 import subprocess
 import sys
 import time
+from collections.abc import Mapping
+from typing import Any, TypedDict, cast
 
 PORT = 38899
 SKIP = ("lo", "docker", "virbr", "br-", "veth", "tun", "wg", "tailscale")
@@ -14,12 +16,18 @@ LOST_AFTER = 3
 RESCAN_EVERY = 30.0
 
 
-def own_addresses() -> list:
+class BulbInfo(TypedDict):
+    ip: str
+    mac: str
+    pilot: dict[str, Any]
+
+
+def own_addresses() -> list[str]:
     try:
         out = subprocess.run(["ip", "-4", "-o", "addr"], capture_output=True, text=True, timeout=3).stdout
     except (OSError, subprocess.SubprocessError):
         return []
-    found = []
+    found: list[str] = []
     for line in out.splitlines():
         parts = line.split()
         if len(parts) < 4 or parts[1].startswith(SKIP):
@@ -28,9 +36,9 @@ def own_addresses() -> list:
     return found
 
 
-def scan(timeout: float = 2.5) -> list:
+def scan(timeout: float = 2.5) -> list[BulbInfo]:
     own = own_addresses()
-    targets = []
+    targets: list[str] = []
     for addr in own:
         base = addr.rsplit(".", 1)[0]
         targets.extend(f"{base}.{i}" for i in range(1, 255))
@@ -40,11 +48,11 @@ def scan(timeout: float = 2.5) -> list:
     msg = json.dumps({"method": "getPilot", "params": {}}).encode()
     for target in ["255.255.255.255", *targets]:
         try:
-            sock.sendto(msg, (target, PORT))
+            _ = sock.sendto(msg, (target, PORT))
         except OSError:
             pass
     sock.settimeout(0.25)
-    bulbs = {}
+    bulbs: dict[str, dict[str, Any]] = {}
     end = time.monotonic() + timeout
     while time.monotonic() < end:
         try:
@@ -52,26 +60,42 @@ def scan(timeout: float = 2.5) -> list:
         except (socket.timeout, OSError):
             continue
         try:
-            reply = json.loads(data)
+            reply_raw: Any = json.loads(data)
         except ValueError:
             continue
-        if reply.get("method") == "getPilot" and "result" in reply:
-            bulbs[addr] = reply["result"]
+        if not isinstance(reply_raw, dict):
+            continue
+        reply: dict[str, Any] = cast(dict[str, Any], reply_raw)
+        result = reply.get("result")
+        if reply.get("method") == "getPilot" and isinstance(result, dict):
+            bulbs[str(addr)] = cast(dict[str, Any], result)
     sock.close()
-    return [{"ip": ip, "mac": r.get("mac", ""), "pilot": r} for ip, r in sorted(bulbs.items())]
+    return [{"ip": ip, "mac": str(r.get("mac", "")), "pilot": r} for ip, r in sorted(bulbs.items())]
 
 
-def request(ip: str, method: str, params: dict, timeout: float = 1.5) -> dict:
+def request(ip: str, method: str, params: Mapping[str, Any], timeout: float = 1.5) -> dict[str, Any]:
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.settimeout(timeout)
     try:
-        sock.sendto(json.dumps({"id": 1, "method": method, "params": params}).encode(), (ip, PORT))
-        return json.loads(sock.recvfrom(4096)[0])
+        _ = sock.sendto(json.dumps({"id": 1, "method": method, "params": params}).encode(), (ip, PORT))
+        res_raw: Any = json.loads(sock.recvfrom(4096)[0])
+        return cast(dict[str, Any], res_raw) if isinstance(res_raw, dict) else {}
     finally:
         sock.close()
 
 
 class Server:
+    ip: str
+    poll: float
+    sock: socket.socket
+    pending: dict[str, Any] | None
+    last_send: float
+    confirm_at: float
+    next_poll: float
+    missed: int
+    lost: bool
+    next_scan: float
+
     def __init__(self, ip: str, poll: float):
         self.ip = ip
         self.poll = poll
@@ -85,15 +109,15 @@ class Server:
         self.lost = False
         self.next_scan = 0.0
 
-    def emit(self, obj: dict) -> None:
-        sys.stdout.write(json.dumps(obj) + "\n")
-        sys.stdout.flush()
+    def emit(self, obj: Mapping[str, Any]) -> None:
+        _ = sys.stdout.write(json.dumps(obj) + "\n")
+        _ = sys.stdout.flush()
 
-    def send(self, method: str, params: dict) -> None:
+    def send(self, method: str, params: Mapping[str, Any]) -> None:
         if not self.ip:
             return
         try:
-            self.sock.sendto(json.dumps({"id": 1, "method": method, "params": params}).encode(), (self.ip, PORT))
+            _ = self.sock.sendto(json.dumps({"id": 1, "method": method, "params": params}).encode(), (self.ip, PORT))
         except OSError as e:
             self.emit({"type": "error", "op": method, "code": -1, "message": str(e)})
 
@@ -120,18 +144,22 @@ class Server:
 
     def command(self, line: str) -> None:
         try:
-            msg = json.loads(line)
+            msg_raw: Any = json.loads(line)
         except ValueError:
             return
+        if not isinstance(msg_raw, dict):
+            return
+        msg: dict[str, Any] = cast(dict[str, Any], msg_raw)
         op = msg.get("op")
-        if op == "pilot" and isinstance(msg.get("params"), dict):
-            self.pending = msg["params"]
+        params = msg.get("params")
+        if op == "pilot" and isinstance(params, dict):
+            self.pending = cast(dict[str, Any], params)
         elif op == "refresh":
             self.send("getPilot", {})
         elif op == "scan":
             self.find()
         elif op == "host" and msg.get("ip"):
-            self.attach(msg["ip"])
+            self.attach(str(msg["ip"]))
 
     def receive(self) -> None:
         while True:
@@ -142,26 +170,30 @@ class Server:
             if addr != self.ip:
                 continue
             try:
-                reply = json.loads(data)
+                reply_raw: Any = json.loads(data)
             except ValueError:
                 continue
-            method = reply.get("method", "")
+            if not isinstance(reply_raw, dict):
+                continue
+            reply: dict[str, Any] = cast(dict[str, Any], reply_raw)
+            method = str(reply.get("method", ""))
             if self.lost:
                 self.lost = False
                 self.emit({"type": "host", "ip": self.ip})
             self.missed = 0
             if "error" in reply:
-                err = reply["error"]
+                err_raw = reply["error"]
+                err: dict[str, Any] = cast(dict[str, Any], err_raw) if isinstance(err_raw, dict) else {}
                 self.emit({"type": "error", "op": method, "code": err.get("code", 0), "message": err.get("message", "")})
             elif method == "getPilot":
-                self.emit({"type": "state", "ip": self.ip, "pilot": reply.get("result", {})})
+                self.emit({"type": "state", "ip": self.ip, "pilot": cast(dict[str, Any], reply.get("result", {}))})
             elif method == "setPilot":
                 self.emit({"type": "ok", "op": method})
                 self.confirm_at = time.monotonic() + CONFIRM_DELAY
             elif method == "getSystemConfig":
-                self.emit({"type": "system", "config": reply.get("result", {})})
+                self.emit({"type": "system", "config": cast(dict[str, Any], reply.get("result", {}))})
             elif method == "getModelConfig":
-                self.emit({"type": "model", "config": reply.get("result", {})})
+                self.emit({"type": "model", "config": cast(dict[str, Any], reply.get("result", {}))})
 
     def tick(self) -> None:
         now = time.monotonic()
@@ -211,30 +243,30 @@ class Server:
             self.tick()
 
 
-def main():
+def main() -> int:
     parser = argparse.ArgumentParser(prog="nebula wiz", description="WiZ smart bulbs on the local network")
     sub = parser.add_subparsers(dest="cmd", required=True)
     p_serve = sub.add_parser("serve", help="JSON lines in on stdin, bulb state out on stdout")
-    p_serve.add_argument("--ip", default="")
-    p_serve.add_argument("--poll", type=float, default=4.0)
-    sub.add_parser("scan", help="list bulbs on the network")
+    _ = p_serve.add_argument("--ip", default="")
+    _ = p_serve.add_argument("--poll", type=float, default=4.0)
+    _ = sub.add_parser("scan", help="list bulbs on the network")
     p_state = sub.add_parser("state", help="print one bulb's state")
-    p_state.add_argument("--ip", default="")
+    _ = p_state.add_argument("--ip", default="")
     p_set = sub.add_parser("set", help='send setPilot params, e.g. \'{"dimming": 40}\'')
-    p_set.add_argument("params")
-    p_set.add_argument("--ip", default="")
+    _ = p_set.add_argument("params")
+    _ = p_set.add_argument("--ip", default="")
     args = parser.parse_args()
 
     if args.cmd == "serve":
         try:
-            Server(args.ip, max(1.0, args.poll)).run()
+            Server(str(args.ip), max(1.0, float(args.poll))).run()
         except KeyboardInterrupt:
             pass
         return 0
     if args.cmd == "scan":
         print(json.dumps(scan(), indent=2))
         return 0
-    ip = args.ip
+    ip: str = str(args.ip)
     if not ip:
         bulbs = scan()
         if not bulbs:
@@ -245,7 +277,9 @@ def main():
         if args.cmd == "state":
             print(json.dumps(request(ip, "getPilot", {}), indent=2))
         else:
-            print(json.dumps(request(ip, "setPilot", json.loads(args.params)), indent=2))
+            set_params_raw: Any = json.loads(args.params)
+            set_params: dict[str, Any] = cast(dict[str, Any], set_params_raw) if isinstance(set_params_raw, dict) else {}
+            print(json.dumps(request(ip, "setPilot", set_params), indent=2))
     except (OSError, ValueError) as e:
         print(f"{ip}: {e}", file=sys.stderr)
         return 1

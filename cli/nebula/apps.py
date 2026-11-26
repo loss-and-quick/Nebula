@@ -6,7 +6,8 @@ import shutil
 import sys
 from pathlib import Path
 
-from nebula.paths import SETTINGS, SHELL_DIR, STATE_DIR
+from nebula import settings
+from nebula.paths import SHELL_DIR, STATE_DIR
 
 HOME = Path.home()
 TEMPLATES = HOME / ".config" / "matugen" / "templates"
@@ -134,11 +135,7 @@ def targets(app):
 
 
 def enabled_ids():
-    try:
-        theme = json.loads(SETTINGS.read_text()).get("theme", {})
-    except Exception:
-        return None
-    ids = theme.get("themeApps")
+    ids = settings.section("theme").get("themeApps")
     return set(ids) if isinstance(ids, list) else None
 
 
@@ -257,7 +254,6 @@ def picked_ids(detected=None):
 
 
 def _save(ids) -> None:
-    from nebula import settings
     order = [a["id"] for a in APPS]
     settings.update("theme", {"themeApps": sorted(ids, key=lambda i: order.index(i) if i in order else 99)})
 
@@ -306,7 +302,6 @@ def set_picked(ids, on: bool, apply_now: bool) -> int:
 
 
 def reset(apply_now: bool) -> int:
-    from nebula import settings
     settings.update("theme", {"themeApps": None})
     print("Every detected app follows the palette again.")
     return _apply_now() if apply_now else 0

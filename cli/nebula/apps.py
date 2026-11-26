@@ -6,7 +6,7 @@ import shutil
 import sys
 from pathlib import Path
 
-from nebula.paths import SETTINGS, STATE_DIR
+from nebula.paths import SETTINGS, SHELL_DIR, STATE_DIR
 
 HOME = Path.home()
 TEMPLATES = HOME / ".config" / "matugen" / "templates"
@@ -264,7 +264,7 @@ def _save(ids) -> None:
 
 def _apply_now() -> int:
     import subprocess
-    return subprocess.run([sys.executable, "-m", "nebula", "scheme", "apply"]).returncode
+    return subprocess.run([str(SHELL_DIR / "bin" / "nebula"), "scheme", "apply"]).returncode
 
 
 def print_list(as_json: bool) -> int:

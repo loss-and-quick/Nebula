@@ -6,13 +6,13 @@ import sys
 from pathlib import Path
 
 from nebula import settings
-from nebula.paths import COLORS, HOME
+from nebula.paths import COLORS, HOME, SHELL_DIR
 
 IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp"}
 
 
 def _self(args):
-    r = subprocess.run([sys.executable, "-m", "nebula", *args], capture_output=True, text=True)
+    r = subprocess.run([str(SHELL_DIR / "bin" / "nebula"), *args], capture_output=True, text=True)
     if r.stderr:
         sys.stderr.write(r.stderr)
     lines = [l for l in r.stdout.splitlines() if l.strip()]

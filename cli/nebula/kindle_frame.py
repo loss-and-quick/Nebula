@@ -1,26 +1,55 @@
+from collections.abc import Generator, Iterable
 import json
+from pathlib import Path
 import shutil
 import subprocess
-from pathlib import Path
+from typing import TYPE_CHECKING, Any, TypedDict, cast
+
+if TYPE_CHECKING:
+    from PIL import Image
 
 from nebula.paths import CACHE_DIR
 
-OUT_DIR = CACHE_DIR / "kindle"
-KINDLE_DIR = Path(__file__).resolve().parents[2] / "config" / "kindle" / "nebula-dash"
+OUT_DIR: Path = CACHE_DIR / "kindle"
+KINDLE_DIR: Path = Path(__file__).resolve().parents[2] / "config" / "kindle" / "nebula-dash"
 
 
-def snap(img):
-    return img.convert("L").point(lambda v: round(v / 17) * 17)
-
-SOURCE = OUT_DIR / "frame-src"
-PREVIEW = OUT_DIR / "frame-preview.png"
-NAME = OUT_DIR / "frame-name"
-FIT = OUT_DIR / "frame-fit"
-UNIT = "nebula-kindle"
-LEVELS = [v * 17 for v in range(16)]
+def snap(img: "Image.Image") -> "Image.Image":
+    any_img: Any = img.convert("L")
+    lut: list[int] = [round(v / 17) * 17 for v in range(256)]
+    res: Any = any_img.point(lut)
+    return cast("Image.Image", res)
 
 
-def config_rotate():
+SOURCE: Path = OUT_DIR / "frame-src"
+PREVIEW: Path = OUT_DIR / "frame-preview.png"
+NAME: Path = OUT_DIR / "frame-name"
+FIT: Path = OUT_DIR / "frame-fit"
+UNIT: str = "nebula-kindle"
+LEVELS: list[int] = [v * 17 for v in range(16)]
+
+
+class BlockDevice(TypedDict, total=False):
+    path: str
+    label: str | None
+    mountpoint: str | None
+    children: list["BlockDevice"]
+
+
+class FrameStatus(TypedDict):
+    usb: str
+    mount: str
+    hasFrame: bool
+    name: str
+    fit: str
+    preview: str
+    updated: int
+    onKindle: bool
+    serving: bool
+    rotate: str
+
+
+def config_rotate() -> str:
     try:
         for line in (KINDLE_DIR / "config.sh").read_text().splitlines():
             if line.startswith("ROTATE="):
@@ -30,24 +59,34 @@ def config_rotate():
     return "ccw"
 
 
-def convert(src, rotate="ccw", fit="cover"):
+def convert(src: Path | str, rotate: str = "ccw", fit: str = "cover") -> "Image.Image":
     from PIL import Image, ImageOps
-    img = ImageOps.exif_transpose(Image.open(src)).convert("L")
+    img: Image.Image = ImageOps.exif_transpose(Image.open(src)).convert("L")
     size = (600, 800) if rotate == "none" else (800, 600)
     if fit == "contain":
-        edge = sorted(list(img.crop((0, 0, img.width, 4)).getdata()) + list(img.crop((0, img.height - 4, img.width, img.height)).getdata())
-                      + list(img.crop((0, 0, 4, img.height)).getdata()) + list(img.crop((img.width - 4, 0, img.width, img.height)).getdata()))
+        crop_top: Any = img.crop((0, 0, img.width, 4))
+        crop_bot: Any = img.crop((0, img.height - 4, img.width, img.height))
+        crop_l: Any = img.crop((0, 0, 4, img.height))
+        crop_r: Any = img.crop((img.width - 4, 0, img.width, img.height))
+        edge: list[int] = sorted(
+            list(cast(Iterable[int], crop_top.getdata()))
+            + list(cast(Iterable[int], crop_bot.getdata()))
+            + list(cast(Iterable[int], crop_l.getdata()))
+            + list(cast(Iterable[int], crop_r.getdata()))
+        )
         bg = edge[len(edge) // 2]
         if bg > 150 and edge[len(edge) * 9 // 10] - edge[len(edge) // 10] < 40:
             cut = max(1, edge[len(edge) // 20] - 6)
-            img = img.point(lambda v: 255 if v >= cut else round(v * 255 / cut))
+            lut: list[int] = [255 if v >= cut else round(v * 255 / cut) for v in range(256)]
+            any_img: Any = img
+            img = any_img.point(lut)
             bg = 255
         img = ImageOps.pad(img, size, Image.Resampling.LANCZOS, color=bg)
     else:
         img = ImageOps.fit(img, size, Image.Resampling.LANCZOS)
     img = ImageOps.autocontrast(img, cutoff=0.5)
     pal = Image.new("P", (1, 1))
-    pal.putpalette([c for v in LEVELS for c in (v, v, v)] + [0, 0, 0] * 240)
+    _ = pal.putpalette([c for v in LEVELS for c in (v, v, v)] + [0, 0, 0] * 240)
     img = img.convert("RGB").quantize(palette=pal, dither=Image.Dither.FLOYDSTEINBERG).convert("L")
     if rotate == "ccw":
         img = img.rotate(-90, expand=True)
@@ -56,11 +95,11 @@ def convert(src, rotate="ccw", fit="cover"):
     return snap(img)
 
 
-def source():
+def source() -> tuple[Path | None, str]:
     return (SOURCE if SOURCE.exists() else None), (FIT.read_text().strip() if FIT.exists() else "cover")
 
 
-def rendered(rotate):
+def rendered(rotate: str) -> Path | None:
     src, fit = source()
     if not src:
         return None
@@ -70,7 +109,7 @@ def rendered(rotate):
     return out
 
 
-def write_local(fit):
+def write_local(fit: str) -> Path:
     rotate = config_rotate()
     img = convert(SOURCE, rotate, fit)
     local = KINDLE_DIR / "frame.png"
@@ -83,35 +122,36 @@ def write_local(fit):
     return local
 
 
-def set_image(path, fit="cover"):
+def set_image(path: Path | str, fit: str = "cover") -> Path:
     OUT_DIR.mkdir(parents=True, exist_ok=True)
-    shutil.copyfile(path, SOURCE)
-    NAME.write_text(Path(path).name)
-    FIT.write_text(fit)
+    _ = shutil.copyfile(path, SOURCE)
+    _ = NAME.write_text(Path(path).name)
+    _ = FIT.write_text(fit)
     return write_local(fit)
 
 
-def set_fit(fit):
+def set_fit(fit: str) -> Path | None:
     if not SOURCE.exists():
         return None
-    FIT.write_text(fit)
+    _ = FIT.write_text(fit)
     SOURCE.touch()
     return write_local(fit)
 
 
-def clear():
+def clear() -> None:
     for old in [SOURCE, FIT, NAME, PREVIEW, KINDLE_DIR / "frame.png", *OUT_DIR.glob("frame-*.png")]:
         old.unlink(missing_ok=True)
 
 
-def kindle_device():
+def kindle_device() -> tuple[str | None, str | None]:
     try:
         out = subprocess.run(["lsblk", "-J", "-o", "PATH,LABEL,MOUNTPOINT"], capture_output=True, text=True, timeout=5).stdout
-        devs = json.loads(out).get("blockdevices", [])
+        devs_raw: Any = json.loads(out)
+        devs: list[BlockDevice] = cast(list[BlockDevice], devs_raw["blockdevices"]) if isinstance(devs_raw, dict) and "blockdevices" in devs_raw else []
     except (OSError, ValueError, subprocess.TimeoutExpired):
         return None, None
 
-    def walk(items):
+    def walk(items: list[BlockDevice]) -> Generator[BlockDevice, None, None]:
         for d in items:
             yield d
             yield from walk(d.get("children") or [])
@@ -121,22 +161,22 @@ def kindle_device():
     return None, None
 
 
-def serving():
+def serving() -> bool:
     return subprocess.run(["systemctl", "--user", "is-active", "--quiet", UNIT]).returncode == 0
 
 
-def wifi(on):
+def wifi(on: bool) -> None:
     if on:
         if not serving():
-            subprocess.run(["systemctl", "--user", "reset-failed", UNIT], capture_output=True)
+            _ = subprocess.run(["systemctl", "--user", "reset-failed", UNIT], capture_output=True)
             cli = Path(__file__).resolve().parents[2] / "bin" / "nebula"
-            subprocess.run(["systemd-run", "--user", f"--unit={UNIT}", "--description=Nebula Kindle server",
+            _ = subprocess.run(["systemd-run", "--user", f"--unit={UNIT}", "--description=Nebula Kindle server",
                             str(cli), "kindle", "serve"], capture_output=True)
     else:
-        subprocess.run(["systemctl", "--user", "stop", UNIT], capture_output=True)
+        _ = subprocess.run(["systemctl", "--user", "stop", UNIT], capture_output=True)
 
 
-def push():
+def push() -> tuple[bool, str]:
     local = KINDLE_DIR / "frame.png"
     if not local.exists():
         return False, "No image chosen yet"
@@ -151,12 +191,12 @@ def push():
     target = Path(mount) / "nebula-dash"
     if not target.is_dir():
         return False, "Nebula dashboard isn't installed on this Kindle"
-    shutil.copyfile(local, target / "frame.png")
-    subprocess.run(["sync"])
+    _ = shutil.copyfile(local, target / "frame.png")
+    _ = subprocess.run(["sync"])
     return True, "Copied to the Kindle"
 
 
-def status():
+def status() -> FrameStatus:
     dev, mount = kindle_device()
     local = KINDLE_DIR / "frame.png"
     on_kindle = False

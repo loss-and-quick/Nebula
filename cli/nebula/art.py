@@ -9,10 +9,10 @@ import urllib.request
 
 from PIL import Image
 
-CACHE = os.path.join(os.environ.get("HOME", "/tmp"), ".cache", "quickshell", "art")
+CACHE: str = os.path.join(os.environ.get("HOME", "/tmp"), ".cache", "quickshell", "art")
 
 
-def fetch(url):
+def fetch(url: str) -> str:
     if url.startswith("file://"):
         return urllib.parse.unquote(url[7:])
     if url.startswith("/"):
@@ -22,12 +22,12 @@ def fetch(url):
     if not os.path.exists(path):
         req = urllib.request.Request(url, headers={"User-Agent": "quickshell"})
         with urllib.request.urlopen(req, timeout=8) as r, open(path + ".part", "wb") as f:
-            f.write(r.read())
+            _ = f.write(r.read())
         os.replace(path + ".part", path)
     return path
 
 
-def palette(path, count=4):
+def palette(path: str, count: int = 4) -> list[str]:
     img = Image.open(path).convert("RGB")
     img.thumbnail((96, 96))
     q = img.quantize(colors=12, method=Image.Quantize.MEDIANCUT)
@@ -35,7 +35,7 @@ def palette(path, count=4):
     colors = q.getcolors()
     if pal is None or not colors:
         return []
-    scored = []
+    scored: list[tuple[float, float, float, float]] = []
     for n, idx in colors:
         if not isinstance(idx, int):
             continue
@@ -43,7 +43,7 @@ def palette(path, count=4):
         h, l, s = colorsys.rgb_to_hls(r, g, b)
         scored.append((n * (0.25 + s) * (0.3 + min(l, 1 - l)), h, l, s))
     scored.sort(reverse=True)
-    picked = []
+    picked: list[tuple[float, float, float]] = []
     for _, h, l, s in scored:
         if all(min(abs(h - p[0]), 1 - abs(h - p[0])) > 0.06 for p in picked) or len(scored) <= count:
             picked.append((h, l, s))
@@ -52,7 +52,7 @@ def palette(path, count=4):
     while len(picked) < count and picked:
         h, l, s = picked[len(picked) % len(picked)]
         picked.append(((h + 0.08) % 1, l, s))
-    out = []
+    out: list[str] = []
     for h, l, s in picked:
         l = max(0.55, min(0.75, l + 0.2))
         s = max(0.45, min(0.95, s * 1.3))
@@ -61,7 +61,7 @@ def palette(path, count=4):
     return out
 
 
-def main():
+def main() -> None:
     if len(sys.argv) < 2 or not sys.argv[1]:
         print("[]")
         return

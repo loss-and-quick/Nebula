@@ -132,7 +132,7 @@ def _scan(path: Path, offset: int) -> tuple[defaultdict[str, UsageSlot], list[li
                 continue
             message: dict[str, Any] = cast(dict[str, Any], message_val)
             usage_val = message.get("usage")
-            if not isinstance(usage_val, dict):
+            if not isinstance(usage_val, dict) or not usage_val:
                 continue
             usage: dict[str, Any] = cast(dict[str, Any], usage_val)
             day = _day(str(entry.get("timestamp", "")))

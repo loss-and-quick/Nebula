@@ -293,7 +293,10 @@ class Package:
         self.z = zipfile.ZipFile(path)
         cont = ET.fromstring(self.z.read("META-INF/container.xml"))
         rf = cont.find(".//c:rootfile", NS)
-        self.opf_path = rf.get("full-path")
+        opf_path = rf.get("full-path") if rf is not None else None
+        if not opf_path:
+            raise ValueError("invalid epub: missing rootfile")
+        self.opf_path = opf_path
         self.base = posixpath.dirname(self.opf_path)
         self.opf = ET.fromstring(self.z.read(self.opf_path))
         self.manifest = {}

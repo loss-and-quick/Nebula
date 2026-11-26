@@ -23,13 +23,14 @@ RC_BODY = {
 }
 
 
-def _short(p) -> str:
+def _short(p: Path | str) -> str:
     s = str(p)
-    return "~" + s[len(str(HOME)):] if s.startswith(str(HOME)) else s
+    home_str = str(HOME)
+    return "~" + s[len(home_str):] if s.startswith(home_str) else s
 
 
-def _hypr_edits() -> list:
-    out = []
+def _hypr_edits() -> list[tuple[Path, str]]:
+    out: list[tuple[Path, str]] = []
     if not hypr.HYPR.is_dir():
         return out
     for path in sorted(hypr.HYPR.rglob("*.lua")):
@@ -49,7 +50,7 @@ def _hypr_edits() -> list:
 
 def _strip_rc(text: str) -> str:
     lines = text.split("\n")
-    out = []
+    out: list[str] = []
     i = 0
     while i < len(lines):
         body = RC_BODY.get(lines[i].strip())
@@ -61,12 +62,12 @@ def _strip_rc(text: str) -> str:
         while i < len(lines) and any(lines[i].lstrip().startswith(b) or b in lines[i] for b in body):
             i += 1
         if out and out[-1].strip() == "":
-            out.pop()
+            _ = out.pop()
     return "\n".join(out)
 
 
-def _rc_edits() -> list:
-    out = []
+def _rc_edits() -> list[tuple[Path, str]]:
+    out: list[tuple[Path, str]] = []
     for rc in RC_FILES:
         try:
             text = rc.read_text()
@@ -78,9 +79,9 @@ def _rc_edits() -> list:
     return out
 
 
-def _restores() -> list:
+def _restores() -> list[tuple[Path, Path]]:
     from nebula import apps
-    out = []
+    out: list[tuple[Path, Path]] = []
     for written in apps.load_manifest():
         path = Path(written)
         bak = path.with_name(path.name + ".bak")
@@ -146,7 +147,7 @@ def run(purge: bool = False, assume_yes: bool = False) -> int:
         print(f"\n  Kept {_short(SHELL_DIR)}: it has changes that aren't committed. Delete it yourself once they're saved.")
     if not purge:
         print(f"\n  Kept: settings in {_short(CONFIG_DIR)}, history in {_short(STATE_DIR)}, the code in {_short(SHELL_DIR)}"
-              f"\n  and {_short(hypr.HYPR / 'nebula')}. Run `nebula uninstall --purge` to delete those too.")
+              + f"\n  and {_short(hypr.HYPR / 'nebula')}. Run `nebula uninstall --purge` to delete those too.")
 
     if not _confirm(assume_yes):
         print("Nothing changed.")
@@ -158,10 +159,10 @@ def run(purge: bool = False, assume_yes: bool = False) -> int:
         _ = stop_shell()
 
     for path, new in hypr_edits:
-        shutil.copy2(path, path.with_name(path.name + ".nebula-uninstall.bak"))
+        _ = shutil.copy2(path, path.with_name(path.name + ".nebula-uninstall.bak"))
         hypr.write_atomic(path, new)
     for rc, new in rc_edits:
-        rc.write_text(new)
+        _ = rc.write_text(new)
     for bak, path in restores:
         os.replace(bak, path)
     for p in plugins:
@@ -172,7 +173,7 @@ def run(purge: bool = False, assume_yes: bool = False) -> int:
         shutil.rmtree(d, ignore_errors=True)
 
     print("\nNebula is uninstalled.")
-    notes = []
+    notes: list[str] = []
     if SYSTEM_BIN.exists():
         notes.append(f"Remove the command with: sudo rm {SYSTEM_BIN}")
     if _greetd_uses_us():

@@ -4,6 +4,7 @@ pragma ComponentBehavior: Bound
 import Quickshell
 import Quickshell.Io
 import QtQuick
+import qs.modules.utils
 
 Singleton {
     id: root
@@ -141,7 +142,7 @@ Singleton {
         if (root.call && n.actions.length > 0) {
             root._callNotif = n
             if (item.image)
-                root.call = Object.assign({}, root.call, { photo: item.image })
+                root.call = Object.assign({}, root.call, { photo: IconUtil.imageSource(item.image) })
         }
     }
 

@@ -2,10 +2,13 @@
 import os
 import sys
 
+from collections.abc import Callable
+from typing import cast
+
 KEEP = 8
 
 
-def main():
+def main() -> None:
     src, out, w, h = sys.argv[1], sys.argv[2], int(sys.argv[3]), int(sys.argv[4])
     if os.path.exists(out) and os.path.getmtime(out) >= os.path.getmtime(src):
         print(out)
@@ -19,11 +22,12 @@ def main():
         src = gowall.convert(src, "kindle", nn=True)
 
     im = Image.open(src)
-    im.draft("RGB", (w, h))
+    _ = im.draft("RGB", (w, h))
     im = im.convert("L").convert("RGB") if "--grey" in flags or "--eink" in flags else im.convert("RGB")
     scale = max(w / im.width, h / im.height)
     if scale < 1:
-        im = im.resize((max(1, round(im.width * scale)), max(1, round(im.height * scale))), Image.LANCZOS)
+        resize = cast(Callable[[tuple[int, int], int], Image.Image], getattr(im, "resize"))
+        im = resize((max(1, round(im.width * scale)), max(1, round(im.height * scale))), Image.Resampling.LANCZOS)
 
     os.makedirs(os.path.dirname(out), exist_ok=True)
     tmp = out + ".tmp"

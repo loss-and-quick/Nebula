@@ -6,27 +6,39 @@ import sys
 import urllib.error
 import urllib.request
 from datetime import date
+from typing import Any, TypedDict, cast
 
-CACHE_DIR = os.path.expanduser("~/.cache/quickshell/holidays")
-NAGER_URL = "https://date.nager.at/api/v3/PublicHolidays/{year}/{cc}"
-ICS_URL = (
+CACHE_DIR: str = os.path.expanduser("~/.cache/quickshell/holidays")
+NAGER_URL: str = "https://date.nager.at/api/v3/PublicHolidays/{year}/{cc}"
+ICS_URL: str = (
     "https://calendar.google.com/calendar/ical/"
     "{cid}%23holiday%40group.v.calendar.google.com/public/basic.ics"
 )
 
-ICS_ALT = {"IN": "en.indian", "MY": "en.malaysia", "TW": "en.taiwan", "IL": "en.jewish"}
+ICS_ALT: dict[str, str] = {"IN": "en.indian", "MY": "en.malaysia", "TW": "en.taiwan", "IL": "en.jewish"}
 
-MONTHS = [
+MONTHS: list[str] = [
     "January", "February", "March", "April", "May", "June",
     "July", "August", "September", "October", "November", "December",
 ]
-DAYS = [
+DAYS: list[str] = [
     "Monday", "Tuesday", "Wednesday", "Thursday",
     "Friday", "Saturday", "Sunday",
 ]
 
 
-def detect_country():
+class HolidayEntry(TypedDict):
+    date: str
+    day: int
+    month: str
+    monthNum: int
+    year: int
+    dayOfWeek: str
+    dayOfWeekShort: str
+    name: str
+
+
+def detect_country() -> str:
     tz = os.environ.get("TZ", "").lstrip(":")
     if not tz:
         try:
@@ -51,19 +63,19 @@ def detect_country():
     return ""
 
 
-def fetch(url, timeout=20):
+def fetch(url: str, timeout: int = 20) -> str | None:
     req = urllib.request.Request(url, headers={"User-Agent": "quickshell-holidays"})
     try:
         with urllib.request.urlopen(req, timeout=timeout) as r:
             if r.status != 200:
                 return None
-            body = r.read().decode("utf-8", "replace")
+            body: str = r.read().decode("utf-8", "replace")
             return body or None
     except (urllib.error.URLError, urllib.error.HTTPError, OSError, ValueError):
         return None
 
 
-def entry(d, name):
+def entry(d: date, name: str) -> HolidayEntry:
     return {
         "date": d.isoformat(),
         "day": d.day,
@@ -76,21 +88,27 @@ def entry(d, name):
     }
 
 
-def from_nager(year, cc):
+def from_nager(year: int, cc: str) -> list[HolidayEntry]:
     body = fetch(NAGER_URL.format(year=year, cc=cc))
     if not body:
         return []
     try:
-        raw = json.loads(body)
+        raw: object = json.loads(body)
     except ValueError:
         return []
     if not isinstance(raw, list):
         return []
-    out = []
-    for h in raw:
+    out: list[HolidayEntry] = []
+    for raw_item in cast(list[object], raw):
+        if not isinstance(raw_item, dict):
+            continue
+        h: dict[str, Any] = cast(dict[str, Any], raw_item)
         try:
-            y, m, d = (int(p) for p in h["date"].split("-"))
-            name = h.get("localName") or h.get("name") or ""
+            date_val = h.get("date")
+            if not isinstance(date_val, str):
+                continue
+            y, m, d = (int(p) for p in date_val.split("-"))
+            name = str(h.get("localName") or h.get("name") or "")
             if name:
                 out.append(entry(date(y, m, d), name))
         except (KeyError, TypeError, ValueError):
@@ -98,7 +116,7 @@ def from_nager(year, cc):
     return out
 
 
-def unescape(text):
+def unescape(text: str) -> str:
     return (
         text.replace("\\n", " ")
         .replace("\\N", " ")
@@ -109,7 +127,7 @@ def unescape(text):
     )
 
 
-def from_ics(year, cc):
+def from_ics(year: int, cc: str) -> list[HolidayEntry]:
     for cid in (f"en.{cc.lower()}", ICS_ALT.get(cc)):
         if not cid:
             continue
@@ -117,7 +135,7 @@ def from_ics(year, cc):
         if not body:
             continue
         body = body.replace("\r\n", "\n").replace("\n ", "").replace("\n\t", "")
-        out = []
+        out: list[HolidayEntry] = []
         for block in re.findall(r"BEGIN:VEVENT(.*?)END:VEVENT", body, re.S):
             start = re.search(r"^DTSTART[^:\n]*:(\d{8})", block, re.M)
             summary = re.search(r"^SUMMARY[^:\n]*:(.*)$", block, re.M)
@@ -138,9 +156,9 @@ def from_ics(year, cc):
     return []
 
 
-def dedupe(rows):
-    seen = set()
-    out = []
+def dedupe(rows: list[HolidayEntry]) -> list[HolidayEntry]:
+    seen: set[tuple[str, str]] = set()
+    out: list[HolidayEntry] = []
     for r in sorted(rows, key=lambda r: (r["date"], r["name"])):
         key = (r["date"], r["name"])
         if key in seen:
@@ -150,7 +168,7 @@ def dedupe(rows):
     return out
 
 
-def main():
+def main() -> int:
     year = date.today().year
     if len(sys.argv) > 1 and sys.argv[1].strip():
         try:
@@ -185,7 +203,7 @@ def main():
         os.makedirs(CACHE_DIR, exist_ok=True)
         tmp = cache_file + ".tmp"
         with open(tmp, "w") as f:
-            f.write(payload)
+            _ = f.write(payload)
         os.replace(tmp, cache_file)
     except OSError:
         pass

@@ -156,11 +156,7 @@ Item {
         onTriggered: root.relativeTime = root.computeRelative(root.latest?.arrivalTimestamp ?? Date.now())
     }
 
-    function resolveSymbol(appIcon, appName) {
-        return IconUtil.notificationSymbol(appIcon, appName);
-    }
-
-    readonly property string symbol: root.resolveSymbol(root.group?.appIcon, root.group?.appName)
+    readonly property string symbol: IconUtil.notificationSymbol(root.group?.appIcon, root.group?.appName)
     readonly property bool usesSymbol: root.symbol !== ""
 
     implicitHeight: stack.implicitHeight

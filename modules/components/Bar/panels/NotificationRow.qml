@@ -115,11 +115,7 @@ Item {
         onTriggered: row.relativeTime = row.computeRelative(row.notifData?.arrivalTimestamp ?? Date.now())
     }
 
-    function resolveSymbol(appIcon, appName) {
-        return IconUtil.notificationSymbol(appIcon, appName);
-    }
-
-    readonly property string symbol: row.resolveSymbol(row.notifData?.appIcon, row.notifData?.appName)
+    readonly property string symbol: IconUtil.notificationSymbol(row.notifData?.appIcon, row.notifData?.appName)
     readonly property bool usesSymbol: row.symbol !== ""
 
     readonly property bool headerShowsAppName: row.isExtended && row.showAppName

@@ -213,7 +213,7 @@ Singleton{
             onRead: data => root.health = parseFloat(data) / 100
         }
     }
-    property string timeToFull: formatTime(UPower.displayDevice.timeToFull)
+    property string timeToFull: root.formatBatteryDuration(UPower.displayDevice.timeToFull)
     property real changeRate: UPower.displayDevice.changeRate
     function setPowerProfile(value) {
         let key = "";
@@ -241,12 +241,11 @@ Singleton{
         setProfileProc.running = true;
     }
 
-    function formatTime(seconds) {
+    function formatBatteryDuration(seconds) {
         var h = Math.floor(seconds / 3600);
         var m = Math.floor((seconds % 3600) / 60);
         if (h > 0)
-        return `${h}h, ${m}m`;
-        else
+            return `${h}h, ${m}m`;
         return `${m}m`;
     }
 }

@@ -31,10 +31,6 @@ ColumnLayout {
         root.dismiss()
     }
 
-    function symbolFor(appIcon, appName) {
-        return IconUtil.notificationSymbol(appIcon, appName)
-    }
-
     function ago(ts) {
         const mins = Math.floor((Date.now() - (ts ?? Date.now())) / 60000)
         if (mins < 1) return "now"
@@ -52,7 +48,7 @@ ColumnLayout {
             Layout.preferredHeight: root.iconBox
             Layout.alignment: Qt.AlignTop
             radius: root.iconBox * 0.28
-            readonly property string symbol: root.symbolFor(root.notif?.appIcon, root.notif?.appName)
+            readonly property string symbol: IconUtil.notificationSymbol(root.notif?.appIcon, root.notif?.appName)
             color: iconRect.symbol !== "" ? Colors.primaryContainer : Qt.alpha(Colors.primary, 0.12)
 
             MaterialIconSymbol {

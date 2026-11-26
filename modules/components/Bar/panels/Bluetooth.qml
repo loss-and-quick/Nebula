@@ -33,12 +33,8 @@ Item {
     readonly property var knownNames: ServiceBluetooth.connectedAndPairedDevices.map(d => d.name).filter(n => !!n)
     readonly property var fresh: root.bluetoothOn ? ServiceBluetooth.unpairedDevices.filter(d => d.state !== BluetoothDeviceState.Connected && root.knownNames.indexOf(d.name) < 0) : []
 
-    function deviceIcon(icon) {
-        return ServiceBluetooth.deviceIcon(icon);
-    }
-
     function deviceShape(icon) {
-        switch (root.deviceIcon(icon)) {
+        switch (ServiceBluetooth.deviceIcon(icon)) {
         case "keyboard":
             return "squircle";
         case "mouse":
@@ -56,19 +52,6 @@ Item {
             return "arch";
         }
         return "cookie4";
-    }
-
-    function nameOf(device) {
-        return ServiceBluetooth.nameOf(device);
-    }
-    function isOutput(device) {
-        return ServiceBluetooth.isOutput(device);
-    }
-    function busy(device) {
-        return ServiceBluetooth.busy(device);
-    }
-    function stateText(device) {
-        return ServiceBluetooth.stateText(device);
     }
 
     function openSettings(from) {
@@ -249,7 +232,7 @@ Item {
         property bool first: false
         property bool last: false
         readonly property bool isConnected: dr.device?.state === BluetoothDeviceState.Connected
-        readonly property bool busy: root.busy(dr.device)
+        readonly property bool busy: ServiceBluetooth.busy(dr.device)
         readonly property bool open: root.openAddress !== "" && root.openAddress === (dr.device?.address ?? "")
 
         Layout.fillWidth: true
@@ -268,9 +251,9 @@ Item {
             width: parent.width
             height: 64
             color: Colors.surfaceContainer
-            icon: root.deviceIcon(dr.device?.icon)
-            label: root.nameOf(dr.device)
-            sublabel: root.stateText(dr.device)
+            icon: ServiceBluetooth.deviceIcon(dr.device?.icon)
+            label: ServiceBluetooth.nameOf(dr.device)
+            sublabel: ServiceBluetooth.stateText(dr.device)
             onClicked: {
                 if (!dr.device || dr.busy)
                     return;
@@ -401,11 +384,11 @@ Item {
         property var device: null
         property bool first: false
         property bool last: false
-        readonly property bool busy: root.busy(nr.device)
+        readonly property bool busy: ServiceBluetooth.busy(nr.device)
         Layout.fillWidth: true
         color: Colors.surfaceContainer
-        icon: root.deviceIcon(nr.device?.icon)
-        label: root.nameOf(nr.device)
+        icon: ServiceBluetooth.deviceIcon(nr.device?.icon)
+        label: ServiceBluetooth.nameOf(nr.device)
         trailingComponent: Component {
             Item {
                 implicitWidth: 36

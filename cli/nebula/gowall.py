@@ -21,7 +21,9 @@ import shutil
 import subprocess
 import sys
 import tempfile
+from collections.abc import Callable, Sequence
 from pathlib import Path
+from typing import cast
 
 CACHE_DIR   = Path.home() / ".cache" / "quickshell" / "gowall"
 COLORS_JSON = Path.home() / ".cache" / "quickshell" / "colors.json"
@@ -31,7 +33,7 @@ TIMEOUT     = 180
 # Ordered darkest → lightest with the accents last. gowall snaps every pixel to
 # its nearest palette entry, so the ramp has to span the full luminance range or
 # the image collapses into a flat two-tone.
-_MATCH_ROLES = [
+_MATCH_ROLES: list[str] = [
     "surfaceContainerLowest", "surface", "surfaceContainerLow",
     "surfaceContainer", "surfaceContainerHigh", "surfaceContainerHighest",
     "surfaceVariant", "outline", "surfaceVariantText", "surfaceText",
@@ -52,9 +54,11 @@ def _image_hash(path: str) -> str:
     return h.hexdigest()[:24]
 
 
-def _match_palette() -> list:
-    colors = json.loads(COLORS_JSON.read_text())
-    palette, seen = [], set()
+def _match_palette() -> list[str]:
+    raw_colors: object = json.loads(COLORS_JSON.read_text())
+    colors = cast(dict[str, str], raw_colors if isinstance(raw_colors, dict) else {})
+    palette: list[str] = []
+    seen: set[str] = set()
     for role in _MATCH_ROLES:
         hexval = str(colors.get(role, "")).strip().lower()
         if hexval.startswith("#") and len(hexval) == 7 and hexval not in seen:
@@ -65,7 +69,7 @@ def _match_palette() -> list:
     return palette
 
 
-def _write_theme_file(palette: list, key: str) -> Path:
+def _write_theme_file(palette: list[str], key: str) -> Path:
     path = CACHE_DIR / f"match-{key}.json"
     fd, tmp = tempfile.mkstemp(dir=CACHE_DIR, suffix=".tmp")
     with os.fdopen(fd, "w") as f:
@@ -74,7 +78,7 @@ def _write_theme_file(palette: list, key: str) -> Path:
     return path
 
 
-def resolve_theme_arg(theme: str):
+def resolve_theme_arg(theme: str) -> tuple[str, str]:
     """(argument for gowall -t, cache key). "match" is materialized into a theme
     file built from the live M3 palette; everything else passes through."""
     if theme.lower() == "kindle":
@@ -88,16 +92,16 @@ def resolve_theme_arg(theme: str):
     return str(_write_theme_file(palette, digest)), f"match-{digest}"
 
 
-def _nn_env() -> dict:
+def _nn_env() -> dict[str, str]:
     home = CACHE_DIR / "nn-home"
     (home / ".config" / "gowall").mkdir(parents=True, exist_ok=True)
-    (home / ".config" / "gowall" / "config.yml").write_text("ColorCorrectionBackend: nn\n")
+    _ = (home / ".config" / "gowall" / "config.yml").write_text("ColorCorrectionBackend: nn\n")
     env = dict(os.environ)
     env["HOME"] = str(home)
     return env
 
 
-def recover_palette(theme: str) -> list:
+def recover_palette(theme: str) -> list[str]:
     """The exact colors of a gowall theme, read back out of gowall itself.
 
     A dense RGB probe converted with the nearest-neighbour backend collapses to
@@ -111,9 +115,12 @@ def recover_palette(theme: str) -> list:
     cache = CACHE_DIR / f"palette-{theme}.json"
     if cache.is_file():
         try:
-            palette = json.loads(cache.read_text())
-            if palette:
-                return palette
+            raw_palette: object = json.loads(cache.read_text())
+            if isinstance(raw_palette, list):
+                raw_list = cast(list[object], raw_palette)
+                palette: list[str] = [x for x in raw_list if isinstance(x, str)]
+                if palette:
+                    return palette
         except Exception:
             pass
 
@@ -122,8 +129,10 @@ def recover_palette(theme: str) -> list:
     grid = [(r, g, b) for r in steps for g in steps for b in steps]
     probe, out = CACHE_DIR / "palette-probe.png", CACHE_DIR / "palette-probe-out.png"
     img = Image.new("RGB", (len(grid), 1))
-    img.putdata(grid)
-    img.resize((len(grid) * 2, 2), Image.NEAREST).save(probe)
+    putdata_fn: Callable[[Sequence[tuple[int, int, int]]], None] = getattr(img, "putdata")
+    putdata_fn(grid)
+    resize_fn: Callable[[tuple[int, int], Image.Resampling], Image.Image] = getattr(img, "resize")
+    resize_fn((len(grid) * 2, 2), Image.Resampling.NEAREST).save(probe)
 
     proc = subprocess.run(
         ["gowall", "convert", str(probe), "-t", theme_arg,
@@ -133,8 +142,9 @@ def recover_palette(theme: str) -> list:
         raise RuntimeError((proc.stderr or proc.stdout or "gowall failed").strip().splitlines()[-1])
 
     converted = Image.open(out).convert("RGB")
-    palette = sorted({"#%02x%02x%02x" % px for px in converted.getdata()})
-    cache.write_text(json.dumps(palette))
+    getdata_fn: Callable[[], Sequence[tuple[int, int, int]]] = getattr(converted, "getdata")
+    palette = sorted({"#%02x%02x%02x" % px for px in getdata_fn()})
+    _ = cache.write_text(json.dumps(palette))
     _log(f"recovered {len(palette)} colors for '{theme}'")
     return palette
 
@@ -167,7 +177,7 @@ def main() -> int:
             return 1
         theme = sys.argv[idx + 1]
         try:
-            recover_palette(theme)
+            _ = recover_palette(theme)
         except Exception as e:
             _log(f"cannot recover palette for '{theme}': {e}")
             return 1
@@ -203,8 +213,8 @@ def convert(image: str, theme: str, invert: bool = False, nn: bool = False) -> s
         # this cache; the inherited default ACL grants r-- , which is not enough
         # to traverse a directory.
         try:
-            subprocess.run(["setfacl", "-m", "u:greeter:rx", str(CACHE_DIR)],
-                           capture_output=True, timeout=5)
+            _ = subprocess.run(["setfacl", "-m", "u:greeter:rx", str(CACHE_DIR)],
+                               capture_output=True, timeout=5)
         except Exception:
             pass
 
@@ -234,7 +244,7 @@ def convert(image: str, theme: str, invert: bool = False, nn: bool = False) -> s
             if not _invert(image, flipped):
                 return image
             if not themed:
-                flipped.replace(out)
+                _ = flipped.replace(out)
                 _log(f"inverted → {out.name}")
                 _prune()
                 return str(out)

@@ -5,7 +5,9 @@ import os
 import shutil
 import subprocess
 import sys
+from collections.abc import Callable
 from pathlib import Path
+from typing import cast
 
 from nebula import __version__, instance_pids, qs_bin, stop_shell
 from nebula import settings
@@ -81,26 +83,27 @@ Run `nebula <command> --help` for the options of wallpaper, scheme, apps and doc
 
 
 def _print_help() -> None:
-    rows = []
+    rows: list[str] = []
     for name, (_, args, desc) in {**PASSTHROUGH, **SHELL_TOOLS}.items():
         usage = f"nebula {name} {args}".rstrip()
         rows.append(f"  {usage:<48} {desc}")
     print(HELP.format(version=__version__, data="\n".join(rows)))
 
 
-def _passthrough(name: str, rest: list) -> None:
-    module = importlib.import_module(PASSTHROUGH[name][0])
+def _passthrough(name: str, rest: list[str]) -> None:
+    module: object = importlib.import_module(PASSTHROUGH[name][0])
     sys.argv = [f"nebula {name}", *rest]
-    rc = module.main()
+    main_fn = getattr(module, "main", None)
+    rc = main_fn() if callable(main_fn) else 0
     sys.exit(rc if isinstance(rc, int) else 0)
 
 
-def _shell_tool(name: str, rest: list) -> None:
+def _shell_tool(name: str, rest: list[str]) -> None:
     script = SH_DIR / SHELL_TOOLS[name][0]
     os.execvp("bash", ["bash", str(script), *rest])
 
 
-def _run_scheme(argv: list) -> int:
+def _run_scheme(argv: list[str]) -> int:
     from nebula import scheme
     sys.argv = ["nebula scheme", *argv]
     try:
@@ -110,7 +113,7 @@ def _run_scheme(argv: list) -> int:
     return 0
 
 
-def cmd_wallpaper(a) -> int:
+def cmd_wallpaper(a: argparse.Namespace) -> int:
     from nebula import wallpaper as wp
     if a.action == "current":
         path = wp.current()
@@ -136,26 +139,27 @@ def cmd_wallpaper(a) -> int:
 
     d = wp.defaults()
     if a.action == "random":
-        image = wp.pick_random(wp.wallpaper_dir() if not a.dir else wp.Path(os.path.expanduser(a.dir)))
+        folder = wp.wallpaper_dir() if not a.dir else Path(os.path.expanduser(str(a.dir)))
+        image = wp.pick_random(folder)
         if not image:
             print("nebula: no images found in the wallpaper folder", file=sys.stderr)
             return 1
         print(image)
     else:
-        image = os.path.abspath(os.path.expanduser(a.image))
+        image = os.path.abspath(os.path.expanduser(str(a.image)))
     return wp.apply(image,
-                    a.scheme or d["scheme"], a.mode or d["mode"],
-                    a.gowall or d["gowall"],
-                    a.gowall_icons or d["icons"], a.invert or d["invert"], a.gowall_shell or d["shell"])
+                    str(a.scheme or d["scheme"]), str(a.mode or d["mode"]),
+                    str(a.gowall or d["gowall"]),
+                    str(a.gowall_icons or d["icons"]), str(a.invert or d["invert"]), str(a.gowall_shell or d["shell"]))
 
 
-def cmd_scheme(a) -> int:
+def cmd_scheme(a: argparse.Namespace) -> int:
     if a.action == "generate":
-        argv = [a.image, a.variant, a.mode]
+        argv: list[str] = [str(a.image), str(a.variant), str(a.mode)]
         for flag, val in (("--source", a.source), ("--display", a.display),
                           ("--palette-file", a.palette_file), ("--apps", a.apps)):
             if val is not None:
-                argv += [flag, val]
+                argv += [flag, str(val)]
         if a.keep_icon_theme:
             argv.append("--keep-icon-theme")
         return _run_scheme(argv)
@@ -163,36 +167,38 @@ def cmd_scheme(a) -> int:
     if a.action == "apply":
         argv = ["--apps-only"]
         if a.apps is not None:
-            argv += ["--apps", a.apps]
-        argv += ["--mode", a.mode or _settings_mode()]
+            argv += ["--apps", str(a.apps)]
+        argv += ["--mode", str(a.mode or _settings_mode())]
         if a.keep_icon_theme:
             argv.append("--keep-icon-theme")
         return _run_scheme(argv)
 
     if a.action == "show":
-        return _show_palette(a.json)
+        return _show_palette(bool(a.json))
 
     if a.action in ("seeds", "seed"):
         from nebula import scheme, wallpaper as wp
-        image = a.image or wp.current()
+        image = str(a.image or wp.current())
         if not image or not os.path.isfile(image):
             print(f"nebula: no such image: {image}", file=sys.stderr)
             return 1
         if a.action == "seed":
-            scheme.set_seed(image, a.index)
+            scheme.set_seed(image, int(a.index))
             return 0
         d = wp.defaults()
-        print(json.dumps(scheme.seeds_report(image, a.variant or d["scheme"], a.mode or d["mode"])))
+        report_fn = cast(Callable[[str, str, str], object], getattr(scheme, "seeds_report"))
+        print(json.dumps(report_fn(image, str(a.variant or d["scheme"]), str(a.mode or d["mode"]))))
         return 0
 
     if a.action == "set":
         from nebula import settings, wallpaper as wp
-        patch = {}
+        patch: dict[str, object] = {}
         if a.mode:
             patch["matugenTheme"] = a.mode
         if a.variant:
-            patch["matugenScheme"] = a.variant if a.variant.startswith("scheme-") else "scheme-" + a.variant
-            if a.variant.removeprefix("scheme-") == "custom":
+            variant_str = str(a.variant)
+            patch["matugenScheme"] = variant_str if variant_str.startswith("scheme-") else "scheme-" + variant_str
+            if variant_str.removeprefix("scheme-") == "custom":
                 settings.update("general", {"palette": "custom"})
             else:
                 gen = settings.section("general")
@@ -211,10 +217,11 @@ def cmd_scheme(a) -> int:
     return 2
 
 
-def cmd_palette(a) -> int:
+def cmd_palette(a: argparse.Namespace) -> int:
     from nebula import settings, wallpaper as wp
     from nebula.paths import CUSTOM_COLORS
-    custom_path_str = settings.section("general").get("palettePath")
+    custom_path_raw: object = settings.section("general").get("palettePath")
+    custom_path_str = str(custom_path_raw) if custom_path_raw else ""
     custom_file = Path(os.path.expanduser(custom_path_str)) if custom_path_str else CUSTOM_COLORS
 
     if a.action == "path":
@@ -229,12 +236,12 @@ def cmd_palette(a) -> int:
         return 0
 
     if a.action == "set":
-        src = Path(os.path.expanduser(a.file))
+        src = Path(os.path.expanduser(str(a.file)))
         if not src.is_file():
             print(f"nebula: palette file not found: {src}", file=sys.stderr)
             return 1
         try:
-            data = json.loads(src.read_text())
+            data: object = json.loads(src.read_text())
             if not isinstance(data, dict):
                 raise ValueError("JSON root must be an object")
         except Exception as e:
@@ -242,7 +249,7 @@ def cmd_palette(a) -> int:
             return 1
 
         CUSTOM_COLORS.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(src, CUSTOM_COLORS)
+        _ = shutil.copy2(src, CUSTOM_COLORS)
         settings.update("theme", {"matugenScheme": "scheme-custom"})
         settings.update("general", {"palette": "custom"})
         image = wp.current()
@@ -263,7 +270,8 @@ def _settings_mode() -> str:
 
 def _show_palette(as_json: bool) -> int:
     try:
-        colors = json.loads(COLORS.read_text())
+        raw: object = json.loads(COLORS.read_text())
+        colors = cast(dict[str, object], raw) if isinstance(raw, dict) else {}
     except Exception as e:
         print(f"nebula: cannot read {COLORS}: {e}", file=sys.stderr)
         return 1
@@ -274,9 +282,10 @@ def _show_palette(as_json: bool) -> int:
              "tertiary", "tertiaryContainer", "error", "surface",
              "surfaceContainer", "surfaceContainerHighest", "surfaceText", "outline"]
     tty = sys.stdout.isatty()
-    print(f"wallpaper  {colors.get('sourceWallpaper') or colors.get('wallpaper', '')}")
+    wallpaper_val = colors.get("sourceWallpaper") or colors.get("wallpaper") or ""
+    print(f"wallpaper  {wallpaper_val}")
     for r in roles:
-        hx = colors.get(r, "")
+        hx = str(colors.get(r, ""))
         swatch = ""
         if tty and len(hx) == 7:
             rr, gg, bb = int(hx[1:3], 16), int(hx[3:5], 16), int(hx[5:7], 16)
@@ -285,50 +294,56 @@ def _show_palette(as_json: bool) -> int:
     return 0
 
 
-def cmd_apps(a) -> int:
+def cmd_apps(a: argparse.Namespace) -> int:
     from nebula import apps
-    action = a.action or "list"
+    action = str(a.action or "list")
     if action == "detect":
         print(json.dumps(apps.detect()))
         return 0
     if action == "list":
-        return apps.print_list(getattr(a, "json", False))
+        return apps.print_list(bool(getattr(a, "json", False)))
     if action in ("enable", "disable"):
-        return apps.set_picked(a.ids, action == "enable", a.apply)
+        ids = cast(list[str], a.ids)
+        return apps.set_picked(ids, action == "enable", bool(a.apply))
     if action == "reset":
-        return apps.reset(a.apply)
+        return apps.reset(bool(a.apply))
     return 2
 
 
-def cmd_layout(a) -> int:
+def cmd_layout(a: argparse.Namespace) -> int:
     from nebula import layouts
-    only = [x for x in (a.only or "").split(",") if x] or None
-    act = a.action or "list"
+    only_str = str(a.only or "")
+    only: list[str] | None = [x for x in only_str.split(",") if x] or None
+    act = str(a.action or "list")
     if act == "list":
-        return layouts.print_list(a.json)
+        return layouts.print_list(bool(a.json))
     if act == "save":
-        return layouts.save(a.name, only)
+        save_fn = cast(Callable[[str, list[str] | None], int], getattr(layouts, "save"))
+        return save_fn(str(a.name), only)
     if act == "load":
-        return layouts.load(a.name, only, a.emit)
+        load_fn = cast(Callable[[str, list[str] | None, bool], int], getattr(layouts, "load"))
+        return load_fn(str(a.name), only, bool(a.emit))
     if act == "update":
-        return layouts.update(a.name)
+        return layouts.update(str(a.name))
     if act == "undo":
-        return layouts.undo(a.emit)
+        return layouts.undo(bool(a.emit))
     if act == "delete":
-        return layouts.delete(a.name)
+        return layouts.delete(str(a.name))
     if act == "import":
-        return layouts.import_file(a.name, a.rename)
+        import_fn = cast(Callable[[str, str | None], int], getattr(layouts, "import_file"))
+        rename_val = str(a.rename) if a.rename is not None else None
+        return import_fn(str(a.name), rename_val)
     if act == "export":
-        return layouts.export(a.name, a.dest)
+        return layouts.export(str(a.name), str(a.dest))
     return 2
 
 
-def cmd_doctor(a) -> int:
+def cmd_doctor(a: argparse.Namespace) -> int:
     from nebula import doctor
-    return doctor.run(a.json)
+    return doctor.run(bool(a.json))
 
 
-def _qs_ipc(args: list, quiet: bool = False) -> int:
+def _qs_ipc(args: list[str], quiet: bool = False) -> int:
     qs = shutil.which("qs") or shutil.which("quickshell")
     if not qs:
         print("nebula: quickshell is not installed", file=sys.stderr)
@@ -340,11 +355,12 @@ def _qs_ipc(args: list, quiet: bool = False) -> int:
     return r.returncode
 
 
-def cmd_ipc(a) -> int:
-    return _qs_ipc(["show"] if not a.args else ["call", *a.args])
+def cmd_ipc(a: argparse.Namespace) -> int:
+    args_list = cast(list[str], a.args)
+    return _qs_ipc(["show"] if not args_list else ["call", *args_list])
 
 
-def cmd_setup(a) -> int:
+def cmd_setup(a: argparse.Namespace) -> int:
     qs = shutil.which("qs") or shutil.which("quickshell")
     if not qs:
         print("nebula: quickshell is not installed", file=sys.stderr)
@@ -365,18 +381,18 @@ def _running(pattern: str) -> bool:
                           stdout=subprocess.DEVNULL).returncode == 0
 
 
-def _spawn(argv: list, env=None) -> None:
-    subprocess.Popen(argv, env=env, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
-                     stderr=subprocess.DEVNULL, start_new_session=True)
+def _spawn(argv: list[str], env: dict[str, str] | None = None) -> None:
+    _ = subprocess.Popen(argv, env=env, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                         stderr=subprocess.DEVNULL, start_new_session=True)
 
 
 MESA_EGL = "/usr/share/glvnd/egl_vendor.d/50_mesa.json"
 TCMALLOC = "/usr/lib/libtcmalloc_minimal.so.4"
 
 
-def _display_drivers() -> set:
+def _display_drivers() -> set[str]:
     from pathlib import Path
-    drivers = set()
+    drivers: set[str] = set()
     for status in Path("/sys/class/drm").glob("card*-*/status"):
         try:
             if status.read_text().strip() != "connected":
@@ -388,9 +404,9 @@ def _display_drivers() -> set:
     return drivers
 
 
-def _shell_env() -> dict:
+def _shell_env() -> dict[str, str]:
     env = dict(os.environ)
-    env.setdefault("QSG_RENDER_LOOP", "threaded")
+    _ = env.setdefault("QSG_RENDER_LOOP", "threaded")
     qml = str(HOME / ".local/lib/qt6/qml")
     paths = [p for p in env.get("QML_IMPORT_PATH", "").split(":") if p]
     if qml not in paths:
@@ -403,7 +419,7 @@ def _shell_env() -> dict:
     if os.path.exists(TCMALLOC) and not any("tcmalloc" in p for p in preload):
         env["LD_PRELOAD"] = " ".join([TCMALLOC, *preload])
     if any("tcmalloc" in p for p in env.get("LD_PRELOAD", "").split()):
-        env.setdefault("TCMALLOC_AGGRESSIVE_DECOMMIT", "t")
+        _ = env.setdefault("TCMALLOC_AGGRESSIVE_DECOMMIT", "t")
     venv = HOME / ".local/state/quickshell/.venv"
     if "NEBULA_VENV" not in env and (venv / "bin/python").exists():
         has_lib = subprocess.run(["python3", "-c", "import materialyoucolor"],
@@ -430,12 +446,12 @@ def _block_notif_activation() -> None:
         if target.exists():
             continue
         user_dir.mkdir(parents=True, exist_ok=True)
-        target.write_text(f"[D-BUS Service]\nName={NOTIF_NAME}\nExec=/bin/false\n")
+        _ = target.write_text(f"[D-BUS Service]\nName={NOTIF_NAME}\nExec=/bin/false\n")
         wrote = True
     if wrote and shutil.which("busctl"):
-        subprocess.run(["busctl", "--user", "call", "org.freedesktop.DBus", "/org/freedesktop/DBus",
-                        "org.freedesktop.DBus", "ReloadConfig"],
-                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        _ = subprocess.run(["busctl", "--user", "call", "org.freedesktop.DBus", "/org/freedesktop/DBus",
+                            "org.freedesktop.DBus", "ReloadConfig"],
+                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
 def _free_notif_name() -> None:
@@ -443,20 +459,21 @@ def _free_notif_name() -> None:
     if not shutil.which("busctl"):
         return
     r = subprocess.run(["busctl", "--user", "status", NOTIF_NAME], capture_output=True, text=True)
-    info = dict(line.split("=", 1) for line in r.stdout.splitlines() if "=" in line)
+    info: dict[str, str] = dict(line.split("=", 1) for line in r.stdout.splitlines() if "=" in line)
     comm = info.get("Comm", "")
-    if not info.get("PID", "").isdigit() or comm in ("qs", "quickshell", ".quickshell-wra"):
+    pid_str = info.get("PID", "")
+    if not pid_str.isdigit() or comm in ("qs", "quickshell", ".quickshell-wra"):
         return
     try:
-        os.kill(int(info["PID"]), signal.SIGTERM)
+        os.kill(int(pid_str), signal.SIGTERM)
     except (ProcessLookupError, PermissionError):
         pass
 
 
-def cmd_settings_source(a) -> int:
+def cmd_settings_source(a: argparse.Namespace) -> int:
     from nebula import settings
     if a.key:
-        info = settings.get_source(a.key)
+        info = settings.get_source(str(a.key))
         if a.json:
             print(json.dumps(info, indent=2))
             return 0
@@ -502,7 +519,7 @@ def cmd_settings_source(a) -> int:
     return 0
 
 
-def cmd_migrate(a) -> int:
+def cmd_migrate(a: argparse.Namespace) -> int:
     moved = migrate()
     for src, dst in moved:
         print(f"{str(src).replace(str(HOME), '~', 1)} → {str(dst).replace(str(HOME), '~', 1)}")
@@ -531,7 +548,7 @@ def _first_colors() -> bool:
         return False
     from nebula import wallpaper as wp
     d = wp.defaults()
-    _run_scheme([_starter_wallpaper(), d["scheme"], d["mode"], "--apps", ""])
+    _ = _run_scheme([_starter_wallpaper(), d["scheme"], d["mode"], "--apps", ""])
     return True
 
 
@@ -544,21 +561,22 @@ def _welcome_notice() -> None:
     _spawn(["sh", "-c", script, str(SHELL_DIR / "bin" / "nebula")])
 
 
-def cmd_start(a) -> int:
+def cmd_start(a: argparse.Namespace) -> int:
     qs = _qs_bin()
     if not qs:
         return 1
     env = _shell_env()
-    splash = getattr(a, "splash", False) and not _shell_up(qs)
+    splash = bool(getattr(a, "splash", False)) and not _shell_up(qs)
     if splash:
         _spawn([qs, "-n", "-p", str(SHELL_DIR / "splash.qml")], env)
         env["NEBULA_SPLASH"] = "1"
-    migrate()
+    _ = migrate()
     first_run = not _shell_up(qs) and _first_colors()
     if first_run:
         _welcome_notice()
     from nebula import settings
-    clipboard_on = settings.section("features").get("clipboard", True)
+    clipboard_raw = settings.section("features").get("clipboard", True)
+    clipboard_on = bool(clipboard_raw) if isinstance(clipboard_raw, bool) else True
     if clipboard_on and shutil.which("wl-paste") and shutil.which("cliphist") and not _running("wl-paste --watch cliphist"):
         _spawn(["wl-paste", "--watch", "cliphist", "store"])
     _block_notif_activation()
@@ -612,9 +630,9 @@ def _check_load(qs: str, wait: float = 20.0) -> int:
 _instance_pids = instance_pids
 
 
-def cmd_uninstall(a) -> int:
+def cmd_uninstall(a: argparse.Namespace) -> int:
     from nebula import uninstall
-    return uninstall.run(purge=a.purge, assume_yes=a.yes)
+    return uninstall.run(purge=bool(a.purge), assume_yes=bool(a.yes))
 
 
 def cmd_stop(_a: object = None) -> int:
@@ -625,17 +643,21 @@ def _shell_up(qs: str) -> bool:
     r = subprocess.run([qs, "list", "-j", "-p", str(SHELL_DIR / "shell.qml")],
                        capture_output=True, text=True)
     try:
-        return len(json.loads(r.stdout or "[]")) > 0
+        data: object = json.loads(r.stdout or "[]")
+        if isinstance(data, list):
+            items = cast(list[object], data)
+            return len(items) > 0
     except Exception:
-        return "Instance" in r.stdout
+        pass
+    return "Instance" in r.stdout
 
 
-def cmd_restart(a) -> int:
+def cmd_restart(a: argparse.Namespace) -> int:
     import time
     qs = _qs_bin()
     if not qs:
         return 1
-    cmd_stop(a)
+    _ = cmd_stop(a)
     for _ in range(50):
         if not _shell_up(qs):
             break
@@ -653,136 +675,138 @@ def build_parser() -> argparse.ArgumentParser:
     for name in ("set", "random"):
         s = ws.add_parser(name)
         if name == "set":
-            s.add_argument("image")
+            _ = s.add_argument("image")
         else:
-            s.add_argument("--dir")
-        s.add_argument("--scheme")
-        s.add_argument("--mode", choices=["dark", "light"])
-        s.add_argument("--gowall")
-        s.add_argument("--gowall-icons", choices=["on", "off"])
-        s.add_argument("--invert", choices=["on", "off"])
-        s.add_argument("--gowall-shell", choices=["on", "off"])
-    ws.add_parser("current")
+            _ = s.add_argument("--dir")
+        _ = s.add_argument("--scheme")
+        _ = s.add_argument("--mode", choices=["dark", "light"])
+        _ = s.add_argument("--gowall")
+        _ = s.add_argument("--gowall-icons", choices=["on", "off"])
+        _ = s.add_argument("--invert", choices=["on", "off"])
+        _ = s.add_argument("--gowall-shell", choices=["on", "off"])
+    _ = ws.add_parser("current")
     pv = ws.add_parser("preview", help="palette JSON for a wallpaper, without applying it")
-    pv.add_argument("image")
-    pv.add_argument("thumb")
-    pv.add_argument("scheme")
-    pv.add_argument("mode")
+    _ = pv.add_argument("image")
+    _ = pv.add_argument("thumb")
+    _ = pv.add_argument("scheme")
+    _ = pv.add_argument("mode")
     sc = ws.add_parser("screen", help="scaled copy for the lock and greeter")
-    sc.add_argument("src")
-    sc.add_argument("out")
-    sc.add_argument("width", type=int)
-    sc.add_argument("height", type=int)
-    sc.add_argument("--grey", action="store_true", help="greyscale copy (Kindle mode)")
-    sc.add_argument("--eink", action="store_true", help="16-grey e-ink copy through gowall (Kindle mode)")
+    _ = sc.add_argument("src")
+    _ = sc.add_argument("out")
+    _ = sc.add_argument("width", type=int)
+    _ = sc.add_argument("height", type=int)
+    _ = sc.add_argument("--grey", action="store_true", help="greyscale copy (Kindle mode)")
+    _ = sc.add_argument("--eink", action="store_true", help="16-grey e-ink copy through gowall (Kindle mode)")
 
     s = sub.add_parser("scheme", help="colour scheme")
     ss = s.add_subparsers(dest="action", required=True)
     g = ss.add_parser("generate", help="build colours from an image (the shell's pipeline step)")
-    g.add_argument("image")
-    g.add_argument("variant")
-    g.add_argument("mode")
-    g.add_argument("--source")
-    g.add_argument("--display")
-    g.add_argument("--palette-file")
-    g.add_argument("--apps")
-    g.add_argument("--keep-icon-theme", action="store_true")
+    _ = g.add_argument("image")
+    _ = g.add_argument("variant")
+    _ = g.add_argument("mode")
+    _ = g.add_argument("--source")
+    _ = g.add_argument("--display")
+    _ = g.add_argument("--palette-file")
+    _ = g.add_argument("--apps")
+    _ = g.add_argument("--keep-icon-theme", action="store_true")
     ap = ss.add_parser("apply", help="re-write app colour files from the current palette")
-    ap.add_argument("--apps", help="comma-separated ids; default: your saved choice")
-    ap.add_argument("--mode", choices=["dark", "light"])
-    ap.add_argument("--keep-icon-theme", action="store_true")
+    _ = ap.add_argument("--apps", help="comma-separated ids; default: your saved choice")
+    _ = ap.add_argument("--mode", choices=["dark", "light"])
+    _ = ap.add_argument("--keep-icon-theme", action="store_true")
     sh = ss.add_parser("show")
-    sh.add_argument("--json", action="store_true")
+    _ = sh.add_argument("--json", action="store_true")
     sd = ss.add_parser("seeds", help="candidate seed colours for a wallpaper, as JSON")
-    sd.add_argument("image", nargs="?")
-    sd.add_argument("--variant")
-    sd.add_argument("--mode", choices=["dark", "light"])
+    _ = sd.add_argument("image", nargs="?")
+    _ = sd.add_argument("--variant")
+    _ = sd.add_argument("--mode", choices=["dark", "light"])
     sp = ss.add_parser("seed", help="remember which seed colour a wallpaper uses (0 = auto)")
-    sp.add_argument("image")
-    sp.add_argument("index", type=int)
+    _ = sp.add_argument("image")
+    _ = sp.add_argument("index", type=int)
     st = ss.add_parser("set")
-    st.add_argument("--mode", choices=["dark", "light"])
-    st.add_argument("--variant", help="content, tonalspot, vibrant, expressive, fidelity, fruitsalad, rainbow, neutral, monochrome, kindle, custom")
+    _ = st.add_argument("--mode", choices=["dark", "light"])
+    _ = st.add_argument("--variant", help="content, tonalspot, vibrant, expressive, fidelity, fruitsalad, rainbow, neutral, monochrome, kindle, custom")
 
     pal = sub.add_parser("palette", help="custom static palette")
     pals = pal.add_subparsers(dest="action", required=True)
     p_set = pals.add_parser("set", help="set custom palette from a file and activate it")
-    p_set.add_argument("file", help="path to custom colors.json")
-    pals.add_parser("get", help="show custom palette contents")
-    pals.add_parser("path", help="print the custom palette file path")
+    _ = p_set.add_argument("file", help="path to custom colors.json")
+    _ = pals.add_parser("get", help="show custom palette contents")
+    _ = pals.add_parser("path", help="print the custom palette file path")
 
     a = sub.add_parser("apps", help="which apps follow the palette")
     as_ = a.add_subparsers(dest="action")
     l = as_.add_parser("list")
-    l.add_argument("--json", action="store_true")
-    as_.add_parser("detect")
+    _ = l.add_argument("--json", action="store_true")
+    _ = as_.add_parser("detect")
     for name in ("enable", "disable"):
         e = as_.add_parser(name)
-        e.add_argument("ids", nargs="+")
-        e.add_argument("--apply", action="store_true", help="re-write colour files now")
+        _ = e.add_argument("ids", nargs="+")
+        _ = e.add_argument("--apply", action="store_true", help="re-write colour files now")
     r = as_.add_parser("reset")
-    r.add_argument("--apply", action="store_true")
+    _ = r.add_argument("--apply", action="store_true")
 
     d = sub.add_parser("doctor", help="check dependencies")
-    d.add_argument("--json", action="store_true")
+    _ = d.add_argument("--json", action="store_true")
 
-    st = sub.add_parser("start", help="start the shell")
-    st.add_argument("--foreground", action="store_true", help="stay attached and print the log")
-    st.add_argument("--splash", action="store_true", help="play the login splash while the shell loads")
-    sub.add_parser("stop", help="stop the shell")
-    sub.add_parser("restart", help="restart the shell")
+    st_cmd = sub.add_parser("start", help="start the shell")
+    _ = st_cmd.add_argument("--foreground", action="store_true", help="stay attached and print the log")
+    _ = st_cmd.add_argument("--splash", action="store_true", help="play the login splash while the shell loads")
+    _ = sub.add_parser("stop", help="stop the shell")
+    _ = sub.add_parser("restart", help="restart the shell")
     mg = sub.add_parser("migrate", help="move settings out of ~/.cache/quickshell")
-    mg.add_argument("--quiet", action="store_true")
+    _ = mg.add_argument("--quiet", action="store_true")
 
     un = sub.add_parser("uninstall", help="remove Nebula from your session")
-    un.add_argument("--purge", action="store_true", help="also delete settings, history, caches and the code")
-    un.add_argument("--yes", action="store_true", help="don't ask first")
+    _ = un.add_argument("--purge", action="store_true", help="also delete settings, history, caches and the code")
+    _ = un.add_argument("--yes", action="store_true", help="don't ask first")
 
     su = sub.add_parser("setup", help="open the setup window")
-    su.add_argument("--close", action="store_true")
+    _ = su.add_argument("--close", action="store_true")
 
     lo = sub.add_parser("layout", help="save and load whole-shell layouts")
-    lo.add_argument("action", nargs="?", choices=["list", "save", "load", "update", "undo", "delete", "import", "export"])
-    lo.add_argument("name", nargs="?", default="")
-    lo.add_argument("dest", nargs="?", default=".")
-    lo.add_argument("--only", help="comma-separated: bar,widgets,dashboard,panels,lockscreen")
-    lo.add_argument("--rename")
-    lo.add_argument("--json", action="store_true")
-    lo.add_argument("--emit", action="store_true", help=argparse.SUPPRESS)
+    _ = lo.add_argument("action", nargs="?", choices=["list", "save", "load", "update", "undo", "delete", "import", "export"])
+    _ = lo.add_argument("name", nargs="?", default="")
+    _ = lo.add_argument("dest", nargs="?", default=".")
+    _ = lo.add_argument("--only", help="comma-separated: bar,widgets,dashboard,panels,lockscreen")
+    _ = lo.add_argument("--rename")
+    _ = lo.add_argument("--json", action="store_true")
+    _ = lo.add_argument("--emit", action="store_true", help=argparse.SUPPRESS)
 
     src = sub.add_parser("settings-source", help="show setting source (user/drop-in) and lock status")
-    src.add_argument("key", nargs="?", help="dotted key, e.g. general.palette")
-    src.add_argument("--json", action="store_true", help="output as JSON")
+    _ = src.add_argument("key", nargs="?", help="dotted key, e.g. general.palette")
+    _ = src.add_argument("--json", action="store_true", help="output as JSON")
 
     i = sub.add_parser("ipc", help="call the running shell")
-    i.add_argument("args", nargs=argparse.REMAINDER)
+    _ = i.add_argument("args", nargs=argparse.REMAINDER)
     return p
 
 
-def main(argv=None) -> None:
-    argv = list(sys.argv[1:] if argv is None else argv)
-    if not argv or argv[0] in ("-h", "--help", "help"):
+def main(argv: list[str] | None = None) -> None:
+    args = list(sys.argv[1:] if argv is None else argv)
+    if not args or args[0] in ("-h", "--help", "help"):
         _print_help()
         sys.exit(0)
-    if argv[0] in ("-V", "--version", "version"):
+    if args[0] in ("-V", "--version", "version"):
         print(__version__)
         sys.exit(0)
-    if argv[0] in PASSTHROUGH:
-        _passthrough(argv[0], argv[1:])
-    if argv[0] in SHELL_TOOLS:
-        _shell_tool(argv[0], argv[1:])
+    if args[0] in PASSTHROUGH:
+        _passthrough(args[0], args[1:])
+    if args[0] in SHELL_TOOLS:
+        _shell_tool(args[0], args[1:])
 
     parser = build_parser()
-    if argv[0] not in ("wallpaper", "scheme", "palette", "apps", "doctor", "ipc", "setup", "start", "stop", "restart", "layout", "migrate", "uninstall", "settings-source"):
-        print(f"nebula: unknown command '{argv[0]}'. Run `nebula help`.", file=sys.stderr)
+    if args[0] not in ("wallpaper", "scheme", "palette", "apps", "doctor", "ipc", "setup", "start", "stop", "restart", "layout", "migrate", "uninstall", "settings-source"):
+        print(f"nebula: unknown command '{args[0]}'. Run `nebula help`.", file=sys.stderr)
         sys.exit(2)
-    a = parser.parse_args(argv)
-    handler = {"wallpaper": cmd_wallpaper, "scheme": cmd_scheme, "palette": cmd_palette, "apps": cmd_apps,
-               "doctor": cmd_doctor, "ipc": cmd_ipc, "setup": cmd_setup,
-               "start": cmd_start, "stop": cmd_stop, "restart": cmd_restart, "layout": cmd_layout,
-               "migrate": cmd_migrate, "uninstall": cmd_uninstall, "settings-source": cmd_settings_source}[a.command]
+    a = parser.parse_args(args)
+    handler: dict[str, Callable[[argparse.Namespace], int | None]] = {
+        "wallpaper": cmd_wallpaper, "scheme": cmd_scheme, "palette": cmd_palette, "apps": cmd_apps,
+        "doctor": cmd_doctor, "ipc": cmd_ipc, "setup": cmd_setup,
+        "start": cmd_start, "stop": cmd_stop, "restart": cmd_restart, "layout": cmd_layout,
+        "migrate": cmd_migrate, "uninstall": cmd_uninstall, "settings-source": cmd_settings_source,
+    }
     try:
-        rc = handler(a) or 0
+        rc = handler[str(a.command)](a) or 0
     except settings.CorruptSettingsError as e:
         print(f"nebula: {e}", file=sys.stderr)
         sys.exit(1)

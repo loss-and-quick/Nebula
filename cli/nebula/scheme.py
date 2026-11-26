@@ -854,15 +854,15 @@ def _apply_fonts(enabled=None) -> None:
             print(f"[gen_colors] font sync ERROR kitty: {e}", file=sys.stderr)
 
     gs_cmds = [
-        f'gsettings set org.gnome.desktop.interface font-name "{body_font} {font_size}"',
-        f'gsettings set org.gnome.desktop.interface monospace-font-name "{mono_font} {font_size}"',
-        f'gsettings set org.gnome.desktop.interface document-font-name "{body_font} {font_size}"',
+        ["gsettings", "set", "org.gnome.desktop.interface", "font-name", f"{body_font} {font_size}"],
+        ["gsettings", "set", "org.gnome.desktop.interface", "monospace-font-name", f"{mono_font} {font_size}"],
+        ["gsettings", "set", "org.gnome.desktop.interface", "document-font-name", f"{body_font} {font_size}"],
     ]
     for cmd in gs_cmds:
         try:
-            subprocess.Popen(cmd, shell=True,
-                             stdout=subprocess.DEVNULL,
-                             stderr=subprocess.DEVNULL)
+            _ = subprocess.Popen(cmd,
+                                 stdout=subprocess.DEVNULL,
+                                 stderr=subprocess.DEVNULL)
         except Exception as e:
             print(f"[gen_colors] font sync gsettings ERROR: {e}", file=sys.stderr)
     print(f"[gen_colors] font sync: gsettings → {body_font} {font_size}pt", flush=True)

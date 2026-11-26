@@ -568,13 +568,25 @@ Singleton {
         }
     }
 
+    function calculateConnectionScore(device) {
+        if (device.reachable && device.pair === 3)
+            return 4
+        if (device.reachable && device.pair > 0)
+            return 3
+        if (device.reachable)
+            return 2
+        if (device.pair === 3)
+            return 1
+        return 0
+    }
+
     function _pick(rows) {
         let best = null
         let score = -1
         for (const f of rows) {
             if (f.type !== "phone" && f.type !== "tablet")
                 continue
-            const sc = f.reachable && f.pair === 3 ? 4 : f.reachable && f.pair > 0 ? 3 : f.reachable ? 2 : f.pair === 3 ? 1 : 0
+            const sc = root.calculateConnectionScore(f)
             if (sc > score) {
                 best = f
                 score = sc

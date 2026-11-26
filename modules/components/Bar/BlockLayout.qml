@@ -60,7 +60,9 @@ Item {
             return blockLayout.basePad;
         const fit = side => Math.max(0, Math.min(blockLayout.basePad, side - edge.off)) - blockLayout.basePad;
         const stepW = corner > 0.5 ? block.stepT : 0;
-        return blockLayout.basePad + fit(edge.gap) * block.pillT + fit(Math.max(edge.gap, corner - edge.r)) * stepW;
+        const pillPart = fit(edge.gap) * block.pillT;
+        const cornerPart = fit(Math.max(edge.gap, corner - edge.r)) * stepW;
+        return blockLayout.basePad + pillPart + cornerPart;
     }
 
     function edgeShape(slot, fromRight) {
@@ -181,7 +183,9 @@ Item {
     readonly property real naturalWidth: blockLayout.emptyInEdit ? 96 + Math.max(0, blockLayout.dragExtra) : blockLayout.slotLayout.total + blockLayout.pad + blockLayout.padR + blockLayout.dragExtra
     readonly property real collapsedWidth: block.maxWidth > 0 ? Math.min(blockLayout.naturalWidth, Math.max(block.maxWidth, blockLayout.fixedWidth)) : blockLayout.naturalWidth
 
-    readonly property bool isDropTarget: !!block.editor && (block.editor.mode === "item" && block.editor.dropBlock === block.blockId && !block.editor.overDrawer || block.editor.mode === "block" && block.editor.joinTarget === block.blockId)
+    readonly property bool isItemDropTarget: !!block.editor && block.editor.mode === "item" && block.editor.dropBlock === block.blockId && !block.editor.overDrawer
+    readonly property bool isBlockDropTarget: !!block.editor && block.editor.mode === "block" && block.editor.joinTarget === block.blockId
+    readonly property bool isDropTarget: blockLayout.isItemDropTarget || blockLayout.isBlockDropTarget
     readonly property bool isDraggedBlock: !!block.editor && block.editor.mode === "block" && block.editor.fromBlock === block.blockId
 
     function slotShift(listIndex) {

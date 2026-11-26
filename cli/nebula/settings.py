@@ -1,23 +1,74 @@
 import json
 import os
+import shutil
 import sys
+import tempfile
+import time
 from pathlib import Path
 from typing import Any
 
-from nebula.paths import CONFIG_DIR, SETTINGS, dropin_files
+from nebula.paths import CONFIG_DIR, dropin_files
 
 
 def _user_settings_path() -> Path:
-    cfg = Path(os.environ.get("XDG_CONFIG_HOME") or (Path(os.environ.get("HOME") or Path.home()) / ".config")) / "nebula"
-    return cfg / "settings.json"
+    return CONFIG_DIR / "settings.json"
+
+
+def write_atomic(path: Path, text: str) -> None:
+    target = path.resolve() if path.is_symlink() else path
+    try:
+        if target.read_text() == text:
+            return
+    except (OSError, UnicodeDecodeError):
+        pass
+    target.parent.mkdir(parents=True, exist_ok=True)
+    mode = target.stat().st_mode & 0o7777 if target.exists() else 0o644
+    fd, tmp = tempfile.mkstemp(dir=target.parent, prefix="." + target.name + ".")
+    try:
+        with os.fdopen(fd, "w") as f:
+            f.write(text)
+        os.chmod(tmp, mode)
+        os.replace(tmp, target)
+    except BaseException:
+        if os.path.exists(tmp):
+            os.unlink(tmp)
+        raise
 
 
 def _read_json(path: Path) -> dict:
-    try:
-        data = json.loads(path.read_text())
-        return data if isinstance(data, dict) else {}
-    except Exception:
+    if not path.exists():
         return {}
+    is_main = False
+    try:
+        is_main = path.resolve() == _user_settings_path().resolve()
+    except Exception:
+        is_main = (path == _user_settings_path())
+
+    if not is_main:
+        try:
+            data = json.loads(path.read_text())
+            return data if isinstance(data, dict) else {}
+        except Exception:
+            return {}
+
+    try:
+        raw = path.read_text()
+        data = json.loads(raw)
+        if not isinstance(data, dict):
+            raise ValueError("root of settings must be a JSON object")
+        return data
+    except FileNotFoundError:
+        return {}
+    except Exception as e:
+        ts = time.strftime("%Y%m%d-%H%M%S")
+        backup = path.parent / f"{path.name}.corrupt-{ts}"
+        if backup.exists():
+            backup = path.parent / f"{path.name}.corrupt-{ts}-{int(time.time() * 1000)}"
+        try:
+            _ = shutil.copy2(path, backup)
+        except Exception:
+            pass
+        raise ValueError(f"Settings file '{path}' is corrupt ({e}). Backed up to '{backup}'.") from e
 
 
 def is_path_locked(locks: set[str] | list[str], path: str) -> bool:
@@ -136,13 +187,8 @@ def update(name: str, patch: dict) -> None:
             user_data[name] = sec
         else:
             user_data.pop(name, None)
-        text = json.dumps(user_data, indent=4)
-        user_path.parent.mkdir(parents=True, exist_ok=True)
-        mode = "r+" if user_path.exists() else "w"
-        with open(user_path, mode) as f:
-            f.seek(0)
-            f.write(text)
-            f.truncate()
+        text = json.dumps(user_data, indent=4) + "\n"
+        write_atomic(user_path, text)
 
 
 def get_source(key: str) -> dict:

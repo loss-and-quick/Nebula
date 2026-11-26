@@ -7,7 +7,8 @@ import tempfile
 from datetime import datetime
 from pathlib import Path
 
-from nebula.paths import HOME, SETTINGS
+from nebula import settings
+from nebula.paths import HOME
 
 DIR = Path(os.environ.get("XDG_CONFIG_HOME", HOME / ".config")) / "nebula" / "layouts"
 PREVIOUS = DIR / ".previous.json"
@@ -31,19 +32,15 @@ def slug(name: str) -> str:
 
 def _read_settings() -> dict:
     try:
-        return json.loads(SETTINGS.read_text())
+        return settings.load()
     except Exception:
         return {}
 
 
 def _write_settings(data: dict) -> None:
-    text = json.dumps(data, indent=4)
-    SETTINGS.parent.mkdir(parents=True, exist_ok=True)
-    mode = "r+" if SETTINGS.exists() else "w"
-    with open(SETTINGS, mode) as f:
-        f.seek(0)
-        f.write(text)
-        f.truncate()
+    for section_name, patch in data.items():
+        if isinstance(patch, dict):
+            settings.update(section_name, patch)
 
 
 def _panel_keys(general: dict) -> dict:
@@ -227,15 +224,16 @@ def apply_sections(sections: dict, only=None, emit=False) -> list:
         print(json.dumps({"apply": patch, "sections": applied}), flush=True)
     else:
         s = _read_settings()
+        to_write = {}
         for key, value in patch.items():
             if key == "general":
-                s.setdefault("general", {}).update(value)
+                to_write["general"] = value
             elif key == "widgets":
                 cur = s.get("widgets") or {}
-                s["widgets"] = {**value, **{k: v for k, v in cur.items() if k in WIDGET_DATA}}
+                to_write["widgets"] = {**value, **{k: v for k, v in cur.items() if k in WIDGET_DATA}}
             else:
-                s[key] = value
-        _write_settings(s)
+                to_write[key] = value
+        _write_settings(to_write)
     return applied
 
 

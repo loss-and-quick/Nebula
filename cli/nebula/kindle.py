@@ -13,7 +13,8 @@ from pathlib import Path
 from string import Template
 from urllib.parse import parse_qs, urlparse
 
-from nebula.paths import CACHE_DIR, SETTINGS
+from nebula import settings
+from nebula.paths import CACHE_DIR
 
 WIDTH, HEIGHT = 600, 800
 OUT_DIR = CACHE_DIR / "kindle"
@@ -92,9 +93,8 @@ $footer
 
 def load_settings():
     try:
-        with open(SETTINGS) as f:
-            return json.load(f)
-    except (OSError, ValueError):
+        return settings.load()
+    except Exception:
         return {}
 
 

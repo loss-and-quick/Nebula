@@ -52,8 +52,8 @@ try:
 except ImportError as e:
     raise SystemExit(f"nebula: materialyoucolor is unavailable ({e}); install the materialyoucolor Python package") from None
 
-from nebula import apps as theme_apps
-from nebula.paths import CUSTOM_COLORS, SETTINGS
+from nebula import apps as theme_apps, settings
+from nebula.paths import CUSTOM_COLORS
 
 _HOME       = Path.home()
 CACHE_DIR   = Path.home() / ".cache" / "quickshell"
@@ -210,7 +210,7 @@ def _fixed_scheme(variant: str, is_dark: bool):
 
 def _kindle_setting(key: str, default: bool) -> bool:
     try:
-        theme = json.loads(SETTINGS.read_text()).get("theme", {})
+        theme = settings.section("theme")
     except Exception:
         return default
     return bool(theme.get(key, default))
@@ -812,7 +812,6 @@ _NF_SYMBOL_MAP = (
 )
 _NF_SYMBOL_FONT = "FiraCode Nerd Font"
 
-_QS_SETTINGS = SETTINGS
 _KITTY_CUSTOM = _HOME / ".config" / "kitty" / "custom.conf"
 
 
@@ -820,12 +819,11 @@ def _apply_fonts(enabled=None) -> None:
     if enabled is not None and not enabled:
         return
     try:
-        settings = json.loads(_QS_SETTINGS.read_text())
+        general = settings.section("general")
     except Exception as e:
         print(f"[gen_colors] font sync: cannot read settings.json: {e}", file=sys.stderr)
         return
 
-    general    = settings.get("general", {})
     body_font  = general.get("defaultFont", "Adwaita Sans")
     font_scale = general.get("fontScale", "normal")
     font_size  = _FONT_SCALE_PT.get(font_scale, 11)

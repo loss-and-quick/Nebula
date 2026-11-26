@@ -9,7 +9,8 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
 
-from nebula.paths import CACHE_DIR, COLORS, SETTINGS
+from nebula import settings
+from nebula.paths import CACHE_DIR, COLORS
 
 NAME = "nebula-orbit"
 OUT = CACHE_DIR / "grub" / NAME
@@ -92,8 +93,8 @@ def colors() -> dict:
 def host_line() -> str:
     name = ""
     try:
-        name = (json.loads(SETTINGS.read_text()).get("general", {}).get("displayName") or "").strip()
-    except (OSError, ValueError):
+        name = (settings.section("general").get("displayName") or "").strip()
+    except Exception:
         pass
     if not name:
         name = (Path.home().name or "user").capitalize()

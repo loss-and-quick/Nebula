@@ -1,6 +1,5 @@
 import json
 import os
-import shutil
 import sys
 import tempfile
 import time
@@ -66,12 +65,17 @@ def _read_json(path: Path) -> dict:
     except Exception as e:
         ts = time.strftime("%Y%m%d-%H%M%S")
         backup = path.parent / f"{path.name}.corrupt-{ts}"
-        n = 0
-        while backup.exists():
-            n += 1
-            backup = path.parent / f"{path.name}.corrupt-{ts}-{n}"
         try:
-            _ = shutil.copy2(path, backup)
+            n = 0
+            while True:
+                try:
+                    fd = os.open(str(backup), os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+                    break
+                except FileExistsError:
+                    n += 1
+                    backup = path.parent / f"{path.name}.corrupt-{ts}-{n}"
+            with os.fdopen(fd, "wb") as out:
+                _ = out.write(path.read_bytes())
         except Exception:
             pass
         raise CorruptSettingsError(f"Settings file '{path}' is corrupt ({e}). Backed up to '{backup}'.") from e

@@ -413,7 +413,9 @@ def build_assets(out_dir: Path | str) -> Path:
                               "--virtual-time-budget=1500", "--dump-dom", page.as_uri()],
                              check=True, capture_output=True, text=True, timeout=60).stdout
         match = re.search(r'<pre id="rects">(.*?)</pre>', dom, re.S)
-        rects: list[dict[str, Any]] = json.loads(html.unescape(match.group(1))) if match else []
+        if not match:
+            raise RuntimeError("browser probe returned no slot rects")
+        rects: list[dict[str, Any]] = json.loads(html.unescape(match.group(1)))
         shot = Path(tmp) / "template.png"
         shoot(exe, page, shot, WIDTH, HEIGHT, tmp)
         snap(Image.open(shot).crop((0, 0, WIDTH, HEIGHT))).save(out_dir_path / "template.png", optimize=True)

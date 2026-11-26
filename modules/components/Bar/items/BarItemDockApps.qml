@@ -133,7 +133,15 @@ Item {
             Component.onDestruction: GlobalStates.unregisterDockIcon(dockItem.modelData.appId, dockItem)
 
             readonly property real pos: root.gripW + dockItem.index * root.stride
-            readonly property real lift: dockItem.notifLift ? (root.side === "left" || root.side === "top" ? 10 : -10) : 0
+            readonly property real lift: {
+                if (dockItem.isMenuOpen)
+                    return 0;
+                if (dockIconArea.containsMouse || iconHover.hovered)
+                    return -4;
+                if (dockItem.notifLift)
+                    return root.side === "left" || root.side === "top" ? 10 : -10;
+                return 0;
+            }
             x: root.vertical ? 0 : dockItem.pos
             y: root.vertical ? dockItem.pos : 0
             width: root.vertical ? root.width : root.cell
@@ -162,7 +170,7 @@ Item {
                 width: root.icon + 8
                 height: width
                 radius: root.host && root.host.isPill ? Math.max(0, root.host.pillRadius - (root.host.barH - width) / 2) : 10
-                color: iconHover.hovered ? Colors.primaryContainer : dockItem.isActive ? Qt.alpha(Colors.primaryContainer, 0.45) : Qt.alpha(Colors.primaryContainer, 0)
+                color: (dockIconArea.containsMouse || iconHover.hovered) ? Colors.primaryContainer : dockItem.isActive ? Qt.alpha(Colors.primaryContainer, 0.45) : Qt.alpha(Colors.primaryContainer, 0)
                 Behavior on color {
                     ColorAnimation {
                         duration: 150
@@ -280,16 +288,19 @@ Item {
                 anchors.fill: parent
                 anchors.rightMargin: (dockItem.index === root.model.length - 1 || root.vertical) ? 0 : -2
                 anchors.bottomMargin: (dockItem.index === root.model.length - 1 || !root.vertical) ? 0 : -2
+                hoverEnabled: true
                 acceptedButtons: Qt.LeftButton | Qt.RightButton
                 cursorShape: Qt.PointingHandCursor
+
+                onContainsMouseChanged: {
+                    if (containsMouse && root.host && root.host.appEntered)
+                        root.host.appEntered(dockItem.modelData, dockItem);
+                    else if (!containsMouse && root.host && root.host.appExited)
+                        root.host.appExited();
+                }
+
                 HoverHandler {
                     id: iconHover
-                    onHoveredChanged: {
-                        if (hovered && root.host && root.host.appEntered)
-                            root.host.appEntered(dockItem.modelData, dockItem);
-                        else if (!hovered && root.host && root.host.appExited)
-                            root.host.appExited();
-                    }
                 }
                 Component.onDestruction: iconHover.enabled = false
 

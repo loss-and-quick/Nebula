@@ -1541,7 +1541,6 @@ Item {
     readonly property bool autoHide: surface.cfg.autoHide
     readonly property bool dockActive: !surface.autoHide
         || revealHover.hovered
-        || dockAreaHover.hovered
         || GlobalStates.barEditMode
         || (surface.autoHide && GlobalStates.dockPeek)
         || BarLayout.sysPanelOpen
@@ -2102,18 +2101,6 @@ Item {
         height: 8
         HoverHandler {
             id: revealHover
-        }
-    }
-
-    Item {
-        id: dockArea
-        visible: surface.autoHide && !surface.dockHidden
-        x: surface.span.x
-        y: surface.far ? surface.height - height : 0
-        width: surface.span.w
-        height: surface.barH + surface.edgeInset + 8
-        HoverHandler {
-            id: dockAreaHover
         }
     }
 }

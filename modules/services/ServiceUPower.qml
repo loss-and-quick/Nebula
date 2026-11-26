@@ -114,8 +114,13 @@ Singleton{
                     const profsStr = parts[1];
                     root.ppdAvailable = actStr.length > 0;
 
-                    // Parse dynamic profiles list from D-Bus
-                    const matches = [...profsStr.matchAll(/"Profile"\s+s\s+"([^"]+)"/g)].map(m => m[1]);
+                    // Parse dynamic profiles list from D-Bus. QML's JS engine
+                    // has no String.prototype.matchAll, so use an exec loop.
+                    const profileRe = /"Profile"\s+s\s+"([^"]+)"/g;
+                    const matches = [];
+                    let pm;
+                    while ((pm = profileRe.exec(profsStr)) !== null)
+                        matches.push(pm[1]);
                     if (matches.length > 0)
                         root.rawProfileList = matches;
 

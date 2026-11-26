@@ -646,14 +646,14 @@ Item {
                             anchors.centerIn: parent
                             spacing: 8
                             MaterialIconSymbol {
-                                anchors.verticalCenter: parent.verticalCenter
+                                Layout.alignment: Qt.AlignVCenter
                                 content: "add"
                                 iconSize: 16
                                 customColor: Colors.primary
                             }
                             CustomText {
                                 id: addSectionLabel
-                                anchors.verticalCenter: parent.verticalCenter
+                                Layout.alignment: Qt.AlignVCenter
                                 content: "Add Section"
                                 size: 12
                                 weight: 500

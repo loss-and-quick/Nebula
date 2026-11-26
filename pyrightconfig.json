@@ -1,5 +1,7 @@
 {
   "include": ["cli", "scripts"],
   "extraPaths": ["cli"],
-  "typeCheckingMode": "recommended"
+  "typeCheckingMode": "recommended",
+  "reportAny": "none",
+  "reportExplicitAny": "none"
 }

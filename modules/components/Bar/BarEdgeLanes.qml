@@ -34,6 +34,26 @@ Item {
         return side.charAt(0).toUpperCase() + side.slice(1);
     }
 
+    // Slot button fill: precedence lit > hover > waiting > idle.
+    function slotColorFor(state) {
+        switch (state) {
+            case "lit":    return Colors.primary;
+            case "hover":  return Colors.primaryContainer;
+            case "waiting":return Colors.secondaryContainer;
+            default:       return Colors.surfaceContainer;
+        }
+    }
+
+    // Slot button icon/text ink for the same state.
+    function slotInkFor(state) {
+        switch (state) {
+            case "lit":    return Colors.primaryText;
+            case "hover":  return Colors.primaryContainerText;
+            case "waiting":return Colors.secondaryContainerText;
+            default:       return Colors.primary;
+        }
+    }
+
     function laneRect(surf) {
         const b = ServiceGaps.borderFor(surf.side);
         if (surf.vertical) {
@@ -68,6 +88,31 @@ Item {
     function closePop() {
         lanes.popSurf = null;
         lanes.popAnchor = "";
+    }
+
+    // Clamp the popup inside lanes, anchored to the slot that opened it.
+    function popupX(side) {
+        const f = lanes.popFrom;
+        let pos;
+        if (side === "left")
+            pos = f.x + f.width + 18;
+        else if (side === "right")
+            pos = f.x - pop.width - 18;
+        else
+            pos = f.x + f.width / 2 - pop.width / 2;
+        return Math.max(12, Math.min(lanes.width - pop.width - 12, pos));
+    }
+
+    function popupY(side) {
+        const f = lanes.popFrom;
+        let pos;
+        if (side === "top")
+            pos = f.y + f.height + 18;
+        else if (side === "bottom")
+            pos = f.y - pop.height - 18;
+        else
+            pos = f.y + f.height / 2 - pop.height / 2;
+        return Math.max(12, Math.min(lanes.height - pop.height - 12, pos));
     }
 
     function pickParts(blockId) {
@@ -193,7 +238,15 @@ Item {
                     readonly property string anchorKey: slotBtn.modelData
                     readonly property var waiting: lanes.emptyBlock(lane.surf, slotBtn.anchorKey)
                     readonly property bool lit: lane.dropAnchor === slotBtn.anchorKey || (lanes.popSurf === lane.surf && lanes.popAnchor === slotBtn.anchorKey)
-                    readonly property real along: slotBtn.anchorKey === "left" ? 4 : slotBtn.anchorKey === "right" ? (lane.surf.vertical ? lane.height : lane.width) - 4 - slotBtn.alongSize : ((lane.surf.vertical ? lane.height : lane.width) - slotBtn.alongSize) / 2
+                    readonly property string buttonState: slotBtn.lit ? "lit" : btnArea.containsMouse ? "hover" : slotBtn.waiting ? "waiting" : "idle"
+                    readonly property real along: {
+                        const len = lane.surf.vertical ? lane.height : lane.width;
+                        if (slotBtn.anchorKey === "left")
+                            return 4;
+                        if (slotBtn.anchorKey === "right")
+                            return len - 4 - slotBtn.alongSize;
+                        return (len - slotBtn.alongSize) / 2;
+                    }
                     readonly property real alongSize: lane.surf.vertical ? 28 : btnRow.implicitWidth + 20
 
                     x: lane.surf.vertical ? 4 : slotBtn.along
@@ -203,14 +256,14 @@ Item {
                     width: lane.surf.vertical ? 28 : slotBtn.alongSize
                     height: 28
                     radius: 14
-                    color: slotBtn.lit ? Colors.primary : btnArea.containsMouse ? Colors.primaryContainer : slotBtn.waiting ? Colors.secondaryContainer : Colors.surfaceContainer
+                    color: slotColorFor(slotBtn.buttonState)
                     Behavior on color {
                         EffectsColorAnim {
                             speed: "fast"
                         }
                     }
 
-                    readonly property color ink: slotBtn.lit ? Colors.primaryText : btnArea.containsMouse ? Colors.primaryContainerText : slotBtn.waiting ? Colors.secondaryContainerText : Colors.primary
+                    readonly property color ink: slotInkFor(slotBtn.buttonState)
 
                     RowLayout {
                         id: btnRow
@@ -273,8 +326,8 @@ Item {
         width: 360
         height: popCol.implicitHeight + 36
         radius: 28
-        x: Math.max(12, Math.min(lanes.width - pop.width - 12, pop.side === "left" ? lanes.popFrom.x + lanes.popFrom.width + 18 : pop.side === "right" ? lanes.popFrom.x - pop.width - 18 : lanes.popFrom.x + lanes.popFrom.width / 2 - pop.width / 2))
-        y: Math.max(12, Math.min(lanes.height - pop.height - 12, pop.side === "top" ? lanes.popFrom.y + lanes.popFrom.height + 18 : pop.side === "bottom" ? lanes.popFrom.y - pop.height - 18 : lanes.popFrom.y + lanes.popFrom.height / 2 - pop.height / 2))
+        x: popupX(pop.side)
+        y: popupY(pop.side)
         transform: Scale {
             origin.x: pop.width / 2
             origin.y: pop.side === "bottom" ? pop.height : 0

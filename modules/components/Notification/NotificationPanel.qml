@@ -264,7 +264,7 @@ Item {
                                 id: panelIcon
                                 anchors.fill: parent
                                 anchors.margins: 7
-                                source: iconRect.usesSymbol ? "" : IconUtil.getIconPath(slot.notif?.appIcon ?? "")
+                                source: iconRect.usesSymbol ? "" : IconUtil.notificationIcon(slot.notif?.appIcon, slot.notif?.image, slot.notif?.appName)
                                 sourceSize.width: 88
                                 sourceSize.height: 88
                                 fillMode: Image.PreserveAspectFit
@@ -337,7 +337,7 @@ Item {
                         }
 
                         Loader {
-                            active: !!slot.notif?.image
+                            active: (slot.notif?.appIcon ?? "") !== "" && !!slot.notif?.image
                             visible: active
                             Layout.preferredHeight: 52
                             Layout.preferredWidth: 52
@@ -348,7 +348,8 @@ Item {
                                 color: "transparent"
                                 Image {
                                     anchors.fill: parent
-                                    source: slot.notif?.image ?? ""
+                                    readonly property string imgSrc: IconUtil.imageSource(slot.notif?.image)
+                                    source: imgSrc.startsWith("image://icon/") ? "" : imgSrc
                                     sourceSize.width: 104
                                     sourceSize.height: 104
                                     fillMode: Image.PreserveAspectCrop

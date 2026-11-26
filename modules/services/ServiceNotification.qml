@@ -108,10 +108,12 @@ Singleton {
                 existingGroup.notifications.push(item)
                 existingGroup.notifications = existingGroup.notifications.slice()
                 existingGroup.appIcon = notif.appIcon  // keep icon up-to-date
+                existingGroup.image = notif.image
             } else {
                 var group = groupComp.createObject(root, {
                     appName: notif.appName,
-                    appIcon: notif.appIcon
+                    appIcon: notif.appIcon,
+                    image: notif.image
                 })
                 group.notifications = [item]
                 root.groupedNotifications.push(group)
@@ -157,6 +159,7 @@ Singleton {
     component NotificationGroup: QtObject {
         property string appName: ""
         property string appIcon: ""
+        property string image: ""
         property var notifications: []        // NotificationItem[]
         property bool isExpanded: false
         readonly property int count: notifications.length

@@ -310,7 +310,7 @@ Item {
                         id: shelfImg
                         anchors.fill: parent
                         anchors.margins: 4
-                        source: shelfIcon.symbol !== "" ? "" : IconUtil.getIconPath(shelfIcon.modelData.appIcon ?? "")
+                        source: shelfIcon.symbol !== "" ? "" : IconUtil.notificationIcon(shelfIcon.modelData.appIcon, shelfIcon.modelData.image, shelfIcon.modelData.appName)
                         sourceSize: Qt.size(14, 14)
                         fillMode: Image.PreserveAspectFit
                         visible: shelfIcon.symbol === "" && status === Image.Ready

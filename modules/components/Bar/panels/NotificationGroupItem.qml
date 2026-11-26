@@ -338,7 +338,7 @@ Item {
                             id: groupIcon
                             anchors.fill: parent
                             anchors.margins: 6
-                            source: root.usesSymbol ? "" : IconUtil.getIconPath(root.group?.appIcon ?? "")
+                            source: root.usesSymbol ? "" : IconUtil.notificationIcon(root.group?.appIcon, root.group?.image, root.group?.appName)
                             sourceSize: Qt.size(24, 24)
                             fillMode: Image.PreserveAspectFit
                             visible: !root.usesSymbol && status === Image.Ready

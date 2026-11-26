@@ -21,7 +21,7 @@ Item {
     readonly property bool hasBody: (row.notifData?.body ?? "").length > 0
     readonly property string imageSrc: IconUtil.imageSource(row.notifData?.image)
     readonly property bool hasImage: row.imageSrc !== "" && !row.imageSrc.startsWith("image://icon/")
-    readonly property bool bigImage: row.hasImage && row.showIcon
+    readonly property bool bigImage: row.hasImage && row.showIcon && (row.notifData?.appIcon ?? "") !== ""
     readonly property var defaultAction: (row.notifData?.notification?.actions ?? []).find(a => a.identifier === "default") ?? null
     readonly property var acts: {
         const out = [];
@@ -204,7 +204,7 @@ Item {
                             id: appIconImage
                             anchors.fill: parent
                             anchors.margins: 6
-                            source: row.usesSymbol ? "" : IconUtil.getIconPath(row.notifData?.appIcon ?? "")
+                            source: row.usesSymbol ? "" : IconUtil.notificationIcon(row.notifData?.appIcon, row.notifData?.image, row.notifData?.appName)
                             sourceSize: Qt.size(24, 24)
                             fillMode: Image.PreserveAspectFit
                             visible: !row.usesSymbol && status === Image.Ready

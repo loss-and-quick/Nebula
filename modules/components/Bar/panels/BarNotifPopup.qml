@@ -230,7 +230,7 @@ Item {
             return root.cards.find(c => !c.leaving) === pc.card;
         }
         readonly property string imageSrc: IconUtil.imageSource(pc.lead?.image)
-        readonly property bool hasImage: pc.imageSrc !== "" && !pc.imageSrc.startsWith("image://icon/")
+        readonly property bool hasImage: pc.imageSrc !== "" && !pc.imageSrc.startsWith("image://icon/") && (pc.lead?.appIcon ?? "") !== ""
         readonly property var acts: (pc.lead?.actions ?? []).slice(0, 3)
         readonly property string kind: fileBlk.ok ? "file" : heroImg.ok ? "hero" : "plain"
         readonly property color bg: pc.critical ? Colors.errorContainer : Colors.surfaceContainerHigh
@@ -463,7 +463,7 @@ Item {
                     id: heroImg
                     Layout.fillWidth: true
                     visible: heroImg.ok && !fileBlk.ok
-                    notif: pc.multi ? null : pc.lead
+                    notif: pc.multi || (pc.lead?.appIcon ?? "") === "" ? null : pc.lead
                 }
 
                 NotifFile {
@@ -510,7 +510,7 @@ Item {
                                 id: appIcon
                                 anchors.fill: parent
                                 anchors.margins: 4
-                                source: iconItem.symbol !== "" ? "" : IconUtil.getIconPath(pc.lead?.appIcon || pc.lead?.appName || "", "")
+                                source: iconItem.symbol !== "" ? "" : IconUtil.notificationIcon(pc.lead?.appIcon, pc.lead?.image, pc.lead?.appName)
                                 sourceSize: Qt.size(72, 72)
                                 fillMode: Image.PreserveAspectFit
                                 visible: iconItem.symbol === "" && status === Image.Ready

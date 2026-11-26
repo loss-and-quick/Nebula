@@ -258,7 +258,7 @@ Item {
                 anchors.centerIn: parent
                 width: av.box * 0.62
                 height: width
-                source: iconRect.symbol !== "" ? "" : ((av.notif?.appIcon || av.notif?.appName) ? IconUtil.getIconPath(av.notif.appIcon || av.notif.appName, "") : "")
+                source: iconRect.symbol !== "" ? "" : IconUtil.notificationIcon(av.notif?.appIcon, av.notif?.image, av.notif?.appName)
                 sourceSize: Qt.size(av.box * 2, av.box * 2)
                 fillMode: Image.PreserveAspectFit
                 visible: iconRect.symbol === "" && status === Image.Ready

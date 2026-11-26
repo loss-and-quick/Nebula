@@ -61,8 +61,7 @@ Scope {
         function onArrived(item) {
             if (!edge.wants(item))
                 return
-            const icon = item.image && item.image !== "" ? item.image
-                       : item.appIcon ? IconUtil.themeIcon(item.appIcon, true) : ""
+            const icon = IconUtil.notificationIcon(item.appIcon, item.image, item.appName)
             edge.flash(item.isCritical ? Colors.error : Qt.hsla(edge.hueFor(item.appName), 0.62, 0.72, 1),
                        item.summary || item.appName || "Notification", item.body ?? "", icon)
         }

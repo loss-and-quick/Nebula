@@ -1,4 +1,4 @@
-// IconUtils.qml
+// IconUtil.qml
 pragma Singleton
 import QtQuick
 import Quickshell
@@ -6,6 +6,10 @@ import Quickshell.Io
 import qs.modules.settings
 
 Item {
+    id: root
+
+    // --- Recolored icon indexes (kindle / gowall) ---
+
     property var greyIndex: ({})
 
     FileView {
@@ -23,27 +27,61 @@ Item {
 
     property var colourIndex: ({})
 
-    PersistentProperties {
-        id: iconStart
-        reloadableId: "iconUtilStartTheme"
-        property string theme: ""
-        property bool known: false
-        property bool reading: false
-        onLoaded: if (!iconStart.known) iconStart.reading = true
+    // Current icon theme, following the same config priority as
+    // cli/nebula/gowall_icons.py: qt6ct, qt5ct, gtk-3.0, gtk-4.0.
+    // Every file is watched, so theme switches apply without a restart.
+    property string qt6Theme: ""
+    property string qt5Theme: ""
+    property string gtk3Theme: ""
+    property string gtk4Theme: ""
+    readonly property string iconTheme: qt6Theme || qt5Theme || gtk3Theme || gtk4Theme
+
+    // Drop the recolored index when the theme stops being a gowall kindle
+    // theme, so stale mappings cannot override the new theme's icons.
+    onIconThemeChanged: {
+        if (!(iconTheme.startsWith("gowall-") && iconTheme.endsWith("-kindle")))
+            colourIndex = ({})
+    }
+
+    function parseThemeKey(content, key) {
+        const m = content.match(new RegExp("^" + key + "=(.*)$", "m"))
+        return m ? m[1].trim().replace(/^["']|["']$/g, "") : ""
     }
 
     FileView {
-        path: iconStart.reading ? Quickshell.env("HOME") + "/.config/qt6ct/qt6ct.conf" : ""
-        onLoaded: {
-            const m = text().match(/^icon_theme=(.*)$/m)
-            iconStart.theme = m ? m[1].trim() : ""
-            iconStart.known = true
-            iconStart.reading = false
-        }
+        path: Quickshell.env("HOME") + "/.config/qt6ct/qt6ct.conf"
+        watchChanges: true
+        printErrors: false
+        onFileChanged: reload()
+        onLoaded: root.qt6Theme = root.parseThemeKey(text(), "icon_theme")
     }
 
     FileView {
-        path: iconStart.theme.startsWith("gowall-") && iconStart.theme.endsWith("-kindle")
+        path: Quickshell.env("HOME") + "/.config/qt5ct/qt5ct.conf"
+        watchChanges: true
+        printErrors: false
+        onFileChanged: reload()
+        onLoaded: root.qt5Theme = root.parseThemeKey(text(), "icon_theme")
+    }
+
+    FileView {
+        path: Quickshell.env("HOME") + "/.config/gtk-3.0/settings.ini"
+        watchChanges: true
+        printErrors: false
+        onFileChanged: reload()
+        onLoaded: root.gtk3Theme = root.parseThemeKey(text(), "gtk-icon-theme-name")
+    }
+
+    FileView {
+        path: Quickshell.env("HOME") + "/.config/gtk-4.0/settings.ini"
+        watchChanges: true
+        printErrors: false
+        onFileChanged: reload()
+        onLoaded: root.gtk4Theme = root.parseThemeKey(text(), "gtk-icon-theme-name")
+    }
+
+    FileView {
+        path: root.iconTheme.startsWith("gowall-") && root.iconTheme.endsWith("-kindle")
             ? Quickshell.env("HOME") + "/.cache/quickshell/gowall/assets-kindle/source-index.json" : ""
         watchChanges: true
         onFileChanged: reload()
@@ -56,13 +94,17 @@ Item {
         }
     }
 
+    // --- Notification helpers ---
+
     function notificationSymbol(appIcon, appName) {
-        const ic = (appIcon || "").toLowerCase();
+        // Match on the icon's basename, not the full path: directories and
+        // nix store hashes must not trigger substring matches.
+        const ic = (appIcon || "").toLowerCase().split("/").pop().replace(/\.(svg|png|xpm|ico)$/, "");
         const ap = (appName || "").toLowerCase();
 
         // Battery
         if (ic.includes("battery") || ap.includes("battery") || ic.includes("charging") || ap.includes("charging")) {
-            if (ic.includes("charging") || ap.includes("charging") || ic.includes("bolt") || ic.includes("ac"))
+            if (ic.includes("charging") || ap.includes("charging") || ic.includes("bolt") || ic.includes("adapter"))
                 return "battery_android_bolt";
             if (ic.includes("alert") || ic.includes("warn") || ic.includes("critical") || ic.includes("low"))
                 return "battery_alert";
@@ -88,41 +130,48 @@ Item {
         return "";
     }
 
+    // --- Icon resolution ---
+
     function themeIcon(name, fallback) {
         if (!name)
             return ""
-        if (name.startsWith("file://") || name.startsWith("/"))
+        if (name.startsWith("file://"))
             return name
+        if (name.startsWith("/"))
+            return "file://" + name
         const file = KindleMode.recolorIcons ? greyIndex[name] : colourIndex[name]
         if (file)
             return "file://" + file
-        return fallback === undefined ? Quickshell.iconPath(name) : Quickshell.iconPath(name, fallback)
+        // iconPath(name, true) returns "" when the theme has no such icon, so
+        // callers fall back to a symbol instead of quickshell's black/purple
+        // "missing icon" placeholder pixmap (which loads as Image.Ready).
+        const checked = Quickshell.iconPath(name, true)
+        if (checked !== "")
+            return checked
+        if (fallback === undefined || fallback === "" || fallback === true)
+            return ""
+        return Quickshell.iconPath(fallback, true)
     }
 
-    function getIconName(windowClass) {
-        const iconMap = {
-            "firefox": "firefox",
-            "google-chrome": "google-chrome",
-            "chromium": "chromium",
-            "code": "visual-studio-code",
-            "discord": "discord",
-            "spotify": "spotify",
-            "kitty": "kitty",
-            "alacritty": "Alacritty",
-            "thunar": "thunar",
-            "vlc": "vlc",
-            "steam": "steam",
-            "obsidian": "obsidian",
-            "telegram": "telegram",
-            "brave-browser": "brave-browser",
-            "zen": "zen-browser",
-            "emblem-mail": "telegram",
-            "quickshell": "Quickshell"
+    // Notification icon resolution per the freedesktop spec: app_icon first;
+    // when it is empty (notify-send puts file paths into the image-path hint
+    // instead), use the image hint; last resort is the app name resolved
+    // through its desktop entry. Returns "" when nothing resolves so callers
+    // show a symbol.
+    function notificationIcon(appIcon, image, appName) {
+        const fromApp = appIcon ? getDesktopIconPath(appIcon, "") : ""
+        if (fromApp !== "")
+            return fromApp
+        const img = imageSource(image ?? "")
+        if (img !== "") {
+            if (img.startsWith("image://icon/"))
+                return getDesktopIconPath(img.slice(13).split("?")[0], "")
+            return img
         }
-
-        if (!windowClass) return ""
-        var lowerClass = windowClass.toLowerCase()
-        return iconMap[lowerClass] || lowerClass || ""
+        if (!appName)
+            return ""
+        const entry = DesktopEntries.heuristicLookup(appName)
+        return getDesktopIconPath(entry?.icon || appName, "")
     }
 
     function imageSource(src) {
@@ -130,19 +179,22 @@ Item {
         return s.startsWith("image://icon//") ? "file://" + s.slice(13) : s
     }
 
+    // Resolve a window class / app id through its desktop entry, falling back
+    // to the class itself as an icon name.
     function getIconPath(windowClass, fallback = "application-x-executable") {
-        const icon = windowClass ?? ""
-        if (icon.startsWith("file://") || icon.startsWith("/"))
-            return icon
-        return themeIcon(getIconName(icon), fallback)
+        const cls = windowClass ?? ""
+        if (cls === "")
+            return ""
+        const entry = DesktopEntries.heuristicLookup(cls)
+        return themeIcon(entry?.icon || cls, fallback)
     }
 
+    // Resolve a freedesktop icon name or a file path.
     function getDesktopIconPath(iconName, fallback = "application-x-executable") {
-        const icon = iconName ?? ""
-        if (icon.startsWith("file://") || icon.startsWith("/"))
-            return icon
-        return themeIcon(icon, fallback)
+        return themeIcon(iconName ?? "", fallback)
     }
+
+    // --- Shell assets ---
 
     function getSystemIcon(iconName) {
         if (KindleMode.recolorIcons && KindleMode.iconAssets !== "")
@@ -158,4 +210,3 @@ Item {
         return Qt.resolvedUrl("../../assets/" + name)
     }
 }
-

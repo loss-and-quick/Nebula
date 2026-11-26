@@ -63,7 +63,7 @@ ColumnLayout {
                 id: appIcon
                 anchors.fill: parent
                 anchors.margins: root.iconBox * 0.16
-                source: iconRect.symbol !== "" ? "" : IconUtil.getIconPath(root.notif?.appIcon ?? "")
+                source: iconRect.symbol !== "" ? "" : IconUtil.notificationIcon(root.notif?.appIcon, root.notif?.image, root.notif?.appName)
                 sourceSize.width: 88
                 sourceSize.height: 88
                 fillMode: Image.PreserveAspectFit
@@ -116,7 +116,7 @@ ColumnLayout {
         }
 
         Loader {
-            active: root.imageSrc !== "" && !root.imageSrc.startsWith("image://icon/")
+            active: root.imageSrc !== "" && !root.imageSrc.startsWith("image://icon/") && (root.notif?.appIcon ?? "") !== ""
             visible: active
             Layout.preferredWidth: 52
             Layout.preferredHeight: 52

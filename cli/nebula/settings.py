@@ -62,8 +62,10 @@ def _read_json(path: Path) -> dict:
     except Exception as e:
         ts = time.strftime("%Y%m%d-%H%M%S")
         backup = path.parent / f"{path.name}.corrupt-{ts}"
-        if backup.exists():
-            backup = path.parent / f"{path.name}.corrupt-{ts}-{int(time.time() * 1000)}"
+        n = 0
+        while backup.exists():
+            n += 1
+            backup = path.parent / f"{path.name}.corrupt-{ts}-{n}"
         try:
             _ = shutil.copy2(path, backup)
         except Exception:

@@ -6,6 +6,7 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
+from typing import Any, cast
 
 from PIL import Image, ImageDraw, ImageFont
 
@@ -81,13 +82,14 @@ def rubik_weight(weight: int) -> Path:
     if not shutil.which("uvx"):
         print(f"uvx not found, using {src.name} at its default weight", file=sys.stderr)
         return src
-    subprocess.run(["uvx", "--from", "fonttools", "fonttools", "varLib.instancer", str(src), f"wght={weight}",
+    _ = subprocess.run(["uvx", "--from", "fonttools", "fonttools", "varLib.instancer", str(src), f"wght={weight}",
                     "-o", str(dst)], check=True, capture_output=True)
     return dst
 
 
-def colors() -> dict:
-    return json.loads(COLORS.read_text())
+def colors() -> dict[str, str]:
+    data: Any = json.loads(COLORS.read_text())
+    return cast(dict[str, str], data) if isinstance(data, dict) else {}
 
 
 def host_line() -> str:
@@ -104,29 +106,29 @@ def host_line() -> str:
 
 
 def svg_png(svg: str, path: Path) -> None:
-    subprocess.run(["rsvg-convert", "-o", str(path)], input=svg.encode(), check=True)
+    _ = subprocess.run(["rsvg-convert", "-o", str(path)], input=svg.encode(), check=True)
 
 
-def tick_centres(radius: float) -> list:
+def tick_centres(radius: float) -> list[tuple[float, float]]:
     return [(RING / 2 + radius * math.cos(-math.pi / 2 + i * 2 * math.pi / TICKS),
              RING / 2 + radius * math.sin(-math.pi / 2 + i * 2 * math.pi / TICKS)) for i in range(TICKS)]
 
 
-def draw_assets(c: dict, out: Path) -> None:
+def draw_assets(c: dict[str, str], out: Path) -> None:
     radius = RING // 2 - TICK // 2 - 1
     dots = "".join(f'<circle cx="{x:.2f}" cy="{y:.2f}" r="{DIM / 2}" fill="{c["outlineVariant"]}"/>'
                    for x, y in tick_centres(radius))
     off = (RING - SHAPE) / 2
     svg_png(f'<svg xmlns="http://www.w3.org/2000/svg" width="{RING}" height="{RING}">{dots}'
-            f'<g transform="translate({off} {off}) scale({SHAPE / 100})"><path d="{COOKIE9}" fill="{c["primaryContainer"]}"/></g></svg>',
+            + f'<g transform="translate({off} {off}) scale({SHAPE / 100})"><path d="{COOKIE9}" fill="{c["primaryContainer"]}"/></g></svg>',
             out / "orbit_center.png")
     svg_png(f'<svg xmlns="http://www.w3.org/2000/svg" width="{TICK}" height="{TICK}">'
-            f'<circle cx="{TICK / 2}" cy="{TICK / 2}" r="{TICK / 2}" fill="{c["primary"]}"/></svg>', out / "orbit_tick.png")
+            + f'<circle cx="{TICK / 2}" cy="{TICK / 2}" r="{TICK / 2}" fill="{c["primary"]}"/></svg>', out / "orbit_tick.png")
     fill = c["primary"]
     svg_png(f'<svg xmlns="http://www.w3.org/2000/svg" width="{CAP}" height="{ROW}">'
-            f'<path d="M{CAP} 0A{CAP} {CAP} 0 0 0 {CAP} {ROW}Z" fill="{fill}"/></svg>', out / "select_w.png")
+            + f'<path d="M{CAP} 0A{CAP} {CAP} 0 0 0 {CAP} {ROW}Z" fill="{fill}"/></svg>', out / "select_w.png")
     svg_png(f'<svg xmlns="http://www.w3.org/2000/svg" width="{CAP}" height="{ROW}">'
-            f'<path d="M0 0A{CAP} {CAP} 0 0 1 0 {ROW}Z" fill="{fill}"/></svg>', out / "select_e.png")
+            + f'<path d="M0 0A{CAP} {CAP} 0 0 1 0 {ROW}Z" fill="{fill}"/></svg>', out / "select_e.png")
     svg_png(f'<svg xmlns="http://www.w3.org/2000/svg" width="4" height="{ROW}"><rect width="4" height="{ROW}" fill="{fill}"/></svg>',
             out / "select_c.png")
 
@@ -138,7 +140,7 @@ def draw_assets(c: dict, out: Path) -> None:
         d = ImageDraw.Draw(big)
         d.ellipse((0, 0, ICON * 4 - 1, ICON * 4 - 1), fill=c["surfaceContainerHighest"])
         d.text((ICON * 2, ICON * 2), chr(cp), font=glyph_font, fill=c["primary"], anchor="mm")
-        big.resize((ICON, ICON), Image.LANCZOS).save(icons / f"{name}.png")
+        cast(Any, big).resize((ICON, ICON), Image.Resampling.LANCZOS).save(icons / f"{name}.png")
 
 
 def pf2_name(path: Path) -> str:
@@ -155,7 +157,7 @@ def pf2_name(path: Path) -> str:
 
 def make_font(ttf: Path, size: int, family: str, out: Path) -> str:
     dst = out / f"{family.lower().replace(' ', '_')}_{size}.pf2"
-    subprocess.run(["grub-mkfont", "-s", str(size), "-n", family, "-o", str(dst), str(ttf)], check=True, capture_output=True)
+    _ = subprocess.run(["grub-mkfont", "-s", str(size), "-n", family, "-o", str(dst), str(ttf)], check=True, capture_output=True)
     return pf2_name(dst)
 
 
@@ -166,7 +168,7 @@ def count_top(titan: Path) -> int:
     return round(RING / 2 - ascent - (y0 + y1) / 2)
 
 
-def theme_txt(c: dict, fonts: dict, host: str, number_top: int) -> str:
+def theme_txt(c: dict[str, str], fonts: dict[str, str], host: str, number_top: int) -> str:
     return f'''title-text: ""
 desktop-color: "{c["surface"]}"
 terminal-font: "Unifont Regular 16"
@@ -259,7 +261,7 @@ def build(out: Path = OUT) -> Path:
         "hint": make_font(regular, HINT_FONT, "Rubik", out),
         "count": make_font(titan, COUNT_FONT, "Titan One", out),
     }
-    (out / "theme.txt").write_text(theme_txt(c, fonts, host_line(), count_top(titan)))
+    _ = (out / "theme.txt").write_text(theme_txt(c, fonts, host_line(), count_top(titan)))
     return out
 
 
@@ -315,15 +317,15 @@ def install(dry: bool) -> int:
     return 0
 
 
-def main():
+def main() -> int:
     parser = argparse.ArgumentParser(prog="nebula grub", description="Nebula GRUB theme from the current palette")
     sub = parser.add_subparsers(dest="cmd", required=True)
     p_build = sub.add_parser("build", help=f"write the theme to {OUT}")
-    p_build.add_argument("--out", default=str(OUT))
+    _ = p_build.add_argument("--out", default=str(OUT))
     p_prev = sub.add_parser("preview", help="render a PNG of the boot screen")
-    p_prev.add_argument("--out", default=str(CACHE_DIR / "grub" / "preview.png"))
+    _ = p_prev.add_argument("--out", default=str(CACHE_DIR / "grub" / "preview.png"))
     p_inst = sub.add_parser("install", help=f"copy to {TARGET}, set GRUB_THEME and regenerate grub.cfg (sudo)")
-    p_inst.add_argument("--dry-run", action="store_true")
+    _ = p_inst.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
 
     if args.cmd == "build":

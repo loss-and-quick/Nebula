@@ -27,38 +27,40 @@ import shutil
 import subprocess
 import sys
 import time
+from collections.abc import Callable, Sequence
 from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
+from typing import cast
 
 from nebula.gowall import resolve_theme_arg  # noqa: E402
 
-SEARCH_DIRS = [
+SEARCH_DIRS: list[Path] = [
     Path.home() / ".local/share/icons",
     Path.home() / ".icons",
     Path("/usr/share/icons"),
 ]
-INSTALL_DIR = Path.home() / ".local/share/icons"
+INSTALL_DIR: Path = Path.home() / ".local/share/icons"
 STAMP       = ".gowall-stamp"
 
 # Where the icon theme actually lives on this machine. gsettings is last on
 # purpose: with QT_QPA_PLATFORMTHEME=qt6ct nothing reads it, so trusting it means
 # recoloring a theme no application is using.
-_THEME_KEYS = [
+_THEME_KEYS: list[tuple[Path, str]] = [
     (Path.home() / ".config/qt6ct/qt6ct.conf",    "icon_theme"),
     (Path.home() / ".config/qt5ct/qt5ct.conf",    "icon_theme"),
     (Path.home() / ".config/gtk-3.0/settings.ini", "gtk-icon-theme-name"),
     (Path.home() / ".config/gtk-4.0/settings.ini", "gtk-icon-theme-name"),
 ]
-HEX         = re.compile(r"#([0-9a-fA-F]{6})\b|#([0-9a-fA-F]{3})\b")
-RGB         = re.compile(r"rgb\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*\)")
-CHUNK       = 400
+HEX: re.Pattern[str] = re.compile(r"#([0-9a-fA-F]{6})\b|#([0-9a-fA-F]{3})\b")
+RGB: re.Pattern[str] = re.compile(r"rgb\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*\)")
+CHUNK: int  = 400
 
 
-def _log(msg):
+def _log(msg: str) -> None:
     print(f"[gowall_icons] {msg}", file=sys.stderr, flush=True)
 
 
-def _read_key(path, key):
+def _read_key(path: Path, key: str) -> str:
     if not path.is_file():
         return ""
     for line in path.read_text(errors="ignore").splitlines():
@@ -68,7 +70,7 @@ def _read_key(path, key):
     return ""
 
 
-def _write_key(path, key, value):
+def _write_key(path: Path, key: str, value: str) -> bool:
     """Replaces the key in place, or adds it under the file's first section.
     Never creates a config file that isn't already there."""
     if not path.is_file():
@@ -83,11 +85,11 @@ def _write_key(path, key, value):
         if insert < 0:
             return False
         lines.insert(insert + 1, f"{key}={value}")
-    path.write_text("\n".join(lines) + "\n")
+    _ = path.write_text("\n".join(lines) + "\n")
     return True
 
 
-def _current_icon_theme():
+def _current_icon_theme() -> str:
     for path, key in _THEME_KEYS:
         value = _read_key(path, key)
         if value:
@@ -101,18 +103,18 @@ def _current_icon_theme():
         return "hicolor"
 
 
-def _apply_icon_theme(name):
-    applied = []
+def _apply_icon_theme(name: str) -> None:
+    applied: list[str] = []
     for path, key in _THEME_KEYS:
         if _write_key(path, key, name):
             applied.append(path.name)
-    subprocess.run(["gsettings", "set", "org.gnome.desktop.interface",
-                    "icon-theme", name], capture_output=True)
+    _ = subprocess.run(["gsettings", "set", "org.gnome.desktop.interface",
+                        "icon-theme", name], capture_output=True)
     applied.append("gsettings")
     _log(f"icon-theme → {name} ({', '.join(applied)})")
 
 
-def _find_theme(name):
+def _find_theme(name: str) -> Path | None:
     for base in SEARCH_DIRS:
         path = base / name
         if (path / "index.theme").is_file():
@@ -120,14 +122,14 @@ def _find_theme(name):
     return None
 
 
-def _expand(hexval):
+def _expand(hexval: str) -> str:
     h = hexval.lower()
     if len(h) == 3:
         return "#" + "".join(c * 2 for c in h)
     return "#" + h
 
 
-def _collect(theme_dir):
+def _collect(theme_dir: Path) -> tuple[list[tuple[str, str, str]], float, int]:
     """Every file the derived theme needs, plus a fingerprint of the source.
 
     Icon themes are held together by symlinks at every level — Colloid-Dark's
@@ -136,11 +138,12 @@ def _collect(theme_dir):
     would resolve straight back to un-recolored art; a link that stays inside is
     kept as a link so the copy stays small.
     """
-    root = str(Path(theme_dir).resolve())
+    root = str(theme_dir.resolve())
     bases = [root]
-    jobs, stats = [], {"newest": 0.0, "size": 0}
+    jobs: list[tuple[str, str, str]] = []
+    stats: dict[str, float] = {"newest": 0.0, "size": 0.0}
 
-    def add_file(path, rel):
+    def add_file(path: str, rel: str) -> None:
         try:
             st = os.stat(path)
             stats["newest"] = max(stats["newest"], st.st_mtime)
@@ -149,10 +152,10 @@ def _collect(theme_dir):
             return
         jobs.append(("svg" if path.endswith(".svg") else "copy", path, rel))
 
-    def inside(target):
+    def inside(target: str) -> bool:
         return any(target == b or target.startswith(b + os.sep) for b in bases)
 
-    def walk(src, prefix, depth):
+    def walk(src: str, prefix: str, depth: int) -> None:
         if depth > 12:
             return
         try:
@@ -182,12 +185,12 @@ def _collect(theme_dir):
             elif e.is_file():
                 add_file(e.path, rel)
 
-    walk(theme_dir, "", 0)
-    return jobs, stats["newest"], stats["size"]
+    walk(str(theme_dir), "", 0)
+    return jobs, stats["newest"], int(stats["size"])
 
 
-def _collect_colors(jobs):
-    colors = set()
+def _collect_colors(jobs: list[tuple[str, str, str]]) -> list[str]:
+    colors: set[str] = set()
     for kind, src, _ in jobs:
         if kind != "svg":
             continue
@@ -195,7 +198,7 @@ def _collect_colors(jobs):
             with open(src, encoding="utf-8", errors="ignore") as fh:
                 text = fh.read()
                 for m in HEX.finditer(text):
-                    colors.add(_expand(m.group(1) or m.group(2)))
+                    colors.add(_expand(m.group(1) or m.group(2) or ""))
                 for m in RGB.finditer(text):
                     colors.add(_rgb_hex(m))
         except OSError:
@@ -203,7 +206,7 @@ def _collect_colors(jobs):
     return sorted(colors)
 
 
-def _nn_env():
+def _nn_env() -> dict[str, str]:
     """gowall's default color correction desaturates flat art — Spotify's green
     lands on grey, Firefox's orange on lavender. Its legacy nearest-neighbour
     backend keeps the hue, which is what icons need. It is only settable in
@@ -212,13 +215,13 @@ def _nn_env():
     home = Path.home() / ".cache" / "quickshell" / "gowall" / "nn-home"
     cfg = home / ".config" / "gowall"
     cfg.mkdir(parents=True, exist_ok=True)
-    (cfg / "config.yml").write_text("ColorCorrectionBackend: nn\n")
+    _ = (cfg / "config.yml").write_text("ColorCorrectionBackend: nn\n")
     env = dict(os.environ)
     env["HOME"] = str(home)
     return env
 
 
-def _map_palette(colors, theme_arg):
+def _map_palette(colors: list[str], theme_arg: str) -> dict[str, str]:
     """Pack the palette into a probe image, run it through gowall once, read the
     converted pixels back out. This is gowall's own mapping, not an imitation."""
     from PIL import Image
@@ -228,8 +231,10 @@ def _map_palette(colors, theme_arg):
     probe, out = tmp_dir / "icon-probe.png", tmp_dir / "icon-probe-out.png"
 
     img = Image.new("RGB", (len(colors), 1))
-    img.putdata([tuple(int(c[i:i + 2], 16) for i in (1, 3, 5)) for c in colors])
-    img.resize((len(colors) * 4, 4), Image.NEAREST).save(probe)
+    putdata_fn: Callable[[Sequence[tuple[int, int, int]]], None] = getattr(img, "putdata")
+    putdata_fn([(int(c[1:3], 16), int(c[3:5], 16), int(c[5:7], 16)) for c in colors])
+    resize_fn: Callable[[tuple[int, int], Image.Resampling], Image.Image] = getattr(img, "resize")
+    resize_fn((len(colors) * 4, 4), Image.Resampling.NEAREST).save(probe)
 
     proc = subprocess.run(
         ["gowall", "convert", str(probe), "-t", theme_arg,
@@ -243,7 +248,7 @@ def _map_palette(colors, theme_arg):
 
 
 # Recognizable and colorful — enough spread that the palette's effect is obvious.
-_PREVIEW_NAMES = [
+_PREVIEW_NAMES: list[tuple[str, list[str]]] = [
     ("apps",   ["firefox", "firefox-browser", "web-browser"]),
     ("places", ["folder", "folder-blue", "user-home"]),
     ("apps",   ["spotify", "spotify-client", "music-player"]),
@@ -253,11 +258,12 @@ _PREVIEW_NAMES = [
 ]
 
 
-def _find_icon(theme_dir, section, names):
+def _find_icon(theme_dir: Path, section: str, names: list[str]) -> Path | None:
     """Largest available rendering of the first name that exists."""
     roots = [theme_dir / section, theme_dir / f"{section}@2x"]
     for name in names:
-        best, best_rank = None, -1
+        best: Path | None = None
+        best_rank: int = -1
         for root in roots:
             if not root.is_dir():
                 continue
@@ -273,18 +279,18 @@ def _find_icon(theme_dir, section, names):
     return None
 
 
-def _int_or_zero(text):
+def _int_or_zero(text: str) -> int:
     try:
         return int(text.split("x")[0])
     except ValueError:
         return 0
 
 
-def _preview(theme, theme_arg, theme_dir):
+def _preview(theme: str, theme_arg: str, theme_dir: Path) -> int:
     out_dir = Path.home() / ".cache" / "quickshell" / "gowall" / "preview" / theme
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    picked = []
+    picked: list[Path] = []
     for section, names in _PREVIEW_NAMES:
         found = _find_icon(theme_dir, section, names)
         if found is not None:
@@ -293,45 +299,46 @@ def _preview(theme, theme_arg, theme_dir):
         _log(f"no preview icons found in {theme_dir.name}")
         return 1
 
-    colors = set()
+    colors: set[str] = set()
     for src in picked:
         with open(src, encoding="utf-8", errors="ignore") as fh:
             for m in HEX.finditer(fh.read()):
-                colors.add(_expand(m.group(1) or m.group(2)))
+                colors.add(_expand(m.group(1) or m.group(2) or ""))
     mapping = _map_palette(sorted(colors), theme_arg)
 
-    global _MAP
-    _MAP = mapping
+    global _color_map
+    _color_map = mapping
     for src in picked:
         dst = out_dir / src.name
         with open(src, encoding="utf-8", errors="ignore") as fh:
             text = fh.read()
-        dst.write_text(HEX.sub(_sub, text))
+        _ = dst.write_text(HEX.sub(_sub, text))
         print(f"preview={src}|{dst}", flush=True)
     return 0
 
 
-_MAP = {}
+_color_map: dict[str, str] = {}
 
 
-def _init(mapping):
-    global _MAP
-    _MAP = mapping
+def _init(mapping: dict[str, str]) -> None:
+    global _color_map
+    _color_map = mapping
 
 
-def _sub(match):
-    return _MAP.get(_expand(match.group(1) or match.group(2)), match.group(0))
+def _sub(match: re.Match[str]) -> str:
+    key = _expand(match.group(1) or match.group(2) or "")
+    return _color_map.get(key, match.group(0))
 
 
-def _rgb_hex(match):
+def _rgb_hex(match: re.Match[str]) -> str:
     return "#%02x%02x%02x" % tuple(min(255, int(v)) for v in match.groups())
 
 
-def _sub_rgb(match):
-    return _MAP.get(_rgb_hex(match), match.group(0))
+def _sub_rgb(match: re.Match[str]) -> str:
+    return _color_map.get(_rgb_hex(match), match.group(0))
 
 
-def _build_chunk(args):
+def _build_chunk(args: tuple[str, list[tuple[str, str, str]]]) -> int:
     dest_root, jobs = args
     for kind, src, rel in jobs:
         dst = os.path.join(dest_root, rel)
@@ -345,18 +352,18 @@ def _build_chunk(args):
                 with open(src, encoding="utf-8", errors="ignore") as fh:
                     text = fh.read()
                 with open(dst, "w", encoding="utf-8") as fh:
-                    fh.write(RGB.sub(_sub_rgb, HEX.sub(_sub, text)))
+                    _ = fh.write(RGB.sub(_sub_rgb, HEX.sub(_sub, text)))
             else:
-                shutil.copy2(src, dst)
+                _ = shutil.copy2(src, dst)
         except OSError:
             continue
     return len(jobs)
 
 
-def _write_index(theme_dir, dest, derived_name, source_name):
+def _write_index(theme_dir: Path, dest: Path, derived_name: str, source_name: str) -> None:
     src_index = theme_dir / "index.theme"
-    lines = src_index.read_text(errors="ignore").splitlines() if src_index.is_file() else ["[Icon Theme]"]
-    out = []
+    lines: list[str] = src_index.read_text(errors="ignore").splitlines() if src_index.is_file() else ["[Icon Theme]"]
+    out: list[str] = []
     for line in lines:
         if line.startswith("Name="):
             out.append(f"Name={derived_name}")
@@ -364,16 +371,16 @@ def _write_index(theme_dir, dest, derived_name, source_name):
             out.append(f"Comment={source_name} recolored by gowall")
         else:
             out.append(line)
-    (dest / "index.theme").write_text("\n".join(out) + "\n")
+    _ = (dest / "index.theme").write_text("\n".join(out) + "\n")
 
 
-def _recolor_assets(theme, theme_arg, theme_key):
+def _recolor_assets(theme: str, theme_arg: str, theme_key: str) -> None:
     from nebula.paths import SHELL_DIR
 
     src = SHELL_DIR / "assets"
     dest = Path.home() / ".cache" / "quickshell" / "gowall" / f"assets-{theme}"
-    jobs = [("svg", str(p), p.name) for p in sorted(src.glob("*.svg"))]
-    newest = max((os.path.getmtime(j[1]) for j in jobs), default=0)
+    jobs: list[tuple[str, str, str]] = [("svg", str(p), p.name) for p in sorted(src.glob("*.svg"))]
+    newest = max((os.path.getmtime(j[1]) for j in jobs), default=0.0)
     stamp = dest / ".assets-stamp"
     current = stamp.read_text().strip() if stamp.is_file() else ""
     wanted = f"{newest:.0f}|{len(jobs)}|{theme_key}"
@@ -384,27 +391,27 @@ def _recolor_assets(theme, theme_arg, theme_key):
             staging = dest.with_name(dest.name + ".building")
             shutil.rmtree(staging, ignore_errors=True)
             staging.mkdir(parents=True, exist_ok=True)
-            _build_chunk((str(staging), jobs))
+            _ = _build_chunk((str(staging), jobs))
             for keep in ("icon-index.json", "source-index.json"):
                 if (dest / keep).is_file():
-                    shutil.copy2(dest / keep, staging / keep)
-            (staging / ".assets-stamp").write_text(wanted)
+                    _ = shutil.copy2(dest / keep, staging / keep)
+            _ = (staging / ".assets-stamp").write_text(wanted)
             shutil.rmtree(dest, ignore_errors=True)
-            staging.rename(dest)
+            _ = staging.rename(dest)
     print(f"assets={dest}", flush=True)
 
 
-_APP_DIRS = [
+_APP_DIRS: list[Path] = [
     Path.home() / ".local/share/applications",
     Path("/usr/share/applications"),
     Path("/var/lib/flatpak/exports/share/applications"),
     Path.home() / ".local/share/flatpak/exports/share/applications",
 ]
-_CONTEXTS = ["apps", "places", "devices", "mimetypes", "categories", "status", "actions", "emblems"]
+_CONTEXTS: list[str] = ["apps", "places", "devices", "mimetypes", "categories", "status", "actions", "emblems"]
 
 
-def _app_icon_names():
-    names = set()
+def _app_icon_names() -> set[str]:
+    names: set[str] = set()
     for base in _APP_DIRS:
         if not base.is_dir():
             continue
@@ -423,13 +430,13 @@ def _app_icon_names():
     return {n for n in names if n}
 
 
-_SIZE_DIRS = {}
+_SIZE_DIRS: dict[str, list[tuple[Path, set[str]]]] = {}
 
 
-def _size_dirs(base):
+def _size_dirs(base: Path) -> list[tuple[Path, set[str]]]:
     key = str(base)
     if key not in _SIZE_DIRS:
-        out = []
+        out: list[tuple[Path, set[str]]] = []
         if base.is_dir():
             sizes = sorted((d.name for d in base.iterdir() if d.is_dir()),
                            key=lambda d: (d != "scalable", -_int_or_zero(d)))
@@ -442,7 +449,7 @@ def _size_dirs(base):
     return _SIZE_DIRS[key]
 
 
-def _icon_file(theme_dir, name):
+def _icon_file(theme_dir: Path, name: str) -> str | None:
     for ctx in _CONTEXTS:
         for folder, files in _size_dirs(theme_dir / ctx):
             for ext in (".svg", ".png"):
@@ -453,8 +460,9 @@ def _icon_file(theme_dir, name):
     return None
 
 
-def _write_icon_index(derived_dir, source_dir, theme):
-    index, source = {}, {}
+def _write_icon_index(derived_dir: Path, source_dir: Path, theme: str) -> None:
+    index: dict[str, str] = {}
+    source: dict[str, str] = {}
     for name in sorted(_app_icon_names()):
         path = _icon_file(derived_dir, name)
         if path:
@@ -464,18 +472,18 @@ def _write_icon_index(derived_dir, source_dir, theme):
             source[name] = original
     dest = Path.home() / ".cache" / "quickshell" / "gowall" / f"assets-{theme}"
     dest.mkdir(parents=True, exist_ok=True)
-    (dest / "icon-index.json").write_text(json.dumps(index))
-    (dest / "source-index.json").write_text(json.dumps(source))
+    _ = (dest / "icon-index.json").write_text(json.dumps(index))
+    _ = (dest / "source-index.json").write_text(json.dumps(source))
     _log(f"indexed {len(index)} app icons")
 
 
-def _finish(derived, apply_theme):
+def _finish(derived: str, apply_theme: bool) -> None:
     if apply_theme:
         _apply_icon_theme(derived)
     print(f"theme={derived}")
 
 
-def main():
+def main() -> int:
     if len(sys.argv) < 2:
         print(f"Usage: {sys.argv[0]} <theme> [--source NAME] [--force]", file=sys.stderr)
         return 1
@@ -487,7 +495,9 @@ def main():
             print(f"theme={active}")
             return 0
         try:
-            original = json.loads((INSTALL_DIR / active / STAMP).read_text())["source"]
+            active_stamp_raw: object = json.loads((INSTALL_DIR / active / STAMP).read_text())
+            active_stamp_dict = cast(dict[str, object], active_stamp_raw if isinstance(active_stamp_raw, dict) else {})
+            original = str(active_stamp_dict.get("source", ""))
         except Exception as e:
             _log(f"cannot tell what {active} was built from: {e}")
             return 1
@@ -509,7 +519,9 @@ def main():
     # never a copy of a copy.
     if source_name.startswith("gowall-"):
         try:
-            source_name = json.loads((INSTALL_DIR / source_name / STAMP).read_text())["source"]
+            source_stamp_raw: object = json.loads((INSTALL_DIR / source_name / STAMP).read_text())
+            source_stamp_dict = cast(dict[str, object], source_stamp_raw if isinstance(source_stamp_raw, dict) else {})
+            source_name = str(source_stamp_dict.get("source", ""))
         except Exception:
             _log(f"cannot tell what '{source_name}' was built from — pass --source")
             return 1
@@ -549,7 +561,9 @@ def main():
     stamp = dest / STAMP
     if not force and stamp.is_file():
         try:
-            if json.loads(stamp.read_text()).get("fingerprint") == fingerprint:
+            dest_stamp_raw: object = json.loads(stamp.read_text())
+            dest_stamp_dict = cast(dict[str, object], dest_stamp_raw if isinstance(dest_stamp_raw, dict) else {})
+            if dest_stamp_dict.get("fingerprint") == fingerprint:
                 _log(f"up to date — {derived}")
                 if "/" not in theme:
                     _write_icon_index(dest, theme_dir, theme)
@@ -564,7 +578,7 @@ def main():
         _log(f"no colors found in {source_name}")
         return 1
     _log(f"{source_name}: {len(jobs)} files, {len(colors)} unique colors, "
-         f"{total_size / 1048576:.0f}MB")
+         + f"{total_size / 1048576:.0f}MB")
 
     try:
         mapping = _map_palette(colors, theme_arg)
@@ -584,12 +598,14 @@ def main():
             print(f"progress={done}/{len(jobs)}", flush=True)
 
     _write_index(theme_dir, staging, derived, source_name)
-    stamp_data = {"fingerprint": fingerprint, "source": source_name, "theme": theme,
-                  "files": len(jobs), "colors": len(colors), "bytes": total_size}
-    (staging / STAMP).write_text(json.dumps(stamp_data))
+    stamp_data: dict[str, object] = {
+        "fingerprint": fingerprint, "source": source_name, "theme": theme,
+        "files": len(jobs), "colors": len(colors), "bytes": total_size,
+    }
+    _ = (staging / STAMP).write_text(json.dumps(stamp_data))
 
     shutil.rmtree(dest, ignore_errors=True)
-    staging.rename(dest)
+    _ = staging.rename(dest)
 
     # One generated theme at a time — each is a full copy of the source.
     for old in INSTALL_DIR.glob("gowall-*"):

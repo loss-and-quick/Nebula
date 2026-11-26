@@ -6,7 +6,9 @@ import sys
 import tempfile
 import urllib.parse
 import urllib.request
+from collections.abc import Mapping
 from datetime import datetime, timezone
+from typing import Any, cast
 
 CACHE = os.path.expanduser("~/.cache/quickshell/weather.json")
 DEFAULT_GEO_FILE = os.path.expanduser("~/.cache/quickshell/geo")
@@ -15,7 +17,7 @@ REVERSE_GEO_URL = "https://api.bigdatacloud.net/data/reverse-geocode-client?"
 FORECAST_URL = "https://api.open-meteo.com/v1/forecast?"
 TIMEOUT = 15
 
-WMO = {
+WMO: dict[int, tuple[str, str]] = {
     0: ("113", "Sunny"),
     1: ("116", "Mainly clear"),
     2: ("116", "Partly cloudy"),
@@ -46,24 +48,26 @@ WMO = {
     99: ("389", "Thunderstorm with heavy hail"),
 }
 
-COMPASS = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE",
+COMPASS: list[str] = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE",
            "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"]
 
 
-def get(url, params):
+def get(url: str, params: Mapping[str, Any]) -> dict[str, Any]:
     with urllib.request.urlopen(url + urllib.parse.urlencode(params), timeout=TIMEOUT) as r:
-        return json.load(r)
+        res: dict[str, Any] = json.load(r)
+        return res
 
 
-def load_cache():
+def load_cache() -> dict[str, Any]:
     try:
         with open(CACHE) as f:
-            return json.load(f)
+            res: dict[str, Any] = json.load(f)
+            return res
     except (OSError, ValueError):
         return {}
 
 
-def save_cache(obj):
+def save_cache(obj: Mapping[str, Any]) -> None:
     os.makedirs(os.path.dirname(CACHE), exist_ok=True)
     fd, tmp = tempfile.mkstemp(dir=os.path.dirname(CACHE), suffix=".tmp")
     with os.fdopen(fd, "w") as f:
@@ -71,15 +75,16 @@ def save_cache(obj):
     os.replace(tmp, CACHE)
 
 
-def load_settings():
+def load_settings() -> dict[str, Any]:
     try:
         from nebula import settings as s
-        return s.section("weather")
+        res: dict[str, Any] = s.section("weather")
+        return res
     except Exception:
         return {}
 
 
-def get_geo_file(settings=None):
+def get_geo_file(settings: Mapping[str, Any] | None = None) -> str:
     if settings is None:
         settings = load_settings()
     f = settings.get("geoFile") if isinstance(settings, dict) else None
@@ -88,13 +93,13 @@ def get_geo_file(settings=None):
     return os.environ.get("NEBULA_GEO_FILE") or DEFAULT_GEO_FILE
 
 
-def parse_coords(text):
+def parse_coords(text: str | None) -> tuple[float, float, str] | None:
     if not text:
         return None
     text = text.strip()
     if text.startswith("{"):
         try:
-            d = json.loads(text)
+            d: dict[str, Any] = json.loads(text)
             lat_v = d.get("lat") if "lat" in d else d.get("latitude")
             lon_v = d.get("lon") if "lon" in d else d.get("longitude")
             if lat_v is not None and lon_v is not None:
@@ -105,7 +110,7 @@ def parse_coords(text):
                     return lat, lon, label
         except (ValueError, TypeError, json.JSONDecodeError):
             pass
-    parts = text.replace(",", " ").split()
+    parts: list[str] = text.replace(",", " ").split()
     if len(parts) >= 2:
         try:
             lat = float(parts[0])
@@ -118,7 +123,7 @@ def parse_coords(text):
     return None
 
 
-def read_geo_file(path=None):
+def read_geo_file(path: str | None = None) -> tuple[float, float, str] | None:
     path = path or get_geo_file()
     path = os.path.expanduser(str(path))
     try:
@@ -129,25 +134,25 @@ def read_geo_file(path=None):
     return parse_coords(content)
 
 
-def reverse_geocode(lat, lon):
+def reverse_geocode(lat: float, lon: float) -> tuple[str, str, str]:
     try:
         data = get(REVERSE_GEO_URL, {"latitude": lat, "longitude": lon, "localityLanguage": "en"})
         city = data.get("city") or data.get("locality") or data.get("principalSubdivision")
         country = data.get("countryName") or ""
         region = data.get("principalSubdivision") or ""
-        return city or "", country, region
+        return str(city or ""), str(country), str(region)
     except Exception:
         return "", "", ""
 
 
-def geocode(name, cache, geo_file=None):
+def geocode(name: str, cache: dict[str, Any], geo_file: str | None = None) -> tuple[float, float, dict[str, str]]:
     if name == "auto":
         parsed = read_geo_file(geo_file)
         if parsed:
             lat, lon, label = parsed
             if not label:
                 label, country, region = reverse_geocode(lat, lon)
-                area = {"country": country, "region": region}
+                area: dict[str, str] = {"country": country, "region": region}
             else:
                 area = {"country": "", "region": ""}
             if label:
@@ -185,32 +190,38 @@ def geocode(name, cache, geo_file=None):
             return lat, lon, area
 
     if cache.get("location") == name and "lat" in cache and "lon" in cache:
-        return cache["lat"], cache["lon"], cache.get("area", {})
+        cached_area: dict[str, str] = cast(dict[str, str], cache.get("area", {}))
+        return float(cache["lat"]), float(cache["lon"]), cached_area
     query = name.split(",")[0].strip()
-    results = get(GEO_URL, {"name": query, "count": 1, "language": "en", "format": "json"}).get("results") or []
+    raw_results = get(GEO_URL, {"name": query, "count": 1, "language": "en", "format": "json"}).get("results")
+    results: list[dict[str, Any]]
+    if isinstance(raw_results, list):
+        results = cast(list[dict[str, Any]], raw_results)
+    else:
+        results = []
     if not results:
         raise LookupError(name)
     r = results[0]
-    return r["latitude"], r["longitude"], {"country": r.get("country", ""), "region": r.get("admin1", "")}
+    return float(r["latitude"]), float(r["longitude"]), {"country": str(r.get("country", "")), "region": str(r.get("admin1", ""))}
 
 
-def num(v, default=0):
-    return default if v is None else v
+def num(v: Any, default: float = 0.0) -> float:
+    return float(default if v is None else v)
 
 
-def fahrenheit(c):
+def fahrenheit(c: float) -> str:
     return str(round(c * 9 / 5 + 32))
 
 
-def whole(v):
+def whole(v: float) -> str:
     return str(round(v))
 
 
-def clock(iso):
+def clock(iso: str) -> str:
     return datetime.fromisoformat(iso).strftime("%I:%M %p")
 
 
-def condition(code, is_day):
+def condition(code: Any, is_day: bool) -> tuple[str, str]:
     wttr, desc = WMO.get(int(num(code)), ("113", "Unknown"))
     if int(num(code)) == 0 and not is_day:
         desc = "Clear"
@@ -219,11 +230,11 @@ def condition(code, is_day):
 
 SYNODIC = 29.530588853
 NEW_REF = datetime(2000, 1, 6, 18, 14, tzinfo=timezone.utc)
-PHASES = ["New Moon", "Waxing Crescent", "First Quarter", "Waxing Gibbous",
+PHASES: list[str] = ["New Moon", "Waxing Crescent", "First Quarter", "Waxing Gibbous",
           "Full Moon", "Waning Gibbous", "Last Quarter", "Waning Crescent"]
 
 
-def moon(date):
+def moon(date: str) -> dict[str, str]:
     noon = datetime.fromisoformat(date + "T12:00").astimezone(timezone.utc)
     age = ((noon - NEW_REF).total_seconds() / 86400) % SYNODIC
     illum = (1 - math.cos(2 * math.pi * age / SYNODIC)) / 2
@@ -231,8 +242,8 @@ def moon(date):
             "moon_illumination": str(round(illum * 100))}
 
 
-def hourly_entry(h, i, sunrise, sunset):
-    t = datetime.fromisoformat(h["time"][i])
+def hourly_entry(h: dict[str, Any], i: int, sunrise: datetime, sunset: datetime) -> dict[str, Any]:
+    t = datetime.fromisoformat(str(h["time"][i]))
     temp = num(h["temperature_2m"][i])
     feel = num(h["apparent_temperature"][i], temp)
     code, desc = condition(h["weather_code"][i], sunrise <= t < sunset)
@@ -251,41 +262,48 @@ def hourly_entry(h, i, sunrise, sunset):
     }
 
 
-def build(name, lat, lon, area):
+def build(name: str, lat: float, lon: float, area: dict[str, str]) -> dict[str, Any]:
     d = get(FORECAST_URL, {
         "latitude": lat,
         "longitude": lon,
         "timezone": "auto",
         "forecast_days": 7,
-        "current": "temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,"
-                   "wind_speed_10m,wind_direction_10m,cloud_cover,uv_index,visibility,"
-                   "precipitation,pressure_msl,is_day",
-        "hourly": "temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,"
-                  "precipitation_probability,wind_speed_10m,uv_index",
+        "current": (
+            "temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,"
+            + "wind_speed_10m,wind_direction_10m,cloud_cover,uv_index,visibility,"
+            + "precipitation,pressure_msl,is_day"
+        ),
+        "hourly": (
+            "temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,"
+            + "precipitation_probability,wind_speed_10m,uv_index"
+        ),
         "daily": "temperature_2m_max,temperature_2m_min,sunrise,sunset",
     })
-    c, h, dl = d["current"], d["hourly"], d["daily"]
+    c: dict[str, Any] = d["current"]
+    h: dict[str, Any] = d["hourly"]
+    dl: dict[str, Any] = d["daily"]
 
-    days = []
-    for n, date in enumerate(dl["time"]):
-        sunrise = datetime.fromisoformat(dl["sunrise"][n])
-        sunset = datetime.fromisoformat(dl["sunset"][n])
+    days: list[dict[str, Any]] = []
+    for n, date_val in enumerate(dl["time"]):
+        date = str(date_val)
+        sunrise = datetime.fromisoformat(str(dl["sunrise"][n]))
+        sunset = datetime.fromisoformat(str(dl["sunset"][n]))
         hours = [hourly_entry(h, i, sunrise, sunset)
                  for i, t in enumerate(h["time"])
-                 if t.startswith(date) and datetime.fromisoformat(t).hour % 3 == 0]
+                 if str(t).startswith(date) and datetime.fromisoformat(str(t)).hour % 3 == 0]
         hi, lo = num(dl["temperature_2m_max"][n]), num(dl["temperature_2m_min"][n])
         days.append({
             "date": date,
             "maxtempC": whole(hi), "maxtempF": fahrenheit(hi),
             "mintempC": whole(lo), "mintempF": fahrenheit(lo),
             "avgtempC": whole((hi + lo) / 2), "avgtempF": fahrenheit((hi + lo) / 2),
-            "astronomy": [{"sunrise": clock(dl["sunrise"][n]), "sunset": clock(dl["sunset"][n]), **moon(date)}],
+            "astronomy": [{"sunrise": clock(str(dl["sunrise"][n])), "sunset": clock(str(dl["sunset"][n])), **moon(date)}],
             "hourly": hours,
         })
 
-    now_hour = c["time"][:13]
+    now_hour = str(c["time"])[:13]
     rain_now = next((num(p) for t, p in zip(h["time"], h["precipitation_probability"])
-                     if t.startswith(now_hour)), 0)
+                     if str(t).startswith(now_hour)), 0)
     temp = num(c["temperature_2m"])
     feel = num(c["apparent_temperature"], temp)
     code, desc = condition(c["weather_code"], bool(num(c["is_day"], 1)))
@@ -327,7 +345,7 @@ def build(name, lat, lon, area):
     }
 
 
-def timezone_city():
+def timezone_city() -> str:
     zone = os.environ.get("TZ", "").lstrip(":")
     if not zone:
         try:
@@ -338,12 +356,12 @@ def timezone_city():
     return "" if city in ("", "UTC", "GMT", "Universal", "Zulu") else city
 
 
-def main():
-    geo_file = None
-    args = sys.argv[1:]
+def main() -> None:
+    geo_file: str | None = None
+    args: list[str] = sys.argv[1:]
     name = ""
     i = 0
-    clean_args = []
+    clean_args: list[str] = []
     while i < len(args):
         arg = args[i]
         if arg in ("-h", "--help"):
@@ -363,7 +381,7 @@ def main():
     if clean_args:
         name = clean_args[0].strip()
 
-    settings = load_settings()
+    settings: dict[str, Any] = load_settings()
     if not geo_file:
         geo_file = get_geo_file(settings)
 
@@ -382,7 +400,7 @@ def main():
     if not name:
         name = "auto"
 
-    cache = load_cache()
+    cache: dict[str, Any] = load_cache()
     try:
         lat, lon, area = geocode(name, cache, geo_file=geo_file)
         data = build(name, lat, lon, area)

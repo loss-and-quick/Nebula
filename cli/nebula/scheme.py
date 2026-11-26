@@ -398,6 +398,7 @@ def _toward(hue: float, target: float, cap: float) -> float:
 
 def _legible(hue: float, chroma: float, tone: float, bg: str, dark: bool, need: float = 4.5) -> str:
     step = 1 if dark else -1
+    hex_color = _hex(Hct.from_hct(hue, chroma, tone))
     for _ in range(100):
         hex_color = _hex(Hct.from_hct(hue, chroma, tone))
         if _contrast(hex_color, bg) >= need or not 0 <= tone <= 100:

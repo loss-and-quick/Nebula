@@ -8,6 +8,7 @@ import sys
 from pathlib import Path
 
 from nebula import __version__
+from nebula import settings
 from nebula.paths import COLORS, HOME, SH_DIR, SHELL_DIR, migrate
 
 PASSTHROUGH = {
@@ -825,4 +826,9 @@ def main(argv=None) -> None:
                "doctor": cmd_doctor, "ipc": cmd_ipc, "setup": cmd_setup,
                "start": cmd_start, "stop": cmd_stop, "restart": cmd_restart, "layout": cmd_layout,
                "migrate": cmd_migrate, "uninstall": cmd_uninstall, "settings-source": cmd_settings_source}[a.command]
-    sys.exit(handler(a) or 0)
+    try:
+        rc = handler(a) or 0
+    except settings.CorruptSettingsError as e:
+        print(f"nebula: {e}", file=sys.stderr)
+        sys.exit(1)
+    sys.exit(rc)

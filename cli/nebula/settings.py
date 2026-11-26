@@ -10,6 +10,10 @@ from typing import Any
 from nebula.paths import CONFIG_DIR, dropin_files
 
 
+class CorruptSettingsError(ValueError):
+    """The main settings.json exists but cannot be parsed as a JSON object."""
+
+
 def _user_settings_path() -> Path:
     return CONFIG_DIR / "settings.json"
 
@@ -70,7 +74,7 @@ def _read_json(path: Path) -> dict:
             _ = shutil.copy2(path, backup)
         except Exception:
             pass
-        raise ValueError(f"Settings file '{path}' is corrupt ({e}). Backed up to '{backup}'.") from e
+        raise CorruptSettingsError(f"Settings file '{path}' is corrupt ({e}). Backed up to '{backup}'.") from e
 
 
 def is_path_locked(locks: set[str] | list[str], path: str) -> bool:

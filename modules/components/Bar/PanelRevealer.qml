@@ -63,7 +63,7 @@ Item {
 
     readonly property real panelGapSetting: BarLayout.blockPanelGap(block.blockId)
     readonly property bool fusedHost: revealer.merged && !!block.frame && !!block.frame.fusedCovers && block.frame.fusedCovers(block, revealer.tabTargetX, revealer.tabNaturalW)
-    readonly property real floatGap: revealer.floating ? revealer.panelGapSetting : revealer.fusedHost ? 0 : revealer.merged ? Math.max(revealer.panelGapSetting, revealer.crowded || revealer.fusedAttach ? 8 : 0) * Math.max(0, Math.min(1, (revealer.tabH - block.barH) / 24)) : 0
+    readonly property real floatGap: revealer.resolveFloatGap()
 
     readonly property real openHeight: block.frameH - (block.isPill ? (block.frame ? block.frame.pillMargin : ServiceGaps.pillMargin) * 2 : 0)
     readonly property real panelRoom: revealer.openHeight - block.barH - (revealer.floating || revealer.merged ? revealer.panelGapSetting : 0) - (block.frame ? Math.max(block.frame.panelFar, block.frame.farReserve) + block.frame.borderNear : 0)
@@ -74,15 +74,50 @@ Item {
         const own = BarLayout.panelRadius(revealer.shownKind !== "" ? revealer.shownKind : revealer.lastKind);
         return own >= 0 ? own : block.frame ? block.frame.disX : 0;
     }
-    readonly property real contentNearL: revealer.floating ? revealer.panelCorner : revealer.merged && revealer.tabX < -0.5 ? revealer.panelCorner : 0
-    readonly property real contentNearR: revealer.floating ? revealer.panelCorner : revealer.merged && revealer.tabX + revealer.tabW > block.width + 0.5 ? revealer.panelCorner : 0
+    readonly property real contentNearL: revealer.resolveContentNearL()
+    readonly property real contentNearR: revealer.resolveContentNearR()
 
     function contentCorner(corner, farR) {
         const top = corner[0] === "t";
         const left = corner[1] === "l";
-        if (!block.vertical)
-            return (block.far ? !top : top) ? (left ? revealer.contentNearL : revealer.contentNearR) : revealer.contentFar(farR);
-        return (block.far ? !left : left) ? (top ? revealer.contentNearL : revealer.contentNearR) : revealer.contentFar(farR);
+        const nearL = revealer.contentNearL;
+        const nearR = revealer.contentNearR;
+        if (!block.vertical) {
+            const wantNear = block.far ? !top : top;
+            return wantNear ? (left ? nearL : nearR) : revealer.contentFar(farR);
+        }
+        const wantNear = block.far ? !left : left;
+        return wantNear ? (top ? nearL : nearR) : revealer.contentFar(farR);
+    }
+
+    function resolveFloatGap() {
+        if (revealer.floating)
+            return revealer.panelGapSetting;
+        if (revealer.fusedHost)
+            return 0;
+        if (revealer.merged) {
+            const base = revealer.crowded || revealer.fusedAttach ? 8 : 0;
+            const spread = Math.max(revealer.panelGapSetting, base);
+            const damp = Math.max(0, Math.min(1, (revealer.tabH - block.barH) / 24));
+            return spread * damp;
+        }
+        return 0;
+    }
+
+    function resolveContentNearL() {
+        if (revealer.floating)
+            return revealer.panelCorner;
+        if (revealer.merged && revealer.tabX < -0.5)
+            return revealer.panelCorner;
+        return 0;
+    }
+
+    function resolveContentNearR() {
+        if (revealer.floating)
+            return revealer.panelCorner;
+        if (revealer.merged && revealer.tabX + revealer.tabW > block.width + 0.5)
+            return revealer.panelCorner;
+        return 0;
     }
 
     function contentFar(attachedR) {
@@ -109,12 +144,12 @@ Item {
     property real openAlong: 0
     property real openAcross: 0
 
-    property real goo: revealer.floating && revealer.shownKind !== "" ? 1 : 0
+    property real goo: revealer.resolveGoo()
     Behavior on goo {
         enabled: revealer.floating && !revealer.gooSnap
         NumberAnimation {
-            duration: revealer.quickMotion ? (revealer.shownKind !== "" ? 380 : 260) : revealer.shownKind !== "" ? 520 : 400
-            easing.type: revealer.quickMotion && revealer.shownKind === "" ? Easing.OutCubic : Easing.InOutCubic
+            duration: revealer.gooDuration()
+            easing.type: revealer.gooEasing()
         }
     }
     property bool gooSnap: false
@@ -128,6 +163,21 @@ Item {
         revealer.gooX = revealer.tabX;
         revealer.gooW = revealer.tabW;
         revealer.gooH = Math.max(0, revealer.tabH - block.barH);
+    }
+
+    function resolveGoo() {
+        return revealer.floating && revealer.shownKind !== "" ? 1 : 0;
+    }
+
+    function gooDuration() {
+        const open = revealer.shownKind !== "";
+        return revealer.quickMotion
+            ? (open ? 380 : 260)
+            : (open ? 520 : 400);
+    }
+
+    function gooEasing() {
+        return revealer.quickMotion && revealer.shownKind === "" ? Easing.OutCubic : Easing.InOutCubic;
     }
 
     readonly property var gooHost: block.split && block.plateW > 0 ? {
@@ -253,9 +303,9 @@ Item {
 
     readonly property string sysKind: GlobalStates.clipboardOpen && (SettingsConfig.general.clipboardPanelMode ?? "dock") !== "center" && revealer.hostsSys("clipboard") ? "clipboard" : GlobalStates.wallpaperOpen && (SettingsConfig.general.wallpaperPanelMode ?? "dock") !== "center" && revealer.hostsSys("wallpaper") ? "wallpaper" : revealer.sysHost && GlobalStates.osdOpen && BarLayout.osdHostItem === "" ? "osd" : ""
 
-    readonly property string panelKind: revealer.computePanelKind()
+    readonly property string panelKind: revealer.resolvePanelKind()
 
-    function computePanelKind() {
+    function resolvePanelKind() {
         if (block.leaving)
             return "";
 
@@ -785,8 +835,45 @@ Item {
     readonly property bool caeStyle: !revealer.merged && !revealer.floating && !revealer.drawer
     readonly property bool caeMotion: revealer.caeStyle && revealer.panelMotion && !revealer.quickMotion
     readonly property var caeCurve: [0.38, 1.21, 0.22, 1.0, 1, 1]
-    readonly property int sizeDuration: revealer.gliding ? M3Motion.spatialDuration("move") : revealer.caeMotion ? 500 : revealer.drawer && revealer.panelMotion ? M3Motion.spatialDuration("default") : revealer.quickMotion ? (revealer.motionClosing ? 240 : 380) : revealer.panelMotion && !revealer.motionClosing ? M3Motion.panel.openDuration : M3Motion.spatialDuration("fast")
-    readonly property var sizeCurve: revealer.gliding ? M3Motion.spatialCurve("move") : !revealer.panelMotion ? M3Motion.spatialCurve("fast") : revealer.caeMotion ? revealer.caeCurve : revealer.drawer ? M3Motion.spatialCurve("default") : revealer.quickMotion ? (revealer.motionClosing ? [0.3, 0.0, 1.0, 1.0, 1, 1] : [0.05, 0.7, 0.1, 1.0, 1, 1]) : revealer.motionClosing ? M3Motion.panel.closeCurve : M3Motion.panel.openCurve
+    readonly property int sizeDuration: revealer.resolveMotion().duration
+    readonly property var sizeCurve: revealer.resolveMotion().curve
+
+    function resolveMotion() {
+        if (revealer.gliding)
+            return {
+                duration: M3Motion.spatialDuration("move"),
+                curve: M3Motion.spatialCurve("move")
+            };
+        if (!revealer.panelMotion)
+            return {
+                duration: M3Motion.spatialDuration("fast"),
+                curve: M3Motion.spatialCurve("fast")
+            };
+        if (revealer.caeMotion)
+            return {
+                duration: 500,
+                curve: revealer.caeCurve
+            };
+        if (revealer.drawer)
+            return {
+                duration: M3Motion.spatialDuration("default"),
+                curve: M3Motion.spatialCurve("default")
+            };
+        if (revealer.quickMotion)
+            return {
+                duration: revealer.motionClosing ? 240 : 380,
+                curve: revealer.motionClosing ? [0.3, 0.0, 1.0, 1.0, 1, 1] : [0.05, 0.7, 0.1, 1.0, 1, 1]
+            };
+        if (revealer.motionClosing)
+            return {
+                duration: M3Motion.panel.closeDuration,
+                curve: M3Motion.panel.closeCurve
+            };
+        return {
+            duration: M3Motion.panel.openDuration,
+            curve: M3Motion.panel.openCurve
+        };
+    }
 
     readonly property int spanDuration: revealer.shownKind === "dockPreview" ? MotionRegistry.durationFor("dock.preview", "default") : revealer.panelMotion && revealer.motionClosing && !revealer.quickMotion && !revealer.drawer && !revealer.caeMotion ? M3Motion.panel.closeDuration : revealer.sizeDuration
     readonly property var spanCurve: revealer.shownKind === "dockPreview" ? MotionRegistry.curveFor("dock.preview", "default") : revealer.sizeCurve
@@ -1245,9 +1332,19 @@ Item {
 
     readonly property var outsideCloseKinds: ["sound", "network", "bluetooth", "brightness", "powerMode", "power", "windowInfo", "battery", "phoneStatus", "phoneNotifs", "phoneCall", "soundscape", "scenes", "notifications", "weather", "claudeCode", "kindle", "dashboard", "calendar", "more", "musicPoster", "musicDial", "musicSources", "musicBeads", "musicDevelop", "musicShape", "cpu", "memory", "wiz"]
 
+    readonly property bool isMenuOverlay: revealer.panelKind === "trayMenu" || revealer.panelKind === "dockMenu"
+    readonly property bool isTrayClick: revealer.panelKind === "tray" && revealer.clickedKind === "tray"
+    readonly property bool isDismissiblePanel: revealer.outsideCloseKinds.indexOf(revealer.panelKind) >= 0 && revealer.clickedKind === revealer.panelKind && !revealer.panelHeld
+    readonly property bool isSysPanelOpen: (revealer.panelKind === "clipboard" || revealer.panelKind === "wallpaper") && revealer.sysKind === revealer.panelKind && !revealer.panelHeld && !GlobalStates.panelHold && !GlobalStates.fileDialogOpen
+
     HyprlandFocusGrab {
         windows: [QsWindow.window]
-        active: !GlobalStates.capturing && (revealer.panelKind === "trayMenu" || revealer.panelKind === "dockMenu" || (revealer.outsideCloseKinds.indexOf(revealer.panelKind) >= 0 && revealer.clickedKind === revealer.panelKind && !revealer.panelHeld) || (revealer.panelKind === "tray" && revealer.clickedKind === "tray") || ((revealer.panelKind === "clipboard" || revealer.panelKind === "wallpaper") && revealer.sysKind === revealer.panelKind && !revealer.panelHeld && !GlobalStates.panelHold && !GlobalStates.fileDialogOpen))
+        active: !GlobalStates.capturing && (
+            revealer.isMenuOverlay
+            || revealer.isTrayClick
+            || revealer.isDismissiblePanel
+            || revealer.isSysPanelOpen
+        )
         onCleared: {
             if (revealer.panelHeld || GlobalStates.capturing)
                 return;

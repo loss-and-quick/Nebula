@@ -385,10 +385,18 @@ Item {
 
     readonly property real blockGapSetting: surface.cfg.blockGap
     readonly property real wideGap: 2 * surface.disX + 28
-    readonly property real groupGap: surface.blockGapSetting >= 0 ? surface.blockGapSetting : surface.shapeList.every(v => v === "stepped") ? surface.wideGap : 14
+    readonly property real groupGap: surface.resolveGroupGap()
 
     readonly property real baseGap: surface.vertical ? 6 : 14
     readonly property real minGap: 4
+
+    function resolveGroupGap() {
+        if (surface.blockGapSetting >= 0)
+            return surface.blockGapSetting;
+        if (surface.shapeList.every(v => v === "stepped"))
+            return surface.wideGap;
+        return 14;
+    }
 
     readonly property var gaps: BarLayout.gapModel ? BarLayout.edgeGaps(surface.edge) : null
     property real fillShown: surface.gaps ? Math.max(0, Math.min(1, surface.gaps.fill)) : 0
@@ -1539,12 +1547,13 @@ Item {
 
     readonly property bool hoverMode: surface.cfg.hoverMode === true || surface.cfg.overlay === true
     readonly property bool autoHide: surface.cfg.autoHide
+    readonly property bool anyBlockActive: surface.visibleBlocks.some(b => b.hovering || b.dockHovered || b.tabOpen || (b.revealer && (b.revealer.tabHovered || b.revealer.panelOpen)))
     readonly property bool dockActive: !surface.autoHide
         || revealHover.hovered
         || GlobalStates.barEditMode
         || (surface.autoHide && GlobalStates.dockPeek)
         || BarLayout.sysPanelOpen
-        || surface.visibleBlocks.some(b => b.hovering || b.dockHovered || b.tabOpen || (b.revealer && (b.revealer.tabHovered || b.revealer.panelOpen)))
+        || surface.anyBlockActive
     property bool dockHidden: false
     property real revealGoal: 1
     onDockHiddenChanged: {

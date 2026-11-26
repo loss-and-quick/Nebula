@@ -14,6 +14,7 @@ import xml.etree.ElementTree as ET
 import zipfile
 from concurrent.futures import ThreadPoolExecutor
 from html.parser import HTMLParser
+from typing import NoReturn
 
 CACHE = os.path.expanduser("~/.cache/quickshell/books")
 LOCAL_DIRS = [os.path.expanduser("~/Books")]
@@ -36,7 +37,7 @@ def out(obj):
     sys.stdout.flush()
 
 
-def fail(msg):
+def fail(msg: str) -> NoReturn:
     out({"ok": False, "error": msg})
     sys.exit(0)
 
@@ -253,18 +254,15 @@ def open_asura(slug):
             out({"ok": True, "key": key, "path": book_path})
             return
         fail("Could not reach the novel library: " + str(e))
-        return
     series = meta.get("series") or {}
     free = sorted((c for c in meta.get("chapters") or [] if not c.get("is_locked")), key=lambda c: c["number"])
     if not free:
         fail("This novel has no free chapters")
-        return
     try:
         with ThreadPoolExecutor(max_workers=6) as pool:
             bodies = list(pool.map(lambda c: asura_chapter(slug, c["number"]), free))
     except Exception as e:
         fail("Download failed: " + str(e))
-        return
     chapters = []
     for c, paras in zip(free, bodies):
         title = "Chapter %d" % c["number"] + (" - " + c["title"].strip() if c.get("title") else "")
@@ -646,12 +644,10 @@ def cmd_open(args):
         return
     else:
         fail("unknown source " + source)
-        return
     try:
         pkg, chapters = parse_epub(epub)
     except Exception as e:
         fail("Could not read this book: " + str(e))
-        return
     cover = extract_cover(pkg, folder)
     if not cover and cover_url:
         try:

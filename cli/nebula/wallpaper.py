@@ -19,17 +19,20 @@ def _self(args):
     return lines[-1].strip() if lines else ""
 
 
-def _scheme(args) -> None:
+def _scheme(args) -> int:
     from nebula import scheme
     saved = sys.argv
     sys.argv = ["nebula scheme generate", *args]
+    rc = 0
     try:
         scheme.main()
     except SystemExit as e:
         if e.code not in (None, 0):
             print(f"[nebula] scheme generate exited with {e.code}", file=sys.stderr)
+            rc = e.code if isinstance(e.code, int) else 1
     finally:
         sys.argv = saved
+    return rc
 
 
 def defaults() -> dict:
@@ -69,18 +72,26 @@ def apply(wallpaper, scheme, mode, gowall="off",
             pal = ["--palette-file", palette_file]
 
     if palette_on and gw == "match":
-        _scheme([wallpaper, scheme, mode, *keep])
+        rc = _scheme([wallpaper, scheme, mode, *keep])
+        if rc != 0:
+            return rc
         converted = _self(["gowall", wallpaper, "match", *inv])
         if converted and os.path.isfile(converted):
             display = converted
-        _scheme([wallpaper, scheme, mode, "--display", display, *keep])
+        rc = _scheme([wallpaper, scheme, mode, "--display", display, *keep])
+        if rc != 0:
+            return rc
     elif palette_on or invert_on:
         converted = _self(["gowall", wallpaper, gowall, *inv])
         if converted and os.path.isfile(converted):
             display = converted
-        _scheme([display, scheme, mode, "--source", wallpaper, *keep, *pal])
+        rc = _scheme([display, scheme, mode, "--source", wallpaper, *keep, *pal])
+        if rc != 0:
+            return rc
     else:
-        _scheme([wallpaper, scheme, mode])
+        rc = _scheme([wallpaper, scheme, mode])
+        if rc != 0:
+            return rc
 
     if icons_on:
         _self(["gowall-icons", gowall, "--apply"])

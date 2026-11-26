@@ -118,13 +118,19 @@ def cmd_wallpaper(a) -> int:
     if a.action == "preview":
         from nebula import palette_preview
         sys.argv = ["nebula wallpaper preview", a.image, a.thumb, a.scheme, a.mode]
-        palette_preview.main()
+        try:
+            palette_preview.main()
+        except SystemExit as e:
+            return 0 if e.code in (None, 0) else (e.code if isinstance(e.code, int) else 1)
         return 0
     if a.action == "screen":
         from nebula import screen
         sys.argv = ["nebula wallpaper screen", a.src, a.out, str(a.width), str(a.height),
                     *(["--grey"] if a.grey else []), *(["--eink"] if a.eink else [])]
-        screen.main()
+        try:
+            screen.main()
+        except SystemExit as e:
+            return 0 if e.code in (None, 0) else (e.code if isinstance(e.code, int) else 1)
         return 0
 
     d = wp.defaults()

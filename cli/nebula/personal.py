@@ -7,13 +7,32 @@ import os
 import re
 import subprocess
 import sys
+from typing import Any, TypedDict
 
 HOME = os.path.expanduser("~")
 WEEKS = 26
 
 
-def git_identity():
-    ids = []
+class PhotoPick(TypedDict):
+    date: str
+    count: int
+    path: str
+
+
+class GitStats(TypedDict):
+    days: dict[str, int]
+    repos: list[tuple[str, int]]
+    total: int
+
+
+class YearAgoStats(TypedDict):
+    total: int
+    pick: PhotoPick | None
+    since: int
+
+
+def git_identity() -> list[str]:
+    ids: list[str] = []
     for key in ("user.email", "user.name"):
         try:
             v = subprocess.run(["git", "config", "--global", key], capture_output=True, text=True, timeout=5).stdout.strip()
@@ -24,9 +43,9 @@ def git_identity():
     return ids
 
 
-def find_repos():
+def find_repos() -> list[str]:
     pats = [HOME + "/*/.git", HOME + "/*/*/.git", HOME + "/.config/*/.git", HOME + "/*/*/*/.git"]
-    seen = set()
+    seen: set[str] = set()
     for p in pats:
         for g in glob.glob(p):
             if "/node_modules/" in g or "/.cache/" in g:
@@ -35,13 +54,13 @@ def find_repos():
     return sorted(seen)
 
 
-def git_stats():
+def git_stats() -> GitStats:
     ids = git_identity()
     since = (dt.date.today() - dt.timedelta(days=7 * WEEKS)).isoformat()
-    days = collections.Counter()
-    per = collections.Counter()
+    days: collections.Counter[str] = collections.Counter()
+    per: collections.Counter[str] = collections.Counter()
     for repo in find_repos():
-        cmd = ["git", "-C", repo, "log", "--all", "--since=" + since, "--format=%ad", "--date=short"]
+        cmd: list[str] = ["git", "-C", repo, "log", "--all", "--since=" + since, "--format=%ad", "--date=short"]
         for i in ids:
             cmd.append("--author=" + i)
         try:
@@ -55,8 +74,8 @@ def git_stats():
     return {"days": dict(days), "repos": per.most_common(5), "total": sum(days.values())}
 
 
-def year_ago():
-    pics = []
+def year_ago() -> YearAgoStats:
+    pics: list[str] = []
     for pat in ("/Pictures/*", "/Pictures/Screenshots/*", "/Pictures/*/*"):
         for f in glob.glob(HOME + pat):
             if f.lower().endswith((".png", ".jpg", ".jpeg", ".webp")):
@@ -67,7 +86,7 @@ def year_ago():
         target = today.replace(year=today.year - 1)
     except ValueError:
         target = today - dt.timedelta(days=365)
-    dated = []
+    dated: list[tuple[dt.date, str]] = []
     for f in pics:
         m = re.match(r"(\d{4})-(\d\d)-(\d\d)", os.path.basename(f))
         if not m:
@@ -77,11 +96,12 @@ def year_ago():
         except ValueError:
             continue
         dated.append((d, f))
-    best = None
+    best: PhotoPick | None = None
     for window in (0, 3, 7, 14):
-        hits = [(d, f) for d, f in dated if abs((d - target).days) <= window]
+        hits: list[tuple[dt.date, str]] = [(d, f) for d, f in dated if abs((d - target).days) <= window]
         if hits:
-            day = min({d for d, _ in hits}, key=lambda d: abs((d - target).days))
+            day_candidates: set[dt.date] = {d for d, _ in hits}
+            day = min(day_candidates, key=lambda d: abs((d - target).days))
             same = [f for d, f in hits if d == day]
             best = {"date": day.isoformat(), "count": len(same), "path": same[today.toordinal() % len(same)]}
             break
@@ -89,8 +109,8 @@ def year_ago():
     return {"total": len(pics), "pick": best, "since": since}
 
 
-def main():
-    data = {"generated": dt.datetime.now().isoformat(timespec="seconds")}
+def main() -> None:
+    data: dict[str, Any] = {"generated": dt.datetime.now().isoformat(timespec="seconds")}
     for key, fn in (("git", git_stats), ("photos", year_ago)):
         try:
             data[key] = fn()

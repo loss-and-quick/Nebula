@@ -32,8 +32,13 @@ def palette(path, count=4):
     img.thumbnail((96, 96))
     q = img.quantize(colors=12, method=Image.Quantize.MEDIANCUT)
     pal = q.getpalette()
+    colors = q.getcolors()
+    if pal is None or not colors:
+        return []
     scored = []
-    for n, idx in q.getcolors():
+    for n, idx in colors:
+        if not isinstance(idx, int):
+            continue
         r, g, b = (c / 255 for c in pal[idx * 3: idx * 3 + 3])
         h, l, s = colorsys.rgb_to_hls(r, g, b)
         scored.append((n * (0.25 + s) * (0.3 + min(l, 1 - l)), h, l, s))

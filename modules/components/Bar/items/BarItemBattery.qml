@@ -83,7 +83,21 @@ Rectangle {
     }
     readonly property color ink: hov.hovered ? Colors.primaryContainerText : root.low ? Colors.error : Colors.surfaceText
 
-    implicitWidth: root.bigCookie ? root.host.barH : root.vertical ? Math.max(root.plate, battRow.implicitWidth + 8) : root.showPercent || (root.glyph && glyphItem.implicitWidth > root.plate - 4) ? battRow.implicitWidth + root.padPx : root.plate
+    readonly property string displayMode: root.bigCookie ? "bigCookie" : root.vertical ? "vertical" : (root.showPercent || (root.glyph && glyphItem.implicitWidth > root.plate - 4)) ? "content" : "plate"
+
+    function dimensionForMode(mode) {
+        switch (mode) {
+        case "bigCookie":
+            return root.host.barH;
+        case "vertical":
+            return Math.max(root.plate, battRow.implicitWidth + 8);
+        case "content":
+            return battRow.implicitWidth + root.padPx;
+        }
+        return root.plate;
+    }
+
+    implicitWidth: root.dimensionForMode(root.displayMode)
     implicitHeight: root.bigCookie ? root.host.barH : root.sideNum ? battRow.implicitHeight + 8 : root.plate
     width: implicitWidth
     height: implicitHeight

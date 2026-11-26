@@ -74,13 +74,21 @@ Item {
         }
     }
 
+    function resolvePlateColor() {
+        if (root.look === "filled")
+            return root.hot ? Qt.lighter(root.tone, 1.08) : root.tone;
+        if (root.look === "chip")
+            return Qt.alpha(root.tone, root.hot || root.active ? 0.28 : 0.16);
+        return "transparent";
+    }
+
     Rectangle {
         anchors.centerIn: parent
         visible: root.look !== "plain" && root.look !== "avatar"
         width: root.box
         height: root.box
         radius: root.hot || root.active ? root.box * 0.32 : root.box / 2
-        color: root.look === "filled" ? (root.hot ? Qt.lighter(root.tone, 1.08) : root.tone) : root.look === "chip" ? Qt.alpha(root.tone, root.hot || root.active ? 0.28 : 0.16) : "transparent"
+        color: root.resolvePlateColor()
         border.width: root.look === "ring" ? 1.5 : 0
         border.color: Qt.alpha(root.tone, root.hot || root.active ? 0.9 : 0.55)
         Behavior on radius {

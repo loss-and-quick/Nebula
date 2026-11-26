@@ -18,8 +18,29 @@ Rectangle {
     readonly property bool done: ServiceFocus.finished
     readonly property bool showDots: BarLayout.opt(root.itemId, "dots") !== false
 
-    readonly property color fillColor: root.done ? Colors.primaryContainer : root.breakTime ? Colors.tertiaryContainer : root.idle ? (hov.containsMouse && !root.plateless ? Colors.primaryContainer : Qt.alpha(Colors.primaryContainer, 0)) : Colors.surfaceContainerHigh
-    readonly property color ink: root.done ? Colors.primaryContainerText : root.breakTime ? Colors.tertiaryContainerText : root.idle && hov.containsMouse ? Colors.primaryContainerText : Colors.surfaceText
+    readonly property string visualState: root.done ? "done" : root.breakTime ? "break" : root.idle ? "idle" : "focus"
+    readonly property color fillColor: {
+        switch (root.visualState) {
+        case "done":
+            return Colors.primaryContainer;
+        case "break":
+            return Colors.tertiaryContainer;
+        case "idle":
+            return hov.containsMouse && !root.plateless ? Colors.primaryContainer : Qt.alpha(Colors.primaryContainer, 0);
+        }
+        return Colors.surfaceContainerHigh;
+    }
+    readonly property color ink: {
+        switch (root.visualState) {
+        case "done":
+            return Colors.primaryContainerText;
+        case "break":
+            return Colors.tertiaryContainerText;
+        case "idle":
+            return hov.containsMouse ? Colors.primaryContainerText : Colors.surfaceText;
+        }
+        return Colors.surfaceText;
+    }
 
     implicitWidth: root.idle ? 28 : row.implicitWidth + 20
     implicitHeight: 28

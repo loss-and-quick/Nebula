@@ -19,7 +19,18 @@ Rectangle {
     signal activated
 
     readonly property bool showLabel: BarLayout.opt(root.itemId, "showLabel") === true
-    readonly property color ink: root.clickable && hov.hovered ? Colors.primaryContainerText : root.alert ? Colors.error : root.active ? Colors.primary : Colors.surfaceText
+    readonly property string visualState: root.clickable && hov.hovered ? "hover" : root.alert ? "alert" : root.active ? "active" : "idle"
+    readonly property color ink: {
+        switch (root.visualState) {
+        case "hover":
+            return Colors.primaryContainerText;
+        case "alert":
+            return Colors.error;
+        case "active":
+            return Colors.primary;
+        }
+        return Colors.surfaceText;
+    }
     readonly property bool iconSizable: true
     readonly property real hostIcon: root.host && root.host.iconSize ? root.host.iconSize : 0
     readonly property real defaultIcon: root.hostIcon > 0 ? Math.round(root.hostIcon * 0.69) : 18
@@ -27,7 +38,17 @@ Rectangle {
     readonly property real box: BarLayout.boxFor(root.itemId, root.host)
     readonly property real iconPx: BarLayout.iconPxFor(root.itemId, root.box, root.defaultIcon)
     readonly property real plate: BarLayout.platePxFor(root.box, root.iconPx, root.defaultIcon, root.defaultPlate)
-    readonly property color plateColor: root.clickable && hov.hovered ? Colors.primaryContainer : root.alert ? Qt.alpha(Colors.error, 0.16) : root.active ? Qt.alpha(Colors.primary, 0.18) : Qt.alpha(Colors.primaryContainer, 0)
+    readonly property color plateColor: {
+        switch (root.visualState) {
+        case "hover":
+            return Colors.primaryContainer;
+        case "alert":
+            return Qt.alpha(Colors.error, 0.16);
+        case "active":
+            return Qt.alpha(Colors.primary, 0.18);
+        }
+        return Qt.alpha(Colors.primaryContainer, 0);
+    }
     readonly property bool plateless: BarLayout.chipHovers(root.itemId, root.implicitWidth, root.implicitHeight)
     readonly property bool plateOn: root.plateColor.a > 0.01
     readonly property real labelPx: BarLayout.scaleFor(root.iconPx, root.defaultIcon, 12, 8)

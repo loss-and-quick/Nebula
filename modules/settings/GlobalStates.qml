@@ -188,7 +188,11 @@ Singleton{
     signal pieRequested()
     signal lockRequested()
     function openPanel(kind) {
-        root.panelRequested(kind)
+        if (kind === "power") {
+            root.shutdownWindow = true;
+            return;
+        }
+        root.panelRequested(kind);
     }
     property string areaSelectMode: ""   // "screenshot" or "recording"
 }

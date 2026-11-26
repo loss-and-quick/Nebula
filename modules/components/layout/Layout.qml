@@ -277,6 +277,39 @@ PanelWindow {
         }
     }
 
+    Connections {
+        target: GlobalStates
+        function onPanelRequested(kind) {
+            if (!layout.isPrimary)
+                return;
+            if (kind === "") {
+                for (let i = 0; i < layout.openPanels.length; i++) {
+                    const p = layout.openPanels[i];
+                    if (p && p.block)
+                        p.block.closePanel();
+                }
+                return;
+            }
+            if (kind === "power") {
+                GlobalStates.shutdownWindow = true;
+                return;
+            }
+            for (const s of layout.surfaces) {
+                if (!s.visible)
+                    continue;
+                for (const b of s.visibleBlocks) {
+                    if (b.hasItem(kind)) {
+                        b.openPanel(kind, b.itemFor(kind));
+                        return;
+                    }
+                }
+            }
+            if (layout.surfaces.length > 0 && layout.surfaces[0].visibleBlocks.length > 0) {
+                layout.surfaces[0].visibleBlocks[0].openPanel(kind, null);
+            }
+        }
+    }
+
     onBarEditingChanged: {
         BarLayout.gapHover = null;
         root.queueGapMarks();

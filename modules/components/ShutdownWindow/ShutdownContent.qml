@@ -25,7 +25,7 @@ Item {
         { id: "sleep", label: "Sleep", icon: "bedtime", key: "S", shape: "circle", verb: "Going to sleep", instant: true,
           command: ["systemctl", "suspend"] },
         { id: "logout", label: "Log out", icon: "logout", key: "E", shape: "arch", verb: "Logging out", instant: false,
-          command: ["hyprctl", "dispatch", "hl.dsp.exit()"] },
+          command: ["hyprctl", "dispatch", "exit"] },
         { id: "restart", label: "Restart", icon: "restart_alt", key: "R", shape: "cookie9", verb: "Restarting", instant: false,
           command: ["systemctl", "reboot"] },
         { id: "shutdown", label: "Shut down", icon: "power_settings_new", key: "P", shape: "clover4", verb: "Shutting down", instant: false,

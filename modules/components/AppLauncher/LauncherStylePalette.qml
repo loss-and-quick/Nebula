@@ -129,7 +129,9 @@ Item {
             sub: "Shut down, restart or log out",
             symbol: "power_settings_new",
             words: "shutdown reboot logout suspend",
-            run: () => GlobalStates.openPanel("power")
+            run: () => {
+                GlobalStates.shutdownWindow = true;
+            }
         },
         {
             id: "lock",

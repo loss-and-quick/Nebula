@@ -155,10 +155,10 @@ Singleton{
         }
         onExited: exitCode => {
             root.playShutterSound()
-            if (exitCode === 0 && root._screenshotPath !== "")
+            if (exitCode === 0 && root._screenshotPath !== "") {
                 root.screenshotReady(root._screenshotPath)
-            else
                 root._sendScreenshotNotif(root._screenshotPath)
+            }
             root._screenshotPath = ""
         }
     }
@@ -167,10 +167,10 @@ Singleton{
         id: areaScreenshotProc
         onExited: exitCode => {
             root.playShutterSound()
-            if (exitCode === 0 && root._areaScreenshotPath !== "")
+            if (exitCode === 0 && root._areaScreenshotPath !== "") {
                 root.screenshotReady(root._areaScreenshotPath)
-            else
                 root._sendScreenshotNotif(root._areaScreenshotPath)
+            }
         }
     }
 
@@ -522,10 +522,14 @@ Singleton{
 
                 },
                 {
+                    name: "Lock",
+                    icon: "lock",
+                    command: ["loginctl", "lock-session"]
+                },
+                {
                     name: "Logout",
                     icon: "logout",
-                    command: ["loginctl", "lock-session"]
-
+                    command: ["hyprctl", "dispatch", "exit"]
                 }
             ]
         }

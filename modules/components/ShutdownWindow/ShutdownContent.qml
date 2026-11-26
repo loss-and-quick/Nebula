@@ -19,18 +19,7 @@ Item {
     readonly property real u: Math.min(width / 1920, height / 1080)
     readonly property string shownName: SettingsConfig.profileName || Quickshell.env("USER") || "you"
 
-    readonly property var actions: [
-        { id: "lock", label: "Lock", icon: "lock", key: "L", shape: "square", verb: "Locking", instant: true,
-          command: ["loginctl", "lock-session"] },
-        { id: "sleep", label: "Sleep", icon: "bedtime", key: "S", shape: "circle", verb: "Going to sleep", instant: true,
-          command: ["systemctl", "suspend"] },
-        { id: "logout", label: "Log out", icon: "logout", key: "E", shape: "arch", verb: "Logging out", instant: false,
-          command: ["hyprctl", "dispatch", "exit"] },
-        { id: "restart", label: "Restart", icon: "restart_alt", key: "R", shape: "cookie9", verb: "Restarting", instant: false,
-          command: ["systemctl", "reboot"] },
-        { id: "shutdown", label: "Shut down", icon: "power_settings_new", key: "P", shape: "clover4", verb: "Shutting down", instant: false,
-          command: ["systemctl", "poweroff"] }
-    ]
+    readonly property var actions: ServiceSession.actions
 
     property string pending: ""
     property int remaining: 10
@@ -63,12 +52,11 @@ Item {
     property string uptime: ""
 
     function close() {
-        GlobalStates.shutdownWindow = false
+        ServiceSession.closeShutdown()
     }
 
     function run(action) {
-        GlobalStates.shutdownWindow = false
-        Quickshell.execDetached(action.command)
+        ServiceSession.run(action)
     }
 
     function start(id) {

@@ -21,30 +21,8 @@ Item {
     signal closeRequested
 
     function run(action) {
-        if (action === "lock") {
-            root.closeRequested();
-            lockDelay.restart();
-            return;
-        }
-        if (action === "sleep") {
-            Quickshell.execDetached(["systemctl", "suspend"]);
-            return;
-        }
-        if (action === "logout") {
-            Hyprland.dispatch("hl.dsp.exit()");
-            return;
-        }
-        if (action === "restart") {
-            Quickshell.execDetached(["systemctl", "reboot"]);
-            return;
-        }
-        if (action === "shutdown") {
-            Quickshell.execDetached(["systemctl", "poweroff"]);
-            return;
-        }
-        if (action === "firmware") {
-            Quickshell.execDetached(["systemctl", "reboot", "--firmware-setup"]);
-        }
+        root.closeRequested();
+        ServiceSession.run(action);
     }
 
     readonly property var tracks: [logoutTrack, restartTrack, shutdownTrack]

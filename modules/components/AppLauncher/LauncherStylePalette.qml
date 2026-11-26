@@ -129,9 +129,7 @@ Item {
             sub: "Shut down, restart or log out",
             symbol: "power_settings_new",
             words: "shutdown reboot logout suspend",
-            run: () => {
-                GlobalStates.shutdownWindow = true;
-            }
+            run: () => ServiceSession.openShutdown()
         },
         {
             id: "lock",
@@ -139,7 +137,7 @@ Item {
             sub: "Locks this session",
             symbol: "lock",
             words: "lock away",
-            run: () => Quickshell.execDetached(["loginctl", "lock-session"])
+            run: () => ServiceSession.lock()
         }
     ]
 

@@ -291,7 +291,7 @@ PanelWindow {
                 return;
             }
             if (kind === "power") {
-                GlobalStates.shutdownWindow = true;
+                ServiceSession.openShutdown();
                 return;
             }
             for (const s of layout.surfaces) {

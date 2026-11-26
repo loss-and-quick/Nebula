@@ -41,6 +41,6 @@ Scope {
 
     GlobalShortcut {
         name: "shutdown"
-        onPressed: GlobalStates.shutdownWindow = !GlobalStates.shutdownWindow
+        onPressed: ServiceSession.toggleShutdown()
     }
 }

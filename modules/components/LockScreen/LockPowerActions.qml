@@ -4,6 +4,7 @@ import QtQuick
 import QtQuick.Layouts
 import Quickshell
 import qs.modules.utils
+import qs.modules.services
 import qs.modules.settings
 import qs.modules.components.custom
 
@@ -40,9 +41,9 @@ RowLayout {
     spacing: root._text ? 16 : 10
 
     readonly property var actions: [
-        { icon: "bedtime",            label: "Sleep",     cmd: ["systemctl", "suspend"]  },
-        { icon: "restart_alt",        label: "Restart",   cmd: ["systemctl", "reboot"]   },
-        { icon: "power_settings_new", label: "Shut Down", cmd: ["systemctl", "poweroff"] }
+        { icon: "bedtime",            label: "Sleep",     id: "sleep"    },
+        { icon: "restart_alt",        label: "Restart",   id: "restart"  },
+        { icon: "power_settings_new", label: "Shut Down", id: "shutdown" }
     ]
 
     Timer {
@@ -51,11 +52,11 @@ RowLayout {
         onTriggered: root.confirmIndex = -1
     }
 
-    function fire(index, cmd) {
+    function fire(index, actionId) {
         if (root.confirmIndex === index) {
             confirmTimer.stop()
             root.confirmIndex = -1
-            Quickshell.execDetached(cmd)
+            ServiceSession.run(actionId)
         } else {
             root.confirmIndex = index
             confirmTimer.restart()
@@ -146,7 +147,7 @@ RowLayout {
             CustomMouseArea {
                 radius: root._text ? 0 : root._tile ? root.tileRadius : entry.height / 2
                 cursorShape: Qt.PointingHandCursor
-                onClicked: root.fire(entry.index, entry.modelData.cmd)
+                onClicked: root.fire(entry.index, entry.modelData.id)
             }
         }
     }

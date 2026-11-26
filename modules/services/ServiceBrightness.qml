@@ -136,12 +136,20 @@ Singleton {
                 return;
             const code = parts[1].toLowerCase();
             if (code === "10" && parts[2] === "C") {
-                monitor.brightness = parseInt(parts[3]) / parseInt(parts[4]);
-                monitor.ready = true;
+                const cur = parseInt(parts[3]);
+                const max = parseInt(parts[4]);
+                if (!isNaN(cur) && !isNaN(max) && max > 0) {
+                    monitor.brightness = Math.max(0, Math.min(1, cur / max));
+                    monitor.ready = true;
+                }
             } else if (code === "12" && parts[2] === "C") {
-                monitor.contrastMax = parseInt(parts[4]);
-                monitor.contrast = parseInt(parts[3]) / monitor.contrastMax;
-                monitor.hasContrast = true;
+                const cur = parseInt(parts[3]);
+                const max = parseInt(parts[4]);
+                if (!isNaN(cur) && !isNaN(max) && max > 0) {
+                    monitor.contrastMax = max;
+                    monitor.contrast = Math.max(0, Math.min(1, cur / max));
+                    monitor.hasContrast = true;
+                }
             } else if (code === "14" && parts[2] === "SNC") {
                 monitor.colorPreset = parseInt(parts[3].replace(/^x/, ""), 16);
             }

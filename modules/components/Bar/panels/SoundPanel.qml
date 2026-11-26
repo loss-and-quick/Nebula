@@ -165,12 +165,7 @@ PopupWindow {
                     value: root.micVolume
                     icon: ServicePipewire.micMuted ? "mic_off" : "mic"
                     dimmed: ServicePipewire.micMuted
-                    onMoved: v => {
-                        if (ServicePipewire.source?.audio) {
-                            ServicePipewire.source.audio.muted = false;
-                            ServicePipewire.source.audio.volume = v;
-                        }
-                    }
+                    onMoved: v => ServicePipewire.setMicVolume(v)
                 }
 
                 MuteButton {

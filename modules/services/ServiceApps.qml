@@ -297,13 +297,20 @@ Singleton {
         };
         root.usage = next;
         usageWrite.restart();
+        if (entry.runInTerminal) {
+            const term = Quickshell.env("TERMINAL") || "alacritty";
+            root.spawn([term, "-e", ...entry.command], entry.workingDirectory);
+            return;
+        }
         root.spawn(entry.command, entry.workingDirectory);
     }
 
     function spawn(command, workingDirectory): void {
         if (!command || command.length === 0)
             return;
-        const cleanCmd = Array.from(command).filter(arg => typeof arg === "string" && !arg.match(/^%[fFuUdDnNickvm]$/));
+        const cleanCmd = Array.from(command)
+            .filter(arg => typeof arg === "string" && !arg.match(/^%[fFuUdDnNickvm]$/))
+            .map(arg => typeof arg === "string" ? arg.replace(/%[fFuUdDnNickvm]/g, "") : arg);
         Quickshell.execDetached({
             command: cleanCmd.length > 0 ? cleanCmd : Array.from(command),
             environment: {

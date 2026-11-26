@@ -74,8 +74,15 @@ Scope {
 	function tryUnlock() {
 		if (currentText === "") return;
 
+		passwordClearTimer.stop();
 		root.unlockInProgress = true;
-		pam.start();
+		try {
+			pam.start();
+		} catch (e) {
+			root.unlockInProgress = false;
+			root.showFailure = true;
+			root.failed();
+		}
 	}
 
 	PamContext {
@@ -92,6 +99,7 @@ Scope {
 		}
 
 		onCompleted: result => {
+			passwordClearTimer.stop();
 			if (result == PamResult.Success) {
 				root.unlocked();
 			} else {

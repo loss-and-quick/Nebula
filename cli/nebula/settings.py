@@ -162,7 +162,7 @@ def section(name: str) -> dict:
     return dict(sec) if isinstance(sec, dict) else {}
 
 
-def update(name: str, patch: dict) -> None:
+def update(name: str, patch: dict, replace: bool = False) -> None:
     locks = get_locks()
     user_path = _user_settings_path()
     user_data = load_user()
@@ -173,6 +173,14 @@ def update(name: str, patch: dict) -> None:
         if is_path_locked(locks, f"{name}.{k}"):
             sec.pop(k, None)
             modified = True
+
+    if replace:
+        # Replace mode: drop unlocked keys absent from the patch so the
+        # section ends up exactly as patched (locked keys stay excluded).
+        for k in list(sec.keys()):
+            if k not in patch:
+                sec.pop(k, None)
+                modified = True
 
     for k, v in patch.items():
         path = f"{name}.{k}"

@@ -37,10 +37,10 @@ def _read_settings() -> dict:
         return {}
 
 
-def _write_settings(data: dict) -> None:
+def _write_settings(data: dict, replace_sections: set | None = None) -> None:
     for section_name, patch in data.items():
         if isinstance(patch, dict):
-            settings.update(section_name, patch)
+            settings.update(section_name, patch, replace=bool(replace_sections and section_name in replace_sections))
 
 
 def _panel_keys(general: dict) -> dict:
@@ -233,7 +233,7 @@ def apply_sections(sections: dict, only=None, emit=False) -> list:
                 to_write["widgets"] = {**value, **{k: v for k, v in cur.items() if k in WIDGET_DATA}}
             else:
                 to_write[key] = value
-        _write_settings(to_write)
+        _write_settings(to_write, replace_sections={k for k in to_write if k != "general"})
     return applied
 
 

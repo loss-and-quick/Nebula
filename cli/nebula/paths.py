@@ -65,7 +65,7 @@ def dropin_files() -> list[Path]:
 
     return files
 
-MOVED = [
+MOVED: list[tuple[Path, Path]] = [
     (CACHE_DIR / "settings.json", SETTINGS),
     (CACHE_DIR / "notes.json", CONFIG_DIR / "notes.json"),
     (CACHE_DIR / "scenes.json", CONFIG_DIR / "scenes.json"),
@@ -81,7 +81,7 @@ def _greeter_reads(path: Path) -> bool:
     if not shutil.which("getfacl"):
         return False
     try:
-        pwd.getpwnam("greeter")
+        _ = pwd.getpwnam("greeter")
         r = subprocess.run(["getfacl", "-p", str(path)], capture_output=True, text=True, timeout=5)
     except (KeyError, OSError, subprocess.SubprocessError):
         return False
@@ -90,15 +90,15 @@ def _greeter_reads(path: Path) -> bool:
 
 def _share_with_greeter() -> None:
     for args in (["-m", "u:greeter:rx"], ["-d", "-m", "u:greeter:r"]):
-        subprocess.run(["setfacl", *args, str(CONFIG_DIR)], capture_output=True, timeout=5)
+        _ = subprocess.run(["setfacl", *args, str(CONFIG_DIR)], capture_output=True, timeout=5)
     if SETTINGS.exists():
-        subprocess.run(["setfacl", "-m", "u:greeter:r", str(SETTINGS)], capture_output=True, timeout=5)
+        _ = subprocess.run(["setfacl", "-m", "u:greeter:r", str(SETTINGS)], capture_output=True, timeout=5)
     if CUSTOM_COLORS.exists():
-        subprocess.run(["setfacl", "-m", "u:greeter:r", str(CUSTOM_COLORS)], capture_output=True, timeout=5)
+        _ = subprocess.run(["setfacl", "-m", "u:greeter:r", str(CUSTOM_COLORS)], capture_output=True, timeout=5)
 
 
 def migrate() -> list[tuple[Path, Path]]:
-    moved = []
+    moved: list[tuple[Path, Path]] = []
     for d in (CONFIG_DIR, STATE_DIR):
         try:
             d.mkdir(parents=True, exist_ok=True)
@@ -109,7 +109,7 @@ def migrate() -> list[tuple[Path, Path]]:
             continue
         try:
             dst.parent.mkdir(parents=True, exist_ok=True)
-            shutil.move(str(src), str(dst))
+            _ = shutil.move(str(src), str(dst))
         except OSError:
             continue
         moved.append((src, dst))

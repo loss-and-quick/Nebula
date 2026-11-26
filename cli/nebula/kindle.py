@@ -496,8 +496,8 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
-    def log_message(self, fmt, *args):
-        sys.stderr.write(f"{datetime.now():%H:%M:%S} {self.client_address[0]} {fmt % args}\n")
+    def log_message(self, format, *args):
+        sys.stderr.write(f"{datetime.now():%H:%M:%S} {self.client_address[0]} {format % args}\n")
 
 
 def main():

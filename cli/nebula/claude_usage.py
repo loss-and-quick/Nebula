@@ -19,6 +19,7 @@ import time
 from collections import defaultdict
 from datetime import datetime, timedelta
 from pathlib import Path
+from typing import Any, TypedDict, cast
 
 PROJECTS = Path.home() / ".claude" / "projects"
 HISTORY  = Path.home() / ".claude" / "history.jsonl"
@@ -35,6 +36,38 @@ BLOCK_SEC      = 5 * 3600
 WEEK_SEC       = 7 * 24 * 3600
 EVENT_KEEP_SEC = 12 * 3600      # enough to always contain the open block's start
 HOUR_KEEP_SEC  = 90 * 24 * 3600 # hourly buckets, for scaling against past peaks
+
+
+class UsageSlot(TypedDict):
+    tokens: int
+    input: int
+    output: int
+    cacheRead: int
+    cacheWrite: int
+    messages: int
+    models: dict[str, int]
+    sessions: list[str]
+
+
+class CacheFile(TypedDict):
+    offset: int
+    size: int
+
+
+class CacheData(TypedDict):
+    version: int
+    files: dict[str, CacheFile]
+    days: dict[str, UsageSlot]
+    events: list[list[int]]
+    hours: dict[str, int]
+
+
+class SeriesEntry(TypedDict):
+    date: str
+    weekday: str
+    tokens: int
+    messages: int
+    sessions: int
 
 
 def _day(ts: str) -> str:
@@ -55,15 +88,19 @@ def _hour_key(epoch: float) -> str:
     return datetime.fromtimestamp(epoch).strftime("%Y-%m-%dT%H")
 
 
-def _empty():
+def _empty() -> UsageSlot:
     return {"tokens": 0, "input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0,
             "messages": 0, "models": {}, "sessions": []}
 
 
-def _merge(into: dict, day: str, add: dict):
+def _merge(into: dict[str, UsageSlot], day: str, add: UsageSlot) -> None:
     slot = into.setdefault(day, _empty())
-    for key in ("tokens", "input", "output", "cacheRead", "cacheWrite", "messages"):
-        slot[key] += add[key]
+    slot["tokens"] += add["tokens"]
+    slot["input"] += add["input"]
+    slot["output"] += add["output"]
+    slot["cacheRead"] += add["cacheRead"]
+    slot["cacheWrite"] += add["cacheWrite"]
+    slot["messages"] += add["messages"]
     for model, count in add["models"].items():
         slot["models"][model] = slot["models"].get(model, 0) + count
     for session in add["sessions"]:
@@ -71,46 +108,53 @@ def _merge(into: dict, day: str, add: dict):
             slot["sessions"].append(session)
 
 
-def _scan(path: Path, offset: int):
+def _scan(path: Path, offset: int) -> tuple[defaultdict[str, UsageSlot], list[list[int]], dict[str, int], int]:
     """Totals per day from `offset` onward, plus events, hourly buckets and the new offset."""
-    days = defaultdict(_empty)
-    events = []
-    hours = defaultdict(int)
+    days: defaultdict[str, UsageSlot] = defaultdict(_empty)
+    events: list[list[int]] = []
+    hours: defaultdict[str, int] = defaultdict(int)
     session = path.stem
     with open(path, "r", errors="ignore") as fh:
-        fh.seek(offset)
+        _ = fh.seek(offset)
         for line in fh:
             if not line.endswith("\n"):
                 break                      # a half-written line: stop, re-read next time
             offset += len(line.encode("utf-8", "ignore"))
             try:
-                entry = json.loads(line)
+                entry_val: Any = json.loads(line)
             except Exception:
                 continue
-            message = entry.get("message") or {}
-            usage = message.get("usage")
-            if not usage:
+            if not isinstance(entry_val, dict):
                 continue
-            day = _day(entry.get("timestamp", ""))
+            entry: dict[str, Any] = cast(dict[str, Any], entry_val)
+            message_val = entry.get("message")
+            if not isinstance(message_val, dict):
+                continue
+            message: dict[str, Any] = cast(dict[str, Any], message_val)
+            usage_val = message.get("usage")
+            if not isinstance(usage_val, dict):
+                continue
+            usage: dict[str, Any] = cast(dict[str, Any], usage_val)
+            day = _day(str(entry.get("timestamp", "")))
             if not day:
                 continue
             slot = days[day]
-            inp   = usage.get("input_tokens", 0) or 0
-            out   = usage.get("output_tokens", 0) or 0
-            read  = usage.get("cache_read_input_tokens", 0) or 0
-            write = usage.get("cache_creation_input_tokens", 0) or 0
+            inp = int(usage.get("input_tokens", 0) or 0)
+            out = int(usage.get("output_tokens", 0) or 0)
+            read = int(usage.get("cache_read_input_tokens", 0) or 0)
+            write = int(usage.get("cache_creation_input_tokens", 0) or 0)
             slot["input"] += inp
             slot["output"] += out
             slot["cacheRead"] += read
             slot["cacheWrite"] += write
             slot["tokens"] += inp + out + read + write
             slot["messages"] += 1
-            model = message.get("model") or entry.get("model") or "unknown"
+            model = str(message.get("model") or entry.get("model") or "unknown")
             slot["models"][model] = slot["models"].get(model, 0) + inp + out + read + write
             if session not in slot["sessions"]:
                 slot["sessions"].append(session)
 
-            epoch = _epoch(entry.get("timestamp", ""))
+            epoch = _epoch(str(entry.get("timestamp", "")))
             if epoch > 0:
                 total = inp + out + read + write
                 events.append([int(epoch), total])
@@ -120,19 +164,21 @@ def _scan(path: Path, offset: int):
 
 def _safe_hour(key: str) -> bool:
     try:
-        datetime.strptime(key, "%Y-%m-%dT%H")
+        _ = datetime.strptime(key, "%Y-%m-%dT%H")
         return True
     except Exception:
         return False
 
 
-def _load_cache():
+def _load_cache() -> CacheData:
     try:
-        cached = json.loads(CACHE.read_text())
-        if cached.get("version") == CACHE_VERSION:
-            cached.setdefault("events", [])
-            cached.setdefault("hours", {})
-            return cached
+        cached_val: Any = json.loads(CACHE.read_text())
+        if isinstance(cached_val, dict):
+            cached_raw: dict[str, Any] = cast(dict[str, Any], cached_val)
+            if cached_raw.get("version") == CACHE_VERSION:
+                cached_raw.setdefault("events", [])
+                cached_raw.setdefault("hours", {})
+                return cast(CacheData, cast(object, cached_raw))
     except Exception:
         pass
     # A version bump forces one full rescan, which is how the event and hourly
@@ -140,7 +186,7 @@ def _load_cache():
     return {"version": CACHE_VERSION, "files": {}, "days": {}, "events": [], "hours": {}}
 
 
-def _recent_prompt():
+def _recent_prompt() -> tuple[str | None, float, str]:
     """Last prompt and how long ago, from the live history file."""
     if not HISTORY.is_file():
         return None, 0.0, ""
@@ -155,12 +201,18 @@ def _recent_prompt():
     if not last:
         return None, 0.0, ""
     try:
-        entry = json.loads(last)
+        entry_raw: Any = json.loads(last)
+        if not isinstance(entry_raw, dict):
+            return None, 0.0, ""
+        entry: dict[str, Any] = cast(dict[str, Any], entry_raw)
     except Exception:
         return None, 0.0, ""
-    age = max(0.0, time.time() - entry.get("timestamp", 0) / 1000.0)
-    project = os.path.basename(entry.get("project", "") or "")
-    return entry.get("display", ""), age, project
+    ts_val = entry.get("timestamp", 0)
+    ts = float(ts_val) if isinstance(ts_val, (int, float)) else 0.0
+    age = max(0.0, time.time() - ts / 1000.0)
+    project = os.path.basename(str(entry.get("project", "") or ""))
+    display = entry.get("display")
+    return str(display) if display is not None else None, age, project
 
 
 def main() -> int:
@@ -170,7 +222,7 @@ def main() -> int:
         if idx + 1 < len(sys.argv):
             days_wanted = max(1, min(90, int(sys.argv[idx + 1])))
 
-    cache = ({"version": CACHE_VERSION, "files": {}, "days": {}, "events": [], "hours": {}}
+    cache: CacheData = ({"version": CACHE_VERSION, "files": {}, "days": {}, "events": [], "hours": {}}
              if "--rescan" in sys.argv else _load_cache())
     files, totals = cache["files"], cache["days"]
 
@@ -185,7 +237,7 @@ def main() -> int:
             size = path.stat().st_size
         except OSError:
             continue
-        seen = files.get(key, {"offset": 0, "size": 0})
+        seen: CacheFile = files.get(key, {"offset": 0, "size": 0})
         if seen["offset"] > size:          # truncated or replaced — start over
             seen = {"offset": 0, "size": 0}
         if seen["offset"] == size:
@@ -207,11 +259,11 @@ def main() -> int:
 
     CACHE.parent.mkdir(parents=True, exist_ok=True)
     tmp = CACHE.with_suffix(".tmp")
-    tmp.write_text(json.dumps(cache))
+    _ = tmp.write_text(json.dumps(cache))
     os.replace(tmp, CACHE)
 
     today = datetime.now().strftime("%Y-%m-%d")
-    series = []
+    series: list[SeriesEntry] = []
     for back in range(days_wanted - 1, -1, -1):
         date = (datetime.now() - timedelta(days=back)).strftime("%Y-%m-%d")
         slot = totals.get(date, _empty())
@@ -228,23 +280,26 @@ def main() -> int:
     # works: the first message opens a block, and the first message after it
     # expires opens the next one.
     events = cache["events"]
-    block_start = None
-    for ts, _tok in events:
+    block_start: float | None = None
+    for event in events:
+        ts = event[0]
         if block_start is None or ts - block_start >= BLOCK_SEC:
-            block_start = ts
+            block_start = float(ts)
 
     block_active = block_start is not None and (now_epoch - block_start) < BLOCK_SEC
     block_tokens = 0
     block_messages = 0
-    if block_active:
-        for ts, tok in events:
+    if block_active and block_start is not None:
+        for event in events:
+            ts = event[0]
+            tok = event[1]
             if ts >= block_start:
                 block_tokens += tok
                 block_messages += 1
 
     hours = cache["hours"]
 
-    def _window_sum(end_epoch, length):
+    def _window_sum(end_epoch: float, length: float) -> int:
         start = end_epoch - length
         total = 0
         for hour, count in hours.items():
@@ -259,7 +314,7 @@ def main() -> int:
     week_tokens = _window_sum(now_epoch, WEEK_SEC)
 
     # Scale bars against the user's own history rather than inventing a limit.
-    hour_epochs = sorted(
+    hour_epochs: list[tuple[float, int]] = sorted(
         (datetime.strptime(h, "%Y-%m-%dT%H").timestamp(), c)
         for h, c in hours.items()
         if _safe_hour(h)
@@ -286,7 +341,7 @@ def main() -> int:
     week_peak = max(week_peak, week_tokens)
 
     now = totals.get(today, _empty())
-    models = sorted(((n, c) for n, c in now["models"].items() if c > 0), key=lambda kv: -kv[1])
+    models: list[tuple[str, int]] = sorted(((n, c) for n, c in now["models"].items() if c > 0), key=lambda kv: -kv[1])
     prompt, age, project = _recent_prompt()
 
     print(json.dumps({
@@ -306,9 +361,9 @@ def main() -> int:
             "active": block_active,
             "tokens": block_tokens,
             "messages": block_messages,
-            "startedAt": int(block_start) if block_active else 0,
-            "endsAt": int(block_start + BLOCK_SEC) if block_active else 0,
-            "secondsLeft": max(0, int(block_start + BLOCK_SEC - now_epoch)) if block_active else 0,
+            "startedAt": int(block_start) if (block_active and block_start is not None) else 0,
+            "endsAt": int(block_start + BLOCK_SEC) if (block_active and block_start is not None) else 0,
+            "secondsLeft": max(0, int(block_start + BLOCK_SEC - now_epoch)) if (block_active and block_start is not None) else 0,
             "peak": block_peak,
         },
         "week": {

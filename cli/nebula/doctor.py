@@ -5,8 +5,17 @@ import os
 import shutil
 import sys
 from pathlib import Path
+from typing import TypedDict
 
 from nebula.paths import HOME
+
+
+class CheckRow(TypedDict):
+    kind: str
+    name: str
+    package: str
+    what: str
+    ok: bool
 
 TOOLS = [
     ("quickshell",    "quickshell",     "The shell itself"),
@@ -50,8 +59,8 @@ MODULES = [
 ]
 
 
-def check():
-    rows = []
+def check() -> list[CheckRow]:
+    rows: list[CheckRow] = []
     for cmd, pkg, what in TOOLS:
         rows.append({"kind": "command", "name": cmd, "package": pkg, "what": what,
                      "ok": shutil.which(cmd) is not None})
@@ -68,16 +77,16 @@ def check():
                  "package": "", "what": "App colour templates", "ok": templates.is_dir()})
     try:
         from nebula import settings
-        from nebula.paths import CUSTOM_COLORS
+        from nebula.paths import CUSTOM_COLORS, dropin_files
         theme_sec = settings.section("theme")
         gen_sec = settings.section("general")
         custom_active = (theme_sec.get("matugenScheme") == "scheme-custom" or gen_sec.get("palette") == "custom")
-        custom_path_str = gen_sec.get("palettePath")
-        custom_file = Path(os.path.expanduser(custom_path_str)) if custom_path_str else CUSTOM_COLORS
+        custom_path_val = gen_sec.get("palettePath")
+        custom_file = Path(os.path.expanduser(custom_path_val)) if isinstance(custom_path_val, str) else CUSTOM_COLORS
         disp_name = str(custom_file).replace(str(HOME), "~", 1)
         if custom_file.is_file():
             try:
-                json.loads(custom_file.read_text())
+                _ = json.loads(custom_file.read_text())
                 valid_json = True
             except Exception:
                 valid_json = False
@@ -109,7 +118,7 @@ def check():
                 "ok": True,
             })
 
-        dropins = settings.dropin_files()
+        dropins = dropin_files()
         locks = settings.get_locks()
         dropin_info = f"{len(dropins)} found"
         if locks:
@@ -124,7 +133,7 @@ def check():
 
 def run(as_json: bool) -> int:
     try:
-        rows = check()
+        rows: list[CheckRow] = check()
     except Exception as e:
         rows = [{"kind": "diagnostic", "name": "doctor", "package": "",
                  "what": f"Unable to complete checks: {e}", "ok": False}]
@@ -139,7 +148,7 @@ def run(as_json: bool) -> int:
         tail = f"  ({r['package']})" if not r["ok"] and r["package"] else ""
         print(f"  {good if r['ok'] else bad} {r['name']:<22} {r['what']}{tail}")
     print(f"\npython: {sys.executable}")
-    pkgs = sorted({str(r["package"]) for r in missing if r["package"]})
+    pkgs = sorted({r["package"] for r in missing if r["package"]})
     if pkgs:
         packages = " ".join(pkgs)
         if shutil.which("pacman"):

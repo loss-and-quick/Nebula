@@ -324,7 +324,7 @@ def import_file(src: str, name: str | None = None) -> int:
     if name:
         doc["name"] = name
     raw_name = doc.get('name')
-    doc_name = str(raw_name) if raw_name is not None else p.stem
+    doc_name = str(raw_name) if raw_name else p.stem
     dest = DIR / f"{slug(doc_name)}.json"
     _atomic_json(dest, doc)
     print(str(dest))

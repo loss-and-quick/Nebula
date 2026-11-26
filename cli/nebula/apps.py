@@ -4,7 +4,9 @@ import json
 import os
 import shutil
 import sys
+from collections.abc import Iterable, Sequence
 from pathlib import Path
+from typing import NotRequired, TypedDict, cast
 
 from nebula import settings
 from nebula.paths import SHELL_DIR, STATE_DIR
@@ -45,7 +47,41 @@ PAPIRUS_DIRS = [
 
 LIB_DIRS = [Path("/usr/lib"), Path("/usr/lib64"), Path("/usr/lib/x86_64-linux-gnu")]
 
-APPS = [
+class AppFile(TypedDict):
+    input: str
+    output: str
+    bins: NotRequired[list[str]]
+    needs: NotRequired[str]
+
+
+class AppDef(TypedDict):
+    id: str
+    name: str
+    group: str
+    bins: NotRequired[list[str]]
+    libs: NotRequired[list[str]]
+    browsers: NotRequired[list[str]]
+    files: NotRequired[list[AppFile]]
+    hook: NotRequired[str]
+    note: NotRequired[str]
+    whole: NotRequired[bool]
+    papirus: NotRequired[bool]
+    vaults: NotRequired[bool]
+
+
+class DetectedApp(TypedDict):
+    id: str
+    name: str
+    group: str
+    installed: bool
+    found: str
+    hint: str
+    note: str
+    targets: list[str]
+    replacesFile: bool
+
+
+APPS: list[AppDef] = [
     {"id": "kitty", "name": "kitty", "group": "terminal", "bins": ["kitty"],
      "files": [{"input": "kitty-colors.conf", "output": ".config/kitty/colors.conf"}]},
     {"id": "tmux", "name": "tmux", "group": "terminal", "bins": ["tmux"],
@@ -80,16 +116,16 @@ APPS = [
      "files": [{"input": "colors.css", "output": ".config/nwg-dock-hyprland/colors.css"}]},
 ]
 
-BY_ID = {a["id"]: a for a in APPS}
+BY_ID: dict[str, AppDef] = {a["id"]: a for a in APPS}
 
 
-def pretty(path) -> str:
+def pretty(path: Path | str) -> str:
     s = str(path)
     h = str(HOME)
     return "~" + s[len(h):] if s.startswith(h + "/") else s
 
 
-def which(names):
+def which(names: Sequence[str] | None) -> str:
     for n in names or []:
         p = shutil.which(n)
         if p:
@@ -97,7 +133,7 @@ def which(names):
     return ""
 
 
-def find_lib(names):
+def find_lib(names: Sequence[str] | None) -> str:
     for n in names or []:
         for d in LIB_DIRS:
             if (d / n).exists():
@@ -105,26 +141,34 @@ def find_lib(names):
     return ""
 
 
-def obsidian_vaults():
+def obsidian_vaults() -> list[Path]:
     cfg = HOME / ".config" / "obsidian" / "obsidian.json"
     try:
-        vaults = json.loads(cfg.read_text()).get("vaults", {})
+        raw: object = json.loads(cfg.read_text())
+        vaults: object = cast(dict[str, object], raw).get("vaults", {}) if isinstance(raw, dict) else {}
     except Exception:
         return []
-    out = []
-    for v in vaults.values():
-        p = Path(v.get("path", ""))
-        if p.is_dir() and (p / ".obsidian").is_dir():
-            out.append(p)
+    out: list[Path] = []
+    if isinstance(vaults, dict):
+        for v in cast(dict[str, object], vaults).values():
+            if isinstance(v, dict):
+                v_dict = cast(dict[str, object], v)
+                p_val = v_dict.get("path")
+                if isinstance(p_val, str):
+                    p = Path(p_val)
+                    if p.is_dir() and (p / ".obsidian").is_dir():
+                        out.append(p)
     return out
 
 
-def targets(app):
-    out = []
+def targets(app: AppDef) -> list[tuple[Path, Path]]:
+    out: list[tuple[Path, Path]] = []
     for f in app.get("files", []):
-        if f.get("bins") and not which(f["bins"]):
+        bins = f.get("bins")
+        if bins and not which(bins):
             continue
-        if f.get("needs") and not (HOME / f["needs"]).is_dir():
+        needs = f.get("needs")
+        if needs and not (HOME / needs).is_dir():
             continue
         if app.get("vaults"):
             for v in obsidian_vaults():
@@ -134,12 +178,15 @@ def targets(app):
     return out
 
 
-def enabled_ids():
-    ids = settings.section("theme").get("themeApps")
-    return set(ids) if isinstance(ids, list) else None
+def enabled_ids() -> set[str] | None:
+    raw: object = settings.section("theme").get("themeApps")
+    if isinstance(raw, list):
+        items = cast(list[object], raw)
+        return {str(x) for x in items}
+    return None
 
 
-def parse_ids(arg: str):
+def parse_ids(arg: str | None) -> set[str] | None:
     return {s for s in arg.split(",") if s} if arg is not None else None
 
 
@@ -147,24 +194,28 @@ def _sha(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
-def load_manifest() -> dict:
+def load_manifest() -> dict[str, str]:
     try:
-        return json.loads(MANIFEST.read_text())
+        raw: object = json.loads(MANIFEST.read_text())
+        if isinstance(raw, dict):
+            d = cast(dict[object, object], raw)
+            return {str(k): str(v) for k, v in d.items()}
     except Exception:
-        return {}
+        pass
+    return {}
 
 
-def save_manifest(m: dict) -> None:
+def save_manifest(m: dict[str, str]) -> None:
     try:
         MANIFEST.parent.mkdir(parents=True, exist_ok=True)
         tmp = MANIFEST.with_suffix(".tmp")
-        tmp.write_text(json.dumps(m, indent=1))
+        _ = tmp.write_text(json.dumps(m, indent=1))
         os.replace(tmp, MANIFEST)
     except Exception as e:
         print(f"[theme_apps] manifest ERROR: {e}", file=sys.stderr)
 
 
-def is_user_file(path: Path, manifest: dict) -> bool:
+def is_user_file(path: Path, manifest: dict[str, str]) -> bool:
     if path.is_symlink():
         return True
     if not path.is_file():
@@ -184,22 +235,22 @@ def _free_backup(path: Path) -> Path:
     return bak
 
 
-def backup_if_user_file(app, path: Path, manifest: dict) -> bool:
+def backup_if_user_file(app: AppDef, path: Path, manifest: dict[str, str]) -> bool:
     if not app.get("whole") or not is_user_file(path, manifest):
         return False
-    shutil.copy2(path, _free_backup(path), follow_symlinks=True)
+    _ = shutil.copy2(path, _free_backup(path), follow_symlinks=True)
     return True
 
 
-def record(path: Path, content: str, manifest: dict) -> None:
+def record(path: Path, content: str, manifest: dict[str, str]) -> None:
     manifest[str(path)] = _sha(content.encode())
 
 
-def locate(app) -> str:
+def locate(app: AppDef) -> str:
     return find_lib(app.get("libs")) if app.get("libs") else which(app.get("bins"))
 
 
-def is_installed(app) -> bool:
+def is_installed(app: AppDef) -> bool:
     if not locate(app):
         return False
     if app.get("papirus"):
@@ -209,7 +260,7 @@ def is_installed(app) -> bool:
     return True
 
 
-def detect_one(app, manifest):
+def detect_one(app: AppDef, manifest: dict[str, str]) -> DetectedApp:
     found = locate(app)
     hint = ""
     installed = bool(found)
@@ -217,7 +268,7 @@ def detect_one(app, manifest):
         installed = installed and any(p.exists() for p in PAPIRUS_DIRS)
         if not found and any(p.exists() for p in PAPIRUS_DIRS):
             hint = "Install papirus-folders"
-    if app["id"] == "firefox" and not installed and which(app["browsers"]):
+    if app["id"] == "firefox" and not installed and which(app.get("browsers")):
         hint = "Install python-pywalfox and its browser add-on"
     tg = targets(app) if installed else []
     if app.get("vaults") and installed and not tg:
@@ -240,22 +291,23 @@ def detect_one(app, manifest):
     }
 
 
-def detect():
+def detect() -> list[DetectedApp]:
     manifest = load_manifest()
     return [detect_one(a, manifest) for a in APPS]
 
 
-def picked_ids(detected=None):
+def picked_ids(detected: list[DetectedApp] | None = None) -> set[str]:
     saved = enabled_ids()
     if saved is not None:
         return saved
-    detected = detected if detected is not None else detect()
-    return {a["id"] for a in detected if a["installed"]}
+    active = detected if detected is not None else detect()
+    return {a["id"] for a in active if a["installed"]}
 
 
-def _save(ids) -> None:
+def _save(ids: Iterable[str]) -> None:
     order = [a["id"] for a in APPS]
-    settings.update("theme", {"themeApps": sorted(ids, key=lambda i: order.index(i) if i in order else 99)})
+    id_list: list[str] = list(ids)
+    settings.update("theme", {"themeApps": sorted(id_list, key=lambda i: order.index(i) if i in order else 99)})
 
 
 def _apply_now() -> int:
@@ -289,7 +341,7 @@ def print_list(as_json: bool) -> int:
     return 0
 
 
-def set_picked(ids, on: bool, apply_now: bool) -> int:
+def set_picked(ids: Sequence[str], on: bool, apply_now: bool) -> int:
     unknown = [i for i in ids if i not in BY_ID]
     if unknown:
         print(f"nebula: unknown app id: {', '.join(unknown)}. See `nebula apps`.", file=sys.stderr)
@@ -307,6 +359,6 @@ def reset(apply_now: bool) -> int:
     return _apply_now() if apply_now else 0
 
 
-def main():
+def main() -> int:
     print(json.dumps(detect()))
     return 0

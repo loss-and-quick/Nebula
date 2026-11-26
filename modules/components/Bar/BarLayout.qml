@@ -500,7 +500,15 @@ Singleton {
     readonly property bool wallpaperItemHost: root.allBlocks.some(b => b.items.indexOf("wallpaper") >= 0)
 
     function panelItemHost(kind) {
-        return kind === "clipboard" ? root.clipboardItemHost : kind === "wallpaper" ? root.wallpaperItemHost : false;
+        return root.itemHostBase(kind);
+    }
+
+    function itemHostBase(kind) {
+        if (kind === "clipboard")
+            return root.clipboardItemHost;
+        if (kind === "wallpaper")
+            return root.wallpaperItemHost;
+        return false;
     }
 
     readonly property bool sysPanelOpen: (GlobalStates.clipboardOpen && !root.clipboardItemHost) || (GlobalStates.wallpaperOpen && !root.wallpaperItemHost) || ((GlobalStates.panelPreview === "wallpaper" || GlobalStates.panelPreview === "clipboard") && !root.panelItemHost(GlobalStates.panelPreview)) || (GlobalStates.osdOpen && root.osdHostItem === "")
@@ -988,11 +996,19 @@ Singleton {
         const b = root.blockById(blockId);
         if (!b)
             return "";
-        const name = b.anchor === "center" ? "Centre" : (b.anchor === "left" ? "Left" : "Right");
+        const name = root.anchorName(b.anchor);
         const same = root.allBlocks.filter(x => x.anchor === b.anchor && x.edge === b.edge);
         if (same.length < 2)
             return name;
         return name + " " + (same.findIndex(x => x.id === blockId) + 1);
+    }
+
+    function anchorName(anchor) {
+        if (anchor === "center")
+            return "Centre";
+        if (anchor === "left")
+            return "Left";
+        return "Right";
     }
 
     readonly property var margins: root._stable("margins", SettingsConfig.bar?.margins ?? ({}))
@@ -1344,7 +1360,17 @@ Singleton {
         return ids.find(id => root.baseId(id) === "notifications") ?? "";
     }
     readonly property string osdHostItem: root.shownItemIds().find(i => root.baseId(i) === "osd") ?? ""
-    readonly property string popupMode: (SettingsConfig.notifications?.popupLook ?? "cards") === "island" ? "island" : root.popupHostItem !== "" ? "item" : (SettingsConfig.general?.notifPopupStyle ?? "item") === "icon" ? "icon" : "corner"
+    readonly property string popupMode: root.resolvePopupMode()
+
+    function resolvePopupMode() {
+        if ((SettingsConfig.notifications?.popupLook ?? "cards") === "island")
+            return "island";
+        if (root.popupHostItem !== "")
+            return "item";
+        if ((SettingsConfig.general?.notifPopupStyle ?? "item") === "icon")
+            return "icon";
+        return "corner";
+    }
 
     function panelHostItem(kind) {
         if (kind === "calendar")

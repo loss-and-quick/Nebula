@@ -34,6 +34,81 @@ Item {
         return !!w && w.active;
     }
 
+    // Workspace visual state helpers. wsState is "active" | "occupied" | "empty".
+    function capsuleStyle(wsState) {
+        switch (wsState) {
+        case "active":
+            return { width: 12 * cozy.k, height: 15 * cozy.k, radius: 5 * cozy.k, color: Colors.primaryContainer, borderWidth: 0 };
+        case "occupied":
+            return { width: 10 * cozy.k, height: 13 * cozy.k, radius: 4.5 * cozy.k, color: Qt.darker(Colors.primaryContainer, 1.9), borderWidth: 1.2 * cozy.k };
+        default:
+            return { width: 9 * cozy.k, height: 12 * cozy.k, radius: 4.5 * cozy.k, color: "transparent", borderWidth: 1.2 * cozy.k };
+        }
+    }
+
+    function starRadius(wsState, windows) {
+        switch (wsState) {
+        case "active":
+            return 8 * cozy.k;
+        case "occupied":
+            return (3 + Math.min(windows, 4)) * cozy.k;
+        default:
+            return 0;
+        }
+    }
+
+    function paneColor(wsState) {
+        switch (wsState) {
+        case "active":
+            return Colors.primary;
+        case "occupied":
+            return Qt.alpha(Colors.primaryContainer, 0.55);
+        default:
+            return Colors.surfaceContainerHighest;
+        }
+    }
+
+    function mapSize(wsState) {
+        switch (wsState) {
+        case "active":
+            return { width: 30 * cozy.k, height: 20 * cozy.k };
+        case "occupied":
+            return { width: 24 * cozy.k, height: 16 * cozy.k };
+        default:
+            return { width: 5 * cozy.k, height: 12 * cozy.k };
+        }
+    }
+
+    function mapColor(wsState) {
+        switch (wsState) {
+        case "active":
+            return Qt.alpha(Colors.primary, 0.16);
+        case "occupied":
+            return Colors.surfaceContainer;
+        default:
+            return Colors.surfaceContainerHighest;
+        }
+    }
+
+    function mapBorder(wsState, shownFull) {
+        if (!shownFull)
+            return { width: 0, color: Colors.outlineVariant };
+        if (wsState === "active")
+            return { width: 1.4 * cozy.k, color: Colors.primary };
+        return { width: 1 * cozy.k, color: Colors.outlineVariant };
+    }
+
+    function dialTick(wsState) {
+        switch (wsState) {
+        case "active":
+            return { color: Colors.primary, opacity: 1 };
+        case "occupied":
+            return { color: Colors.secondary, opacity: 0.8 };
+        default:
+            return { color: Colors.outlineVariant, opacity: 1 };
+        }
+    }
+
     component Slot: QtObject {
         required property int wsId
         property Item owner: null
@@ -42,6 +117,7 @@ Item {
         readonly property bool occupied: !!ws && !onOther
         readonly property bool active: !!owner && !onOther && (owner.perMonitorMode ? wsId === owner.activeWsId : (!!ws && ws.active))
         readonly property int windows: occupied && ws.toplevels ? ws.toplevels.values.length : 0
+        readonly property string wsState: active ? "active" : occupied ? "occupied" : "empty"
     }
 
     Loader {
@@ -96,7 +172,7 @@ Item {
                     required property int modelData
                     required property int index
                     Slot {
-                        id: st
+                        id: lanSt
                         wsId: lan.modelData
                         owner: cozy.owner
                     }
@@ -116,7 +192,7 @@ Item {
                         height: 24 * cozy.k
                         radius: 12 * cozy.k
                         color: Colors.primaryContainer
-                        opacity: st.active ? 0.3 : 0
+                        opacity: lanSt.wsState === "active" ? 0.3 : 0
                         Behavior on opacity {
                             EffectsAnim {}
                         }
@@ -128,9 +204,10 @@ Item {
                         width: 20 * cozy.k
                         height: 20 * cozy.k
                         transformOrigin: Item.Top
+                        readonly property var cap: cozy.capsuleStyle(lanSt.wsState)
 
                         SequentialAnimation on rotation {
-                            running: st.active
+                            running: lanSt.active
                             loops: Animation.Infinite
                             alwaysRunToEnd: true
                             NumberAnimation {
@@ -158,13 +235,13 @@ Item {
                         }
 
                         Rectangle {
-                            width: st.active ? 12 * cozy.k : st.occupied ? 10 * cozy.k : 9 * cozy.k
-                            height: st.active ? 15 * cozy.k : st.occupied ? 13 * cozy.k : 12 * cozy.k
+                            width: cap.width
+                            height: cap.height
                             x: 10 * cozy.k - width / 2
                             y: 4 * cozy.k
-                            radius: st.active ? 5 * cozy.k : 4.5 * cozy.k
-                            color: st.active ? Colors.primaryContainer : st.occupied ? Qt.darker(Colors.primaryContainer, 1.9) : "transparent"
-                            border.width: st.active || st.occupied ? 0 : 1.2 * cozy.k
+                            radius: cap.radius
+                            color: cap.color
+                            border.width: cap.borderWidth
                             border.color: Colors.outlineVariant
                             Behavior on width {
                                 SpatialAnim {
@@ -184,7 +261,7 @@ Item {
 
                             Rectangle {
                                 anchors.centerIn: parent
-                                visible: st.occupied && !st.active
+                                visible: lanSt.occupied && !lanSt.active
                                 width: 4 * cozy.k
                                 height: 7 * cozy.k
                                 radius: 2 * cozy.k
@@ -194,7 +271,7 @@ Item {
 
                             CustomText {
                                 anchors.centerIn: parent
-                                visible: st.active
+                                visible: lanSt.active
                                 content: lan.modelData
                                 size: Math.round(8 * cozy.k)
                                 weight: 700
@@ -215,7 +292,7 @@ Item {
                     MouseArea {
                         anchors.fill: parent
                         cursorShape: Qt.PointingHandCursor
-                        onClicked: cozy.go(lan.modelData, st.ws)
+                        onClicked: cozy.go(lan.modelData, lanSt.ws)
                     }
                 }
             }
@@ -352,7 +429,7 @@ Item {
                         id: pane
                         required property int modelData
                         Slot {
-                            id: st
+                            id: paneSt
                             wsId: pane.modelData
                             owner: cozy.owner
                         }
@@ -365,7 +442,7 @@ Item {
                             height: hf.win + 6 * cozy.k
                             radius: 4 * cozy.k
                             color: Colors.primaryContainer
-                            opacity: st.active ? 0.25 : 0
+                            opacity: paneSt.wsState === "active" ? 0.25 : 0
                             Behavior on opacity {
                                 EffectsAnim {}
                             }
@@ -374,7 +451,7 @@ Item {
                         Rectangle {
                             anchors.fill: parent
                             radius: 2 * cozy.k
-                            color: st.active ? Colors.primary : st.occupied ? Qt.alpha(Colors.primaryContainer, 0.55) : Colors.surfaceContainerHighest
+                            color: cozy.paneColor(paneSt.wsState)
                             border.width: 1 * cozy.k
                             border.color: Colors.outlineVariant
                             Behavior on color {
@@ -402,7 +479,7 @@ Item {
                             anchors.fill: parent
                             anchors.margins: -2 * cozy.k
                             cursorShape: Qt.PointingHandCursor
-                            onClicked: cozy.go(pane.modelData, st.ws)
+                            onClicked: cozy.go(pane.modelData, paneSt.ws)
                         }
                     }
                 }
@@ -456,12 +533,12 @@ Item {
                     required property int modelData
                     required property int index
                     Slot {
-                        id: st
+                        id: starSt
                         wsId: star.modelData
                         owner: cozy.owner
                     }
 
-                    readonly property real rad: (st.active ? 8 : st.occupied ? 3 + Math.min(st.windows, 4) : 0) * cozy.k
+                    readonly property real rad: cozy.starRadius(starSt.wsState, starSt.windows)
 
                     x: cf.px(star.index) - 9 * cozy.k
                     y: cf.py(star.index) - 9 * cozy.k
@@ -474,7 +551,7 @@ Item {
                         height: 18 * cozy.k
                         radius: 9 * cozy.k
                         color: Colors.primary
-                        opacity: st.active ? 0.22 : 0
+                        opacity: starSt.wsState === "active" ? 0.22 : 0
                         Behavior on opacity {
                             EffectsAnim {}
                         }
@@ -489,7 +566,7 @@ Item {
                         preferredRendererType: Shape.CurveRenderer
 
                         SequentialAnimation on scale {
-                            running: st.active
+                            running: starSt.active
                             loops: Animation.Infinite
                             alwaysRunToEnd: true
                             NumberAnimation {
@@ -507,7 +584,7 @@ Item {
                         ShapePath {
                             strokeWidth: 0
                             strokeColor: "transparent"
-                            fillColor: st.active ? Colors.primary : Colors.secondary
+                            fillColor: starSt.active ? Colors.primary : Colors.secondary
                             PathSvg {
                                 path: {
                                     const r = star.rad;
@@ -532,7 +609,7 @@ Item {
                     MouseArea {
                         anchors.fill: parent
                         cursorShape: Qt.PointingHandCursor
-                        onClicked: cozy.go(star.modelData, st.ws)
+                        onClicked: cozy.go(star.modelData, starSt.ws)
                     }
                 }
             }
@@ -568,15 +645,15 @@ Item {
                         id: fr
                         required property int modelData
                         Slot {
-                            id: st
+                            id: frSt
                             wsId: fr.modelData
                             owner: cozy.owner
                         }
-                        readonly property bool shownFull: st.occupied || st.active
+                        readonly property bool shownFull: frSt.occupied || frSt.active
 
                         anchors.verticalCenter: parent.verticalCenter
-                        width: st.active ? 30 * cozy.k : st.occupied ? 24 * cozy.k : 5 * cozy.k
-                        height: st.active ? 20 * cozy.k : st.occupied ? 16 * cozy.k : 12 * cozy.k
+                        width: cozy.mapSize(frSt.wsState).width
+                        height: cozy.mapSize(frSt.wsState).height
                         Behavior on width {
                             SpatialAnim {
                                 role: "workspace.switch"
@@ -593,26 +670,26 @@ Item {
                         Rectangle {
                             anchors.fill: parent
                             radius: fr.shownFull ? 4.5 * cozy.k : 2.5 * cozy.k
-                            color: st.active ? Qt.alpha(Colors.primary, 0.16) : st.occupied ? Colors.surfaceContainer : Colors.surfaceContainerHighest
-                            border.width: fr.shownFull ? (st.active ? 1.4 * cozy.k : 1 * cozy.k) : 0
-                            border.color: st.active ? Colors.primary : Colors.outlineVariant
+                            color: cozy.mapColor(frSt.wsState)
+                            border.width: cozy.mapBorder(frSt.wsState, fr.shownFull).width
+                            border.color: cozy.mapBorder(frSt.wsState, fr.shownFull).color
                         }
 
                         Item {
                             id: stage
                             anchors.fill: parent
                             anchors.margins: 2.5 * cozy.k
-                            visible: st.occupied
+                            visible: frSt.occupied
                             clip: true
 
-                            readonly property var mon: st.ws ? st.ws.monitor : null
+                            readonly property var mon: frSt.ws ? frSt.ws.monitor : null
                             readonly property real mx: stage.mon ? stage.mon.x : 0
                             readonly property real my: stage.mon ? stage.mon.y : 0
                             readonly property real mw: Math.max(1, stage.mon?.width ?? cozy.owner?.screenW ?? Quickshell.screens[0]?.width ?? 0)
                             readonly property real mh: Math.max(1, stage.mon?.height ?? cozy.owner?.screenH ?? Quickshell.screens[0]?.height ?? 0)
 
                             Repeater {
-                                model: st.ws ? st.ws.toplevels : null
+                                model: frSt.ws ? frSt.ws.toplevels : null
                                 delegate: Rectangle {
                                     required property var modelData
                                     readonly property var geo: modelData?.lastIpcObject ?? null
@@ -623,7 +700,7 @@ Item {
                                     width: placed ? Math.max(2 * cozy.k, geo.size[0] / stage.mw * stage.width - 1 * cozy.k) : 0
                                     height: placed ? Math.max(2 * cozy.k, geo.size[1] / stage.mh * stage.height - 1 * cozy.k) : 0
                                     radius: 1.2 * cozy.k
-                                    color: st.active ? Colors.primary : Qt.alpha(Colors.surfaceVariantText, 0.5)
+                                    color: frSt.active ? Colors.primary : Qt.alpha(Colors.surfaceVariantText, 0.5)
                                 }
                             }
                         }
@@ -631,7 +708,7 @@ Item {
                         MouseArea {
                             anchors.fill: parent
                             cursorShape: Qt.PointingHandCursor
-                            onClicked: cozy.go(fr.modelData, st.ws)
+                            onClicked: cozy.go(fr.modelData, frSt.ws)
                         }
                     }
                 }
@@ -678,7 +755,7 @@ Item {
                     required property int modelData
                     required property int index
                     Slot {
-                        id: st
+                        id: tickSt
                         wsId: tick.modelData
                         owner: cozy.owner
                     }
@@ -692,8 +769,8 @@ Item {
                         width: 3.5 * cozy.k
                         height: 2 * cozy.k
                         radius: 1 * cozy.k
-                        color: st.active ? Colors.primary : st.occupied ? Colors.secondary : Colors.outlineVariant
-                        opacity: st.active || !st.occupied ? 1 : 0.8
+                        color: cozy.dialTick(tickSt.wsState).color
+                        opacity: cozy.dialTick(tickSt.wsState).opacity
                     }
                 }
             }

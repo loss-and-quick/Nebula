@@ -152,10 +152,10 @@ def run(purge: bool = False, assume_yes: bool = False) -> int:
         print("Nothing changed.")
         return 1
 
-    from nebula import cli
-    qs = cli._qs_bin()
-    if qs and cli._instance_pids(qs):
-        cli.cmd_stop(None)
+    from nebula import instance_pids, qs_bin, stop_shell
+    qs = qs_bin()
+    if qs and instance_pids(qs):
+        _ = stop_shell()
 
     for path, new in hypr_edits:
         shutil.copy2(path, path.with_name(path.name + ".nebula-uninstall.bak"))

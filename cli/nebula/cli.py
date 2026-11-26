@@ -7,7 +7,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from nebula import __version__
+from nebula import __version__, instance_pids, qs_bin, stop_shell
 from nebula import settings
 from nebula.paths import COLORS, HOME, SH_DIR, SHELL_DIR, migrate
 
@@ -357,11 +357,7 @@ def cmd_setup(a) -> int:
                           stderr=subprocess.DEVNULL).returncode
 
 
-def _qs_bin():
-    qs = shutil.which("qs") or shutil.which("quickshell")
-    if not qs:
-        print("nebula: quickshell is not installed", file=sys.stderr)
-    return qs
+_qs_bin = qs_bin
 
 
 def _running(pattern: str) -> bool:
@@ -613,33 +609,7 @@ def _check_load(qs: str, wait: float = 20.0) -> int:
     return 0
 
 
-def _instance_pids(qs: str) -> list:
-    r = subprocess.run([qs, "list", "-j", "-p", str(SHELL_DIR / "shell.qml")],
-                       capture_output=True, text=True)
-    try:
-        return [int(i["pid"]) for i in json.loads(r.stdout or "[]")]
-    except Exception:
-        return []
-
-
-def _descendants(roots: list) -> set:
-    from pathlib import Path
-    children = {}
-    for stat in Path("/proc").glob("[0-9]*/stat"):
-        try:
-            fields = stat.read_text().rsplit(")", 1)[1].split()
-            children.setdefault(int(fields[1]), []).append(int(stat.parent.name))
-        except (OSError, IndexError, ValueError):
-            continue
-    found = set()
-    todo = list(roots)
-    while todo:
-        pid = todo.pop()
-        if pid in found:
-            continue
-        found.add(pid)
-        todo.extend(children.get(pid, []))
-    return found
+_instance_pids = instance_pids
 
 
 def cmd_uninstall(a) -> int:
@@ -647,23 +617,8 @@ def cmd_uninstall(a) -> int:
     return uninstall.run(purge=a.purge, assume_yes=a.yes)
 
 
-def cmd_stop(a) -> int:
-    import signal
-    qs = _qs_bin()
-    if not qs:
-        return 1
-    roots = _instance_pids(qs)
-    if not roots:
-        print("nebula: the shell isn't running", file=sys.stderr)
-        return 1
-    procs = _descendants(roots)
-    for sig in (signal.SIGSTOP, signal.SIGKILL):
-        for pid in procs:
-            try:
-                os.kill(pid, sig)
-            except (ProcessLookupError, PermissionError):
-                pass
-    return 0
+def cmd_stop(_a: object = None) -> int:
+    return stop_shell()
 
 
 def _shell_up(qs: str) -> bool:

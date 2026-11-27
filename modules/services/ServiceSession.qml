@@ -10,7 +10,7 @@ import qs.modules.settings
 Singleton {
     id: root
 
-    property alias shutdownOpen: GlobalStates.shutdownWindow
+    readonly property bool shutdownOpen: GlobalStates.shutdownWindow
 
     readonly property var actions: [
         {
